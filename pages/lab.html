@@ -1,20 +1,120 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Chaos Lab</title><link rel='stylesheet' href='../css/style.css'></head><body><div class='stars'></div><div class='wrap'><div class='topbar'><div class='logo small-logo'>CHAOS_LAB</div><div class='blink'>scientifically unnecessary</div></div><div class='marquee'><span>CHAOS LAB • GENERATORS • SUSPICIOUS BUTTONS • EXPERIMENTS WITHOUT PURPOSE •</span></div><div class='grid'><aside><div class='box nav'><h3>navigation</h3>
-<a href='../index.html'>Home</a>
-<a href='../pages/about.html'>About</a>
-<a href='../pages/games.html'>Tiny Games</a>
-<a href='../pages/random.html'>Random Junk</a>
-<a href='../pages/cars.html'>Garage</a>
-<a href='../pages/lab.html'>Chaos Lab</a>
-<a href='../pages/desktop.html'>Fake Desktop</a>
-<a href='../pages/aquarium.html'>Pixel Aquarium</a>
-<a href='../pages/webring.html'>Web Ring</a>
-<a href='../pages/guestbook.html'>Guestbook</a>
-<a href='../pages/secrets.html'>???</a>
-</div><div class='box'><h3>site controls</h3><button onclick='spawnAd(true)'>summon fake ad</button><button onclick='spawnSticker()'>random sticker</button></div></aside><main>
-<div class='box'><h2>Project Idea Generator</h2><p>For when one unfinished project is not enough.</p><button onclick='projectIdea()'>generate bad idea</button><p id='ideaOut'></p></div>
-<div class='box'><h2>Goblin Name Generator</h2><button onclick='goblinName()'>name the goblin</button><p id='goblinOut'></p></div>
-<div class='box'><h2>Status Light Panel</h2><p>Click lights. They do not control anything. Probably.</p><div id='lightPanel' class='light-panel'></div></div>
-<div class='box'><h2>Official Nonsense Form</h2><label>Choose your internet disease:</label><select onchange='document.getElementById("formOut").textContent="Diagnosis: "+this.value'><option>select...</option><option>too many tabs</option><option>wire drawer infection</option><option>project creep</option><option>fake toolbar exposure</option></select><p id='formOut'></p></div>
-</main><aside>
-<div class='box'><h3>lab safety</h3><p>Goggles recommended. Common sense unavailable.</p></div><div class='box'><h3>current specimen</h3><p class='huge'>🧫</p><p>It is blinking. That seems fine.</p></div>
-</aside></div><div class='footer'>Retro Chaos Zone • fake ads, real vibes</div></div><script src='../js/main.js'></script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Chaos Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo small-logo">Chaos Lab</div>
+      <div class="blink">scientifically unnecessary since the first blink</div>
+    </div>
+    <div class="marquee"><span>CHAOS LAB - GENERATORS - NONSENSE METERS - FAKE SCIENCE - BUTTONS WITHOUT SUPERVISION -</span></div>
+
+    <div class="grid">
+      <aside>
+        <div class="box nav">
+          <h3>navigation</h3>
+          <a href="../index.html">Home</a>
+          <a href="about.html">Signal Archive</a>
+          <a href="games.html">Tiny Games</a>
+          <a href="random.html">Random Junk</a>
+          <a href="cars.html">Impossible Garage</a>
+          <a href="lab.html">Chaos Lab</a>
+          <a href="desktop.html">Fake Desktop</a>
+          <a href="aquarium.html">Pixel Aquarium</a>
+          <a href="webring.html">Web Ring</a>
+          <a href="guestbook.html">Guestbook</a>
+          <a href="secrets.html">???</a>
+          <small>deep archive</small>
+          <a href="void.html">Loading Void</a>
+          <a href="ads.html">Fake Ad Museum</a>
+          <a href="oracle.html">Mystery Bolt Oracle</a>
+          <a href="objects.html">Object Shrine</a>
+          <a href="tv.html">Broken CRT</a>
+          <a href="buttons.html">Useless Buttons</a>
+          <a href="maze.html">Tiny Link Maze</a>
+        </div>
+        <div class="box">
+          <h3>site controls</h3>
+          <button onclick="spawnAd(true)">summon fake ad</button>
+          <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
+          <button onclick="spawnSticker()">random sticker</button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="box">
+          <h2>Experiment Generator</h2>
+          <p>For when one unstable archive specimen is not enough.</p>
+          <button onclick="archiveExperiment()">generate experiment</button>
+          <p id="ideaOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Signal Name Generator</h2>
+          <button onclick="signalName()">name the signal</button>
+          <p id="signalOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Status Light Panel</h2>
+          <p>Click lights. They do not control anything. Probably.</p>
+          <div id="lightPanel" class="light-panel"></div>
+        </div>
+
+        <div class="box">
+          <h2>Nonsense Meters</h2>
+          <div class="meter-stack">
+            <label>Static confidence</label><div class="nonsense-meter"><span></span></div>
+            <label>Button pressure</label><div class="nonsense-meter"><span></span></div>
+            <label>Archive humidity</label><div class="nonsense-meter"><span></span></div>
+          </div>
+          <button onclick="scrambleMeters()">recalibrate badly</button>
+          <p id="meterOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Official Nonsense Form</h2>
+          <label>Choose the current archive condition:</label>
+          <select onchange="document.getElementById('formOut').textContent='Diagnosis: '+this.value">
+            <option>select...</option>
+            <option>banner fatigue</option>
+            <option>wire drawer infection</option>
+            <option>loading bar dread</option>
+            <option>fake toolbar exposure</option>
+          </select>
+          <p id="formOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Experimental Toggles</h2>
+          <button data-spin-toggle onclick="toggleSpinMode()">spin mode</button>
+          <button onclick="flipPanel()">invert spectrum</button>
+          <button onclick="spawnConfetti()">overreact</button>
+          <p id="labOut"></p>
+        </div>
+      </main>
+
+      <aside>
+        <div class="box">
+          <h3>lab safety</h3>
+          <p>Goggles recommended. Common sense unavailable.</p>
+        </div>
+        <div class="box">
+          <h3>current specimen</h3>
+          <p class="huge">[!]</p>
+          <p>It is blinking. That seems official.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">Odd Frequency Archive - chaos lab notes with no peer review.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>

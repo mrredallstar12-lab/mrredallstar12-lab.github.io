@@ -1,19 +1,116 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Web Ring</title><link rel='stylesheet' href='../css/style.css'></head><body><div class='stars'></div><div class='wrap'><div class='topbar'><div class='logo small-logo'>WEB_RING</div><div class='blink'>surf carefully</div></div><div class='marquee'><span>WEB RING • FAKE AWARDS • BUTTON WALL • UNDER CONSTRUCTION GRAPHICS IN SPIRIT •</span></div><div class='grid'><aside><div class='box nav'><h3>navigation</h3>
-<a href='../index.html'>Home</a>
-<a href='../pages/about.html'>About</a>
-<a href='../pages/games.html'>Tiny Games</a>
-<a href='../pages/random.html'>Random Junk</a>
-<a href='../pages/cars.html'>Garage</a>
-<a href='../pages/lab.html'>Chaos Lab</a>
-<a href='../pages/desktop.html'>Fake Desktop</a>
-<a href='../pages/aquarium.html'>Pixel Aquarium</a>
-<a href='../pages/webring.html'>Web Ring</a>
-<a href='../pages/guestbook.html'>Guestbook</a>
-<a href='../pages/secrets.html'>???</a>
-</div><div class='box'><h3>site controls</h3><button onclick='spawnAd(true)'>summon fake ad</button><button onclick='spawnSticker()'>random sticker</button></div></aside><main>
-<div class='box'><h2>Fake Web Ring</h2><p>Because every retro site needs a suspicious list of places to go.</p><div class='button-wall'><a class='button' onclick='spawnAd(true)'>FREE CURSORS</a><a class='button' onclick='fakeDownload("MIDI Pack")'>MIDI PACK</a><a class='button' onclick='openFakeWindow("Award", "You won Best Use of Too Much Border in a Personal Website.")'>SITE AWARD</a><a class='button' onclick='spawnSticker()'>STICKER ZONE</a><a class='button' href='secrets.html'>SECRET?</a></div></div>
-<div class='box'><h2>88x31-ish button wall</h2><div class='mini-buttons'><span>NO CSS? YES CSS</span><span>BEST VIEWED LOUD</span><span>CRT CLUB</span><span>GOBLIN NET</span><span>POPUP SAFE</span><span>UNDER CONSTRUCTION</span><span>HTML 4EVER</span><span>WIRE DRAWER</span></div></div>
-<div class='box'><h2>Fake awards</h2><p>🏆 “Most Likely To Have A Secret Page”</p><p>🏆 “Certified Digital Junk Drawer”</p><p>🏆 “Excessive Use Of Neon, But In A Good Way”</p></div>
-</main><aside>
-<div class='box'><h3>ring status</h3><p>previous: haunted fansite<br>next: abandoned forum<br>random: probably a 404</p></div><div class='box'><h3>surf tip</h3><p>Never trust a dancing download button.</p></div>
-</aside></div><div class='footer'>Retro Chaos Zone • fake ads, real vibes</div></div><script src='../js/main.js'></script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Web Ring</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo small-logo">Web Ring</div>
+      <div class="blink">surf carefully; the buttons have opinions</div>
+    </div>
+    <div class="marquee"><span>WEB RING - FAKE AWARDS - BUTTON WALL - INTERNAL JUMPS - UNDER CONSTRUCTION FOREVER -</span></div>
+
+    <div class="grid">
+      <aside>
+        <div class="box nav">
+          <h3>navigation</h3>
+          <a href="../index.html">Home</a>
+          <a href="about.html">Signal Archive</a>
+          <a href="games.html">Tiny Games</a>
+          <a href="random.html">Random Junk</a>
+          <a href="cars.html">Impossible Garage</a>
+          <a href="lab.html">Chaos Lab</a>
+          <a href="desktop.html">Fake Desktop</a>
+          <a href="aquarium.html">Pixel Aquarium</a>
+          <a href="webring.html">Web Ring</a>
+          <a href="guestbook.html">Guestbook</a>
+          <a href="secrets.html">???</a>
+          <small>deep archive</small>
+          <a href="void.html">Loading Void</a>
+          <a href="ads.html">Fake Ad Museum</a>
+          <a href="oracle.html">Mystery Bolt Oracle</a>
+          <a href="objects.html">Object Shrine</a>
+          <a href="tv.html">Broken CRT</a>
+          <a href="buttons.html">Useless Buttons</a>
+          <a href="maze.html">Tiny Link Maze</a>
+        </div>
+        <div class="box">
+          <h3>site controls</h3>
+          <button onclick="spawnAd(true)">summon fake ad</button>
+          <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
+          <button onclick="spawnSticker()">random sticker</button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="box">
+          <h2>Fake Web Ring</h2>
+          <p>A suspicious list of neighbor sites that are really just strange doors inside this archive.</p>
+          <div class="button-wall">
+            <a class="button" href="buttons.html">FREE BUTTONS</a>
+            <a class="button" onclick="fakeDownload('MIDI Pack')">MIDI PACK</a>
+            <a class="button" onclick="openFakeWindow('Award','You won Best Use of Too Much Border in a Fictional Archive.')">SITE AWARD</a>
+            <a class="button" onclick="spawnSticker()">STICKER ZONE</a>
+            <a class="button" href="secrets.html">SECRET?</a>
+            <a class="button" onclick="randomWebringJump()">RANDOM NEIGHBOR</a>
+          </div>
+          <p id="downloadOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>88x31-ish Button Wall</h2>
+          <div class="mini-buttons">
+            <span>BEST VIEWED LOUD</span>
+            <span>CRT CLUB</span>
+            <span>POPUP SAFE</span>
+            <span>UNDER CONSTRUCTION</span>
+            <span>HTML 4EVER</span>
+            <span>WIRE DRAWER</span>
+            <span>STATIC FAN</span>
+            <span>NO NORMAL</span>
+            <span>VOID RING</span>
+            <span>BUTTONS YES</span>
+          </div>
+        </div>
+
+        <div class="box">
+          <h2>Fake Neighbor Sites</h2>
+          <table>
+            <tr><th>Site</th><th>Description</th><th>Door</th></tr>
+            <tr><td>Loading Void</td><td>A page that has almost finished loading since forever.</td><td><a href="void.html">enter</a></td></tr>
+            <tr><td>Broken CRT Broadcast</td><td>Channel surfing through strange archive signals.</td><td><a href="tv.html">tune in</a></td></tr>
+            <tr><td>Object Shrine</td><td>A display case for very important junk.</td><td><a href="objects.html">inspect</a></td></tr>
+            <tr><td>Fake Ad Museum</td><td>Parody popup specimens behind imaginary velvet rope.</td><td><a href="ads.html">browse</a></td></tr>
+          </table>
+        </div>
+
+        <div class="box">
+          <h2>Fake Awards</h2>
+          <p>[TROPHY] Most Likely To Have A Secret Page</p>
+          <p>[TROPHY] Certified Digital Junk Drawer</p>
+          <p>[TROPHY] Excessive Use Of Neon, But In A Good Way</p>
+        </div>
+      </main>
+
+      <aside>
+        <div class="box">
+          <h3>ring status</h3>
+          <p>previous: haunted fansite<br>next: abandoned forum<br>random: probably a 404</p>
+        </div>
+        <div class="box">
+          <h3>surf tip</h3>
+          <p>Never trust a dancing download button, especially when it rhymes.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">Odd Frequency Archive - web ring with imaginary neighbors.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>

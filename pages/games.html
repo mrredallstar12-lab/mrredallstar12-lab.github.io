@@ -1,21 +1,140 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Tiny Games</title><link rel='stylesheet' href='../css/style.css'></head><body><div class='stars'></div><div class='wrap'><div class='topbar'><div class='logo small-logo'>ARCADE</div><div class='blink'>insert imaginary quarter</div></div><div class='marquee'><span>ARCADE • NO REFUNDS • MACHINE MAY BE HAUNTED • HIGH SCORE SAVED NOWHERE IMPORTANT •</span></div><div class='grid'><aside><div class='box nav'><h3>navigation</h3>
-<a href='../index.html'>Home</a>
-<a href='../pages/about.html'>About</a>
-<a href='../pages/games.html'>Tiny Games</a>
-<a href='../pages/random.html'>Random Junk</a>
-<a href='../pages/cars.html'>Garage</a>
-<a href='../pages/lab.html'>Chaos Lab</a>
-<a href='../pages/desktop.html'>Fake Desktop</a>
-<a href='../pages/aquarium.html'>Pixel Aquarium</a>
-<a href='../pages/webring.html'>Web Ring</a>
-<a href='../pages/guestbook.html'>Guestbook</a>
-<a href='../pages/secrets.html'>???</a>
-</div><div class='box'><h3>site controls</h3><button onclick='spawnAd(true)'>summon fake ad</button><button onclick='spawnSticker()'>random sticker</button></div></aside><main>
-<div class='box'><h2>Alien / Trash / Car / Ice Cube Clicker</h2><p>Click the floating thing. That is the whole game. Somehow still better than some mobile games.</p><p>Score: <b id='score'>0</b></p><div id='clickGame' class='mini-game'></div></div>
-<div class='box'><h2>Bug Squasher</h2><p>Squash the bugs before they emotionally damage the layout.</p><p>Bugs squashed: <b id='bugScore'>0</b></p><div id='bugGame' class='mini-game bug-game'></div></div>
-<div class='box'><h2>Reaction Goblin</h2><p>Press start. When the box turns into a GO message, click it.</p><button onclick='startReaction()'>start reaction test</button><div id='reactionBox' class='reaction-box'>waiting...</div><p id='reactionOut'></p></div>
-<div class='box'><h2>Number Goblin</h2><p>Guess a number 1-10.</p><input id='guess' placeholder='type number'><button onclick="let n=Math.ceil(Math.random()*10);document.getElementById('guessOut').textContent=(+guess.value===n?'YOU GOT IT':'Nope. It was '+n)">Guess</button><p id='guessOut'></p></div>
-<div class='box'><h2>Useless Password Generator</h2><p>Generates passwords you probably should not use.</p><button onclick='badPassword()'>generate suspicious password</button><pre id='passOut'></pre></div>
-</main><aside>
-<div class='box'><h3>arcade rules</h3><p>No refunds. No tickets. Machine may be haunted.</p></div><div class='box'><h3>cabinet smell</h3><p>Warm dust, old carpet, and a mysterious Sprite spill from 2007.</p></div>
-</aside></div><div class='footer'>Retro Chaos Zone • fake ads, real vibes</div></div><script src='../js/main.js'></script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Tiny Games</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo small-logo">Tiny Games</div>
+      <div class="blink">insert imaginary quarter - receive questionable signal</div>
+    </div>
+    <div class="marquee"><span>ARCADE - NO REFUNDS - FAKE PRIZES ONLY - MACHINE MAY HUM AT NIGHT -</span></div>
+
+    <div class="grid">
+      <aside>
+        <div class="box nav">
+          <h3>navigation</h3>
+          <a href="../index.html">Home</a>
+          <a href="about.html">Signal Archive</a>
+          <a href="games.html">Tiny Games</a>
+          <a href="random.html">Random Junk</a>
+          <a href="cars.html">Impossible Garage</a>
+          <a href="lab.html">Chaos Lab</a>
+          <a href="desktop.html">Fake Desktop</a>
+          <a href="aquarium.html">Pixel Aquarium</a>
+          <a href="webring.html">Web Ring</a>
+          <a href="guestbook.html">Guestbook</a>
+          <a href="secrets.html">???</a>
+          <small>deep archive</small>
+          <a href="void.html">Loading Void</a>
+          <a href="ads.html">Fake Ad Museum</a>
+          <a href="oracle.html">Mystery Bolt Oracle</a>
+          <a href="objects.html">Object Shrine</a>
+          <a href="tv.html">Broken CRT</a>
+          <a href="buttons.html">Useless Buttons</a>
+          <a href="maze.html">Tiny Link Maze</a>
+        </div>
+        <div class="box">
+          <h3>site controls</h3>
+          <button onclick="spawnAd(true)">summon fake ad</button>
+          <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
+          <button onclick="spawnSticker()">random sticker</button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="box">
+          <h2>Signal Clicker</h2>
+          <p>Click the floating archive object. That is the whole game. Somehow it counts.</p>
+          <p>Score: <b id="score">0</b></p>
+          <div id="clickGame" class="mini-game"></div>
+        </div>
+
+        <div class="box">
+          <h2>Bug Squasher</h2>
+          <p>Squash the glitchy bits before they chew the layout.</p>
+          <p>Bugs squashed: <b id="bugScore">0</b></p>
+          <div id="bugGame" class="mini-game"></div>
+        </div>
+
+        <div class="box">
+          <h2>Popup Whack-a-Mole</h2>
+          <p>Hit the tiny fake ad buttons before they vanish into the wallpaper.</p>
+          <button onclick="startPopupMole()">start popup mole</button>
+          <p>Score: <b id="moleScore">0</b></p>
+          <div id="popupMole" class="mini-game"></div>
+        </div>
+
+        <div class="box">
+          <h2>Reaction Timer</h2>
+          <p>Press start. Click when the signal turns green.</p>
+          <button onclick="startReaction()">start reaction test</button>
+          <div id="reactionBox" class="reaction-box">waiting...</div>
+          <p id="reactionOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Mystery Button</h2>
+          <p>The button refuses to document its feature list.</p>
+          <button onclick="mysteryButton()">press mystery button</button>
+          <p id="mysteryOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Fake Captcha Challenge</h2>
+          <p>Select all squares containing "old-web energy." The answer is mostly vibes.</p>
+          <div class="captcha-grid">
+            <button onclick="fakeCaptcha()">blink</button>
+            <button onclick="fakeCaptcha()">static</button>
+            <button onclick="fakeCaptcha()">coupon</button>
+            <button onclick="fakeCaptcha()">404</button>
+            <button onclick="fakeCaptcha()">button</button>
+            <button onclick="fakeCaptcha()">banner</button>
+          </div>
+          <p id="captchaOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Corner Hunt</h2>
+          <p>A signal dot hides in a corner of the playfield.</p>
+          <button onclick="startCornerHunt()">hide signal</button>
+          <p id="cornerOut"></p>
+          <div id="cornerHunt" class="mini-game"></div>
+        </div>
+
+        <div class="box">
+          <h2>Fortune Clicker</h2>
+          <button onclick="fortuneClicker()">click for archive fortune</button>
+          <p id="fortuneClickOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Useless Password Generator</h2>
+          <p>Generates passwords that should remain fictional.</p>
+          <button onclick="badPassword()">generate suspicious password</button>
+          <pre id="passOut"></pre>
+        </div>
+      </main>
+
+      <aside>
+        <div class="box">
+          <h3>arcade rules</h3>
+          <p>No tickets. No refunds. No real prizes. All cabinets are emotionally decorative.</p>
+        </div>
+        <div class="box">
+          <h3>cabinet smell</h3>
+          <p>Warm dust, old carpet, and one legendary soda stain.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">Odd Frequency Archive - tiny games and fictional prizes.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>

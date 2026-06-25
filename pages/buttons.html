@@ -3,18 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Odd Frequency Archive - Guestbook</title>
+  <title>Odd Frequency Archive - Useless Button Collection</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
   <div class="stars"></div>
   <div class="wrap">
     <div class="topbar">
-      <div class="logo small-logo">Guestbook</div>
-      <div class="blink">leave a message in local browser memory</div>
+      <div class="logo small-logo">Useless Buttons</div>
+      <div class="blink">the buttons are training for importance</div>
     </div>
-    <div class="marquee"><span>GUESTBOOK - LOCAL STORAGE ONLY - BE WEIRD, BE NICE - REFRESH TO PROVE PERSISTENCE -</span></div>
-
+    <div class="marquee"><span>USELESS BUTTON COLLECTION - PRESS EVERYTHING - NOTHING IMPORTANT HAPPENS BEAUTIFULLY -</span></div>
     <div class="grid">
       <aside>
         <div class="box nav">
@@ -39,44 +38,34 @@
           <a href="buttons.html">Useless Buttons</a>
           <a href="maze.html">Tiny Link Maze</a>
         </div>
-        <div class="box">
-          <h3>site controls</h3>
-          <button onclick="spawnAd(true)">summon fake ad</button>
-          <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
-          <button onclick="spawnSticker()">random sticker</button>
-        </div>
       </aside>
-
       <main>
         <div class="box">
-          <h2>Sign the Guestbook</h2>
-          <p>This saves in the current browser only using localStorage. Refresh the page and the entries should still be here.</p>
-          <form id="guestForm">
-            <input id="gname" placeholder="display name">
-            <br><br>
-            <textarea id="gmsg" placeholder="leave a signal"></textarea>
-            <br><br>
-            <button>sign</button>
-            <button type="button" id="clearGuestbook">clear local guestbook</button>
-          </form>
+          <h2>Button Shelf</h2>
+          <div class="button-wall">
+            <button onclick="uselessButton(this)">align vibes</button>
+            <button onclick="uselessButton(this)">sort pixels</button>
+            <button onclick="uselessButton(this)">certify static</button>
+            <button onclick="uselessButton(this)">count blinks</button>
+            <button onclick="makeNoiseText(this)">BEEP</button>
+            <button onclick="spawnConfetti()">overdo it</button>
+            <button onclick="spawnAd(true)">fake sponsor</button>
+            <button data-spin-toggle onclick="toggleSpinMode()">spin mode</button>
+          </div>
         </div>
-        <div id="guestList"></div>
+        <div class="box">
+          <h2>Button Philosophy</h2>
+          <p>A button does not need purpose. Sometimes a button is just a border with ambition.</p>
+        </div>
       </main>
-
       <aside>
-        <div class="box">
-          <h3>guestbook law</h3>
-          <p>Be weird. Be nice. Do not summon real danger. The entries stay in this browser.</p>
-        </div>
-        <div class="box">
-          <h3>guestbook stamp</h3>
-          <p class="huge">MAIL</p>
-        </div>
+        <div class="box"><h3>button status</h3><p>All buttons are supervised by the honor system.</p></div>
+        <div class="box"><h3>related</h3><a href="games.html">Tiny Games</a></div>
       </aside>
     </div>
-
-    <div class="footer">Odd Frequency Archive - local-only guestbook.</div>
+    <div class="footer">Odd Frequency Archive - useless button collection.</div>
   </div>
   <script src="../js/main.js"></script>
 </body>
 </html>
+

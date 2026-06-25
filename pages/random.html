@@ -1,20 +1,140 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Random Junk Drawer</title><link rel='stylesheet' href='../css/style.css'></head><body><div class='stars'></div><div class='wrap'><div class='topbar'><div class='logo small-logo'>JUNK_DRAWER</div><div class='blink'>contents may shift during shipping</div></div><div class='marquee'><span>RANDOM JUNK • FAKE DOWNLOADS • BUTTONS THAT SHOULD NOT EXIST • INTERNET COUCH EXCAVATION •</span></div><div class='grid'><aside><div class='box nav'><h3>navigation</h3>
-<a href='../index.html'>Home</a>
-<a href='../pages/about.html'>About</a>
-<a href='../pages/games.html'>Tiny Games</a>
-<a href='../pages/random.html'>Random Junk</a>
-<a href='../pages/cars.html'>Garage</a>
-<a href='../pages/lab.html'>Chaos Lab</a>
-<a href='../pages/desktop.html'>Fake Desktop</a>
-<a href='../pages/aquarium.html'>Pixel Aquarium</a>
-<a href='../pages/webring.html'>Web Ring</a>
-<a href='../pages/guestbook.html'>Guestbook</a>
-<a href='../pages/secrets.html'>???</a>
-</div><div class='box'><h3>site controls</h3><button onclick='spawnAd(true)'>summon fake ad</button><button onclick='spawnSticker()'>random sticker</button></div></aside><main>
-<div class='box'><h2>Things found under the internet couch</h2><ul class='weird-list'><li>One VGA cable that still works spiritually.</li><li>A floppy disk labeled “DO NOT OPEN” with nothing on it.</li><li>An ice cube with a tiny sword.</li><li>A raccoon wearing a lanyard claiming to be IT.</li><li>A Windows error that just says “bro.”</li><li>A button that does nothing but feels important.</li><li>A 2004 forum signature that is somehow still loading.</li><li>Three unreadable burned CDs named FINAL_FINAL_REAL.iso.</li></ul><button onclick='spawnConfetti()'>the important button</button></div>
-<div class='box'><h2>Fake downloads</h2><a class='button' onclick='fakeDownload("More RAM")'>download more RAM</a><a class='button' onclick='fakeDownload("Goblin Toolbar")'>install goblin toolbar</a><a class='button' onclick='fakeDownload("Definitely Safe Screensaver")'>free screensaver probably safe</a><a class='button' onclick='fakeDownload("Car Horsepower Patch")'>+25 hp patch</a><p id='downloadOut'></p></div>
-<div class='box'><h2>Deep thoughts</h2><p>What if a website had cupholders?</p><p>What if every broken charger was actually just sleeping?</p><p>What if Clippy had a low-mile 2500 Suburban?</p><p>What if a pop-up ad could feel loneliness?</p></div>
-<div class='box'><h2>Random useless generator</h2><button onclick='randomThing()'>generate object</button><p id='thingOut'></p></div>
-</main><aside>
-<div class='box'><h3>inventory</h3><p>🧊 ice cube<br>📼 tape<br>🕹 joystick<br>🔧 wrench<br>💿 cursed CD-ROM<br>🧃 forbidden juice box</p></div><div class='box'><h3>warning</h3><p>This drawer may contain an emotionally significant cable.</p></div>
-</aside></div><div class='footer'>Retro Chaos Zone • fake ads, real vibes</div></div><script src='../js/main.js'></script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Random Junk</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo small-logo">Random Junk</div>
+      <div class="blink">contents may shift during shipping</div>
+    </div>
+    <div class="marquee"><span>RANDOM JUNK - FAKE DOWNLOADS - USELESS BUTTONS - CURSED LOADING BARS - WEIRD TABLES -</span></div>
+
+    <div class="grid">
+      <aside>
+        <div class="box nav">
+          <h3>navigation</h3>
+          <a href="../index.html">Home</a>
+          <a href="about.html">Signal Archive</a>
+          <a href="games.html">Tiny Games</a>
+          <a href="random.html">Random Junk</a>
+          <a href="cars.html">Impossible Garage</a>
+          <a href="lab.html">Chaos Lab</a>
+          <a href="desktop.html">Fake Desktop</a>
+          <a href="aquarium.html">Pixel Aquarium</a>
+          <a href="webring.html">Web Ring</a>
+          <a href="guestbook.html">Guestbook</a>
+          <a href="secrets.html">???</a>
+          <small>deep archive</small>
+          <a href="void.html">Loading Void</a>
+          <a href="ads.html">Fake Ad Museum</a>
+          <a href="oracle.html">Mystery Bolt Oracle</a>
+          <a href="objects.html">Object Shrine</a>
+          <a href="tv.html">Broken CRT</a>
+          <a href="buttons.html">Useless Buttons</a>
+          <a href="maze.html">Tiny Link Maze</a>
+        </div>
+        <div class="box">
+          <h3>site controls</h3>
+          <button onclick="spawnAd(true)">summon fake ad</button>
+          <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
+          <button onclick="spawnSticker()">random sticker</button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="box">
+          <h2>Things Found Under the Internet Couch</h2>
+          <ul class="weird-list">
+            <li>One VGA cable that still works spiritually.</li>
+            <li>A floppy disk labeled DO NOT OPEN with nothing on it.</li>
+            <li>A button that does nothing but feels important.</li>
+            <li>A 2004 forum signature that is somehow still loading.</li>
+            <li>Three unreadable burned CDs named FINAL_FINAL_REAL.iso.</li>
+            <li>A laminated certificate for "Most Improved Loading Bar."</li>
+          </ul>
+          <button onclick="spawnConfetti()">the important button</button>
+        </div>
+
+        <div class="box">
+          <h2>Fake Downloads</h2>
+          <a class="button" onclick="fakeDownload('More RAM')">download more RAM</a>
+          <a class="button" onclick="fakeDownload('Definitely Safe Screensaver')">free screensaver probably safe</a>
+          <a class="button" onclick="fakeDownload('Static Enhancer')">static enhancer</a>
+          <a class="button" onclick="fakeDownload('Popup Polisher')">popup polisher</a>
+          <p id="downloadOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Fake Facts</h2>
+          <button onclick="fakeFact()">generate fake fact</button>
+          <p id="factOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Random Object Generator</h2>
+          <button onclick="randomThing()">generate object</button>
+          <p id="thingOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Cursed Loading Bar</h2>
+          <button onclick="cursedLoad()">load the thing</button>
+          <div id="loadBar" class="nonsense-meter"><span></span></div>
+          <p id="loadOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Fake Awards</h2>
+          <p><b>Best Use of Border:</b> pending.</p>
+          <p><b>Most Suspicious Button:</b> every button is tied.</p>
+          <p><b>Most Dramatic Table Cell:</b> see below.</p>
+        </div>
+
+        <div class="box">
+          <h2>Fake Survey</h2>
+          <label>Which archive problem is most urgent?</label>
+          <select>
+            <option>Too much blinking</option>
+            <option>Not enough blinking</option>
+            <option>The same amount of blinking but sideways</option>
+          </select>
+          <button onclick="fakeSurvey()">submit fake survey</button>
+          <p id="surveyOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Weird Table</h2>
+          <table>
+            <tr><th>Object</th><th>Status</th><th>Notes</th></tr>
+            <tr><td>Loose pixel</td><td>contained</td><td>keeps blinking Morse code</td></tr>
+            <tr><td>Coupon ash</td><td>glowing</td><td>smells like banner ads</td></tr>
+            <tr><td>Unclaimed click</td><td>restless</td><td>stored in a jar labeled maybe</td></tr>
+          </table>
+        </div>
+      </main>
+
+      <aside>
+        <div class="box">
+          <h3>inventory</h3>
+          <p>CRT dust<br>VHS tape<br>joystick spring<br>fake coupon<br>cursed CD-ROM<br>forbidden juice box</p>
+        </div>
+        <div class="box">
+          <h3>useless buttons</h3>
+          <button onclick="uselessButton(this)">calibrate nothing</button>
+          <button onclick="uselessButton(this)">sort static</button>
+          <button onclick="uselessButton(this)">refresh vibes</button>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">Odd Frequency Archive - random junk with clean local storage habits.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>

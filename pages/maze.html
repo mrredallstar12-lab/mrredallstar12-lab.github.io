@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Tiny Link Maze</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo small-logo">Tiny Link Maze</div>
+      <div class="blink">every exit has a second opinion</div>
+    </div>
+    <div class="marquee"><span>TINY LINK MAZE - CHOOSE A ROOM - GET A MESSAGE - MAYBE A POPUP -</span></div>
+    <div class="grid">
+      <aside>
+        <div class="box nav">
+          <h3>navigation</h3>
+          <a href="../index.html">Home</a>
+          <a href="about.html">Signal Archive</a>
+          <a href="games.html">Tiny Games</a>
+          <a href="random.html">Random Junk</a>
+          <a href="cars.html">Impossible Garage</a>
+          <a href="lab.html">Chaos Lab</a>
+          <a href="desktop.html">Fake Desktop</a>
+          <a href="aquarium.html">Pixel Aquarium</a>
+          <a href="webring.html">Web Ring</a>
+          <a href="guestbook.html">Guestbook</a>
+          <a href="secrets.html">???</a>
+          <small>deep archive</small>
+          <a href="void.html">Loading Void</a>
+          <a href="ads.html">Fake Ad Museum</a>
+          <a href="oracle.html">Mystery Bolt Oracle</a>
+          <a href="objects.html">Object Shrine</a>
+          <a href="tv.html">Broken CRT</a>
+          <a href="buttons.html">Useless Buttons</a>
+          <a href="maze.html">Tiny Link Maze</a>
+        </div>
+      </aside>
+      <main>
+        <div class="box">
+          <h2>Choose a Room</h2>
+          <div class="maze-grid">
+            <div class="maze-room"><button onclick="mazeChoice('a')">Room A</button><a href="void.html">void stairs</a></div>
+            <div class="maze-room"><button onclick="mazeChoice('b')">Room B</button><a href="tv.html">static door</a></div>
+            <div class="maze-room"><button onclick="mazeChoice('c')">Room C</button><a href="maze.html">loop</a></div>
+            <div class="maze-room"><button onclick="mazeChoice('d')">Room D</button><a href="ads.html">ad alcove</a></div>
+            <div class="maze-room"><button onclick="mazeChoice('e')">Room E</button><a href="objects.html">object shelf</a></div>
+            <div class="maze-room"><button onclick="mazeChoice('f')">Room F</button><a href="oracle.html">oracle hatch</a></div>
+          </div>
+          <p id="mazeOut">The maze is waiting for a bad decision.</p>
+        </div>
+      </main>
+      <aside>
+        <div class="box"><h3>maze map</h3><pre> A--B--C
+ |  |  |
+ D--E--F</pre></div>
+        <div class="box"><h3>exit?</h3><a href="../index.html">return home</a></div>
+      </aside>
+    </div>
+    <div class="footer">Odd Frequency Archive - tiny link maze.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>

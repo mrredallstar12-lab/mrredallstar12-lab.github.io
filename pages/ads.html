@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Fake Ad Museum</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo small-logo">Fake Ad Museum</div>
+      <div class="blink">parody popups behind imaginary glass</div>
+    </div>
+    <div class="marquee"><span>FAKE AD MUSEUM - NO REAL DOWNLOADS - NO REAL CLAIMS - ONLY LOUD PARODY WINDOWS -</span></div>
+    <div class="grid">
+      <aside>
+        <div class="box nav">
+          <h3>navigation</h3>
+          <a href="../index.html">Home</a>
+          <a href="about.html">Signal Archive</a>
+          <a href="games.html">Tiny Games</a>
+          <a href="random.html">Random Junk</a>
+          <a href="cars.html">Impossible Garage</a>
+          <a href="lab.html">Chaos Lab</a>
+          <a href="desktop.html">Fake Desktop</a>
+          <a href="aquarium.html">Pixel Aquarium</a>
+          <a href="webring.html">Web Ring</a>
+          <a href="guestbook.html">Guestbook</a>
+          <a href="secrets.html">???</a>
+          <small>deep archive</small>
+          <a href="void.html">Loading Void</a>
+          <a href="ads.html">Fake Ad Museum</a>
+          <a href="oracle.html">Mystery Bolt Oracle</a>
+          <a href="objects.html">Object Shrine</a>
+          <a href="tv.html">Broken CRT</a>
+          <a href="buttons.html">Useless Buttons</a>
+          <a href="maze.html">Tiny Link Maze</a>
+        </div>
+      </aside>
+      <main>
+        <div class="box">
+          <h2>Popup Specimens</h2>
+          <p>The museum rotates through fake prize popups, toolbar simulators, horoscope ads, dancing banners, fake download managers, visitor number claims, web ring invitations, desktop alerts, aquarium sponsors, and cursed coupons.</p>
+          <button onclick="spawnAd(true)">display random specimen</button>
+          <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
+          <p id="adStormStatus">Ad storm: paused.</p>
+        </div>
+        <div class="box">
+          <h2>Catalog</h2>
+          <table>
+            <tr><th>Specimen</th><th>Notes</th></tr>
+            <tr><td>Fake prize popup</td><td>Yells about nothing and awards nothing.</td></tr>
+            <tr><td>Toolbar simulator</td><td>Pretends to add buttons, installs nothing.</td></tr>
+            <tr><td>Fake download manager</td><td>Moves a progress bar for decorative purposes.</td></tr>
+            <tr><td>Aquarium sponsor</td><td>Requests bubble funding from nobody.</td></tr>
+          </table>
+        </div>
+      </main>
+      <aside>
+        <div class="box"><h3>museum rule</h3><p>All ads are fake, harmless, draggable, and overconfident.</p></div>
+        <div class="box"><h3>gift shop</h3><button onclick="fakeDownload('Museum Postcard')">fake postcard</button><p id="downloadOut"></p></div>
+      </aside>
+    </div>
+    <div class="footer">Odd Frequency Archive - fake ad museum.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>
+

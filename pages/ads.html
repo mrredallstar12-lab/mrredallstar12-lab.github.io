@@ -45,7 +45,7 @@
           <p>The museum rotates through fake prize popups, toolbar simulators, horoscope ads, dancing banners, fake download managers, visitor number claims, web ring invitations, desktop alerts, aquarium sponsors, and cursed coupons.</p>
           <button onclick="spawnAd(true)">display random specimen</button>
           <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
-          <p id="adStormStatus">Ad storm: paused.</p>
+          <p id="adStormStatus" data-ad-storm-status>Ad storm: paused.</p>
         </div>
         <div class="box">
           <h2>Catalog</h2>
@@ -55,7 +55,17 @@
             <tr><td>Toolbar simulator</td><td>Pretends to add buttons, installs nothing.</td></tr>
             <tr><td>Fake download manager</td><td>Moves a progress bar for decorative purposes.</td></tr>
             <tr><td>Aquarium sponsor</td><td>Requests bubble funding from nobody.</td></tr>
+            <tr><td>Cursed coupon</td><td>Printed on paper that refuses discounts.</td></tr>
+            <tr><td>Visitor claim</td><td>A fake certificate with a dramatic number.</td></tr>
           </table>
+        </div>
+        <div class="box">
+          <h2>Curator Notes</h2>
+          <ul class="weird-list">
+            <li>Every specimen keeps its close button for humane containment.</li>
+            <li>Dragging is encouraged; stacking is discouraged after twelve popups.</li>
+            <li>The dancing banner was observed blinking at the coupon case.</li>
+          </ul>
         </div>
       </main>
       <aside>
@@ -68,4 +78,3 @@
   <script src="../js/main.js"></script>
 </body>
 </html>
-

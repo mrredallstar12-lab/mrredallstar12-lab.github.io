@@ -44,6 +44,7 @@
           <button onclick="spawnAd(true)">summon fake ad</button>
           <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
           <button onclick="spawnSticker()">random sticker</button>
+          <p data-ad-storm-status>Ad storm: paused.</p>
         </div>
       </aside>
 
@@ -73,9 +74,33 @@
             <label>Static confidence</label><div class="nonsense-meter"><span></span></div>
             <label>Button pressure</label><div class="nonsense-meter"><span></span></div>
             <label>Archive humidity</label><div class="nonsense-meter"><span></span></div>
+            <label>Coupon radiation</label><div class="nonsense-meter"><span></span></div>
+            <label>Popup buoyancy</label><div class="nonsense-meter"><span></span></div>
           </div>
           <button onclick="scrambleMeters()">recalibrate badly</button>
           <p id="meterOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Fake Scientific Panels</h2>
+          <table>
+            <tr><th>Specimen</th><th>Reading</th><th>Recommended Action</th></tr>
+            <tr><td>Blinking cursor</td><td>over-caffeinated</td><td>place under soft supervision</td></tr>
+            <tr><td>Expired banner ad</td><td>still persuasive</td><td>file in Fake Ad Museum</td></tr>
+            <tr><td>Missing desktop icon</td><td>hiding in taskbar</td><td>open three fake windows</td></tr>
+          </table>
+        </div>
+
+        <div class="box">
+          <h2>Warning Generator</h2>
+          <button onclick="generateWarning()">generate lab warning</button>
+          <p id="warningOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Beacon Recalibrator</h2>
+          <button onclick="recalibrateBeacon()">recalibrate beacon</button>
+          <p id="beaconOut"></p>
         </div>
 
         <div class="box">
@@ -95,8 +120,10 @@
           <h2>Experimental Toggles</h2>
           <button data-spin-toggle onclick="toggleSpinMode()">spin mode</button>
           <button onclick="flipPanel()">invert spectrum</button>
+          <button onclick="toggleContainment()">toggle containment tape</button>
           <button onclick="spawnConfetti()">overreact</button>
           <p id="labOut"></p>
+          <p id="containmentOut"></p>
         </div>
       </main>
 

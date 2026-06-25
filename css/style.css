@@ -161,6 +161,10 @@ meter{width:100%}
 .corner-dot{width:26px;height:26px;border-radius:50%;background:var(--lime);box-shadow:0 0 18px var(--lime);font-size:0}
 .captcha-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .captcha-grid button{min-height:52px;font-size:20px}
+.memory-grid{display:grid;grid-template-columns:repeat(4,minmax(48px,1fr));gap:8px;max-width:360px}
+.memory-tile{min-height:58px;background:#080018;color:#0ff;border:3px outset #aaa;font-size:18px}
+.memory-tile.matched{background:#123d12;color:#b6ff00;border-style:inset}
+.hidden-pixel{position:absolute;width:8px;height:8px;background:#fff000;border:0;padding:0;box-shadow:0 0 10px #fff000;animation:blink .45s steps(1) infinite}
 .reaction-box{height:95px;border:4px inset #fff;background:#111;display:grid;place-items:center;font-size:28px;margin-top:10px;text-align:center}
 .reaction-box.go{background:#00ff66;color:#000}
 .reaction-box.too-soon{background:#f00;color:#fff}
@@ -185,8 +189,17 @@ meter{width:100%}
 
 .fake-desktop button{background:transparent;color:#fff;border:1px dotted transparent;text-shadow:1px 1px 2px #000;font-size:15px}
 .fake-desktop button:hover{border-color:#fff;background:rgba(255,255,255,.18)}
+.desktop-icon{display:grid;gap:5px;justify-items:center}
+.pixel-icon{width:42px;height:34px;border:3px outset #ddd;background:#c0c0c0;box-shadow:inset -5px -5px #777,inset 4px 4px #fff;display:grid;place-items:center;color:#000;font:bold 13px "Courier New";text-shadow:none}
+.pixel-icon.disk{background:#233c8c;color:#fff}
+.pixel-icon.folder{background:#f0c650;color:#000}
+.pixel-icon.alert{background:#ffef68;color:#000}
+.pixel-icon.net{background:#5bd7ff;color:#002}
+.pixel-icon.paint{background:linear-gradient(135deg,#ff59c8,#5ff,#ff0)}
 .taskbar{background:#c0c0c0;color:#000;border:3px outset #fff;padding:6px;display:flex;gap:8px;flex-wrap:wrap}
 .taskbar span{border:2px inset #eee;background:#ddd;padding:4px 10px}
+.taskbar button,.taskbar-window{border:2px outset #fff;background:#ddd;color:#000;padding:4px 10px;margin:0;font-size:12px}
+.taskbar-window.active{border-style:inset;background:#b8c7ff}
 
 .aquarium{
   height:320px;
@@ -206,6 +219,13 @@ meter{width:100%}
 }
 
 .fish{position:absolute;font-size:32px;animation:swim 12s linear infinite;text-shadow:0 0 8px #fff;z-index:2}
+.creature{font-family:"Courier New",monospace;font-weight:bold;padding:2px 6px;border-radius:999px}
+.creature-fish{color:#ffef6b}
+.creature-eel{color:#b6ff00;letter-spacing:2px}
+.creature-crab{color:#ff7b7b}
+.creature-boot{color:#222;background:#ddd;text-shadow:none;border-radius:2px}
+.creature-sub{color:#111;background:#9df;border:2px outset #cff;text-shadow:none}
+.creature-bubble-creature{color:#fff;border:2px solid #fff}
 .bubble{position:absolute;border:2px solid rgba(255,255,255,.8);border-radius:50%;animation:bubble 4s linear forwards;z-index:1}
 @keyframes swim{from{transform:translateX(-80px)}to{transform:translateX(calc(100vw + 80px))}}
 @keyframes bubble{from{transform:translateY(0);opacity:.8}to{transform:translateY(-260px);opacity:0}}
@@ -239,7 +259,7 @@ meter{width:100%}
 
 .popup-ad{
   position:fixed;
-  width:min(330px,86vw);
+  width:min(340px,86vw);
   color:#000;
   border:4px outset #fff;
   box-shadow:8px 8px 0 rgba(0,0,0,.45),0 0 22px #ff00cc;
@@ -248,7 +268,7 @@ meter{width:100%}
   animation:adPop .18s ease-out;
 }
 
-.popup-ad .ad-title{padding:5px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.popup-ad .ad-title{padding:5px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:move}
 .popup-ad .ad-body{padding:10px}
 .popup-ad button{font-size:12px}
 .popup-ad .x{background:#c00;color:#fff;border:2px outset #fff;padding:1px 7px;min-width:28px}
@@ -258,16 +278,58 @@ meter{width:100%}
 @keyframes progress{to{width:93%}}
 @keyframes adPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 
-.ad-prize{background:#fff7b5}.ad-prize .ad-title{background:linear-gradient(90deg,#ff0048,#fff000)}
-.ad-toolbar{background:#d6d6d6}.ad-toolbar .ad-title{background:#000080;color:#fff}.ad-toolbar .ad-body{background:#c0c0c0}
-.ad-fortune{background:#210032;color:#fff;border-color:#ff87ea}.ad-fortune .ad-title{background:#6b006b;color:#fff}.ad-fortune .ad-fine{color:#e7c7ff}
-.ad-banner{background:repeating-linear-gradient(45deg,#ff0 0 12px,#0ff 12px 24px)}.ad-banner .ad-title{background:#000;color:#fff}
-.ad-download{background:#e8fff4}.ad-download .ad-title{background:#006b39;color:#fff}
-.ad-visitor{background:#fff}.ad-visitor .ad-title{background:#ff6b00;color:#000}
-.ad-ring{background:#eef0ff}.ad-ring .ad-title{background:#3d26a8;color:#fff}
-.ad-alert{background:#f1f1f1}.ad-alert .ad-title{background:#7b0000;color:#fff}
-.ad-aquarium{background:#d7ffff}.ad-aquarium .ad-title{background:#006fc9;color:#fff}
-.ad-coupon{background:#ffe0f3}.ad-coupon .ad-title{background:#ff00cc;color:#000}
+.ad-prize{background:#fff4a8;border-color:#ffcf00;box-shadow:8px 8px 0 #6b3200,0 0 28px #ff8a00}
+.ad-prize .ad-title{background:linear-gradient(90deg,#ff6b00,#fff000,#ff6b00);color:#3b1600;text-shadow:1px 1px #fff}
+.ad-burst{font:28px Impact,sans-serif;color:#f00;text-align:center;text-shadow:2px 2px #fff,4px 4px #ff0;animation:pulse .6s infinite alternate}
+.ad-loud{background:#ff6b00;color:#000;border:2px dashed #fff;padding:5px}
+.winner-number{font:bold 18px "Courier New";background:#000;color:#0f0;border:3px inset #777;padding:6px;text-align:center}
+
+.ad-toolbar{background:#d6d6d6;border-color:#eee;box-shadow:7px 7px #333}
+.ad-toolbar .ad-title{background:#000080;color:#fff}
+.ad-toolbar .ad-body{background:#c0c0c0;border-top:2px solid #fff}
+.fake-checkboxes{background:#eee;border:2px inset #999;padding:6px;margin:8px 0}
+.fake-checkboxes label{display:block;color:#000;margin:3px 0}
+.fake-checkboxes input{width:auto;margin-right:6px}
+
+.ad-fortune{background:radial-gradient(circle,#4c006c,#12001c);color:#fff;border-color:#ff87ea;box-shadow:0 0 30px #b94cff,8px 8px #000}
+.ad-fortune .ad-title{background:#6b006b;color:#fff}
+.ad-fortune .ad-fine{color:#e7c7ff}
+.starscope{text-align:center;border:2px dotted #ff87ea;padding:6px;margin-bottom:8px;color:#fff000;letter-spacing:2px}
+
+.ad-banner{width:min(540px,92vw);background:repeating-linear-gradient(45deg,#ff0 0 12px,#0ff 12px 24px);border:4px dashed #f0c;animation:adPop .18s ease-out,bannerBlink .55s steps(1) infinite}
+.ad-banner .ad-title{background:#000;color:#fff}
+.ad-banner .ad-body{display:flex;align-items:center;gap:10px;min-height:82px}
+.dance-line{font:bold 18px Impact;color:#f00;text-shadow:2px 2px #fff}
+@keyframes bannerBlink{50%{border-color:#0ff;filter:hue-rotate(90deg)}}
+
+.ad-download{background:#e8fff4;border-color:#a6d8b8}
+.ad-download .ad-title{background:#006b39;color:#fff}
+.download-file{background:#fff;border:2px inset #aaa;padding:7px;margin:8px 0;color:#002}
+
+.ad-visitor{background:#fff;border:6px double #ff6b00}
+.ad-visitor .ad-title{background:#ff6b00;color:#000}
+.visitor-certificate{border:4px double #000;background:#fff7d0;text-align:center;padding:8px;margin:8px 0}
+.visitor-certificate span{display:block;font:28px "Courier New";background:#000;color:#0f0;margin-bottom:5px}
+.visitor-certificate small{font-weight:bold}
+
+.ad-ring{background:#eef0ff;border-color:#3d26a8}
+.ad-ring .ad-title{background:#3d26a8;color:#fff}
+.ring-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:8px 0}
+.ring-buttons button{background:#000;color:#0ff;border:2px outset #77f}
+
+.ad-alert{background:#f1f1f1;border-color:#ddd;box-shadow:7px 7px #111}
+.ad-alert .ad-title{background:#7b0000;color:#fff}
+.system-alert{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:start}
+.alert-icon{width:44px;height:44px;border-radius:50%;background:#ff0;border:3px solid #000;display:grid;place-items:center;font:bold 32px Arial}
+
+.ad-aquarium{background:linear-gradient(#d7ffff,#54c7ff);border-color:#8df;overflow:hidden}
+.ad-aquarium .ad-title{background:#006fc9;color:#fff}
+.ad-water{font-size:22px;color:#004f7c;animation:bob 1.2s ease-in-out infinite}
+
+.ad-coupon{background:#ffe8f5;border:4px dashed #111;box-shadow:8px 8px 0 rgba(0,0,0,.6)}
+.ad-coupon .ad-title{background:#fff;color:#000;border-bottom:3px dashed #111}
+.coupon-body{background:repeating-linear-gradient(0deg,#fff 0 14px,#ffe0f3 14px 28px)}
+.barcode{font:22px "Courier New";letter-spacing:2px;background:#fff;color:#000;border:2px solid #000;padding:4px;text-align:center}
 
 .bounce-logo{
   position:fixed;
@@ -312,6 +374,7 @@ meter{width:100%}
 .spin-mode .box,.spin-mode .hero,.spin-mode .topbar{animation:wobble 1.6s infinite alternate}
 @keyframes wobble{to{transform:rotate(.45deg)}}
 .nightmare{filter:hue-rotate(120deg) saturate(1.7)}
+.containment-mode .box{outline:3px dashed #fff000;outline-offset:-8px}
 .static-burst{animation:staticBurst .35s steps(2) 5}
 @keyframes staticBurst{50%{filter:invert(1) contrast(2)}}
 

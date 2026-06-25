@@ -44,13 +44,14 @@
           <button onclick="spawnAd(true)">summon fake ad</button>
           <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
           <button onclick="spawnSticker()">random sticker</button>
+          <p data-ad-storm-status>Ad storm: paused.</p>
         </div>
       </aside>
 
       <main>
         <div class="box">
           <h2>Pixel Aquarium</h2>
-          <p>A calm zone, except it is still inside the Odd Frequency Archive, so calm is approximate. Click the water for bubbles or click a resident for a tiny incident report.</p>
+          <p>A calm zone, except it is still inside the Odd Frequency Archive, so calm is approximate. Click the water for bubbles or click a fish-like resident for a tiny incident report.</p>
           <div id="aquarium" class="aquarium"></div>
           <button onclick="addFish()">add resident</button>
           <button onclick="feedFish()">feed pixels</button>
@@ -67,6 +68,19 @@
             <li>Day 4: The bubbles spelled "refresh" and denied it.</li>
             <li>Day 5: Sponsor popup requested extra gravel funding.</li>
           </ul>
+        </div>
+
+        <div class="box">
+          <h2>Creature Roster</h2>
+          <table>
+            <tr><th>Creature</th><th>Symbol Style</th><th>Behavior</th></tr>
+            <tr><td>fish</td><td>&gt;&lt;&gt; and &gt;&lt;(((o&gt;</td><td>swims like punctuation with fins</td></tr>
+            <tr><td>eel</td><td>~==~~</td><td>wobbles through the static</td></tr>
+            <tr><td>crab</td><td>(V)V</td><td>moderates the gravel</td></tr>
+            <tr><td>boot</td><td>L__</td><td>appears where no boot should be</td></tr>
+            <tr><td>weird submarine</td><td>&lt;|=|&gt;</td><td>has bad alignment underwater</td></tr>
+            <tr><td>mystery bubble</td><td>(o)</td><td>knows one secret and refuses to say it</td></tr>
+          </table>
         </div>
       </main>
 

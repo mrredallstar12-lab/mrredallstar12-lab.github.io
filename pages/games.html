@@ -44,6 +44,7 @@
           <button onclick="spawnAd(true)">summon fake ad</button>
           <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
           <button onclick="spawnSticker()">random sticker</button>
+          <p data-ad-storm-status>Ad storm: paused.</p>
         </div>
       </aside>
 
@@ -105,6 +106,37 @@
           <button onclick="startCornerHunt()">hide signal</button>
           <p id="cornerOut"></p>
           <div id="cornerHunt" class="mini-game"></div>
+        </div>
+
+        <div class="box">
+          <h2>Cursed Loading Bar Game</h2>
+          <p>Try to make it finish. The bar is dramatic and unreliable.</p>
+          <button onclick="cursedLoad()">start cursed loading</button>
+          <div id="loadBar" class="nonsense-meter"><span></span></div>
+          <p id="loadOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Tiny Memory Cabinet</h2>
+          <p>Flip tiles and match the old-web signals.</p>
+          <button onclick="startMemoryGame()">shuffle memory cabinet</button>
+          <div id="memoryBoard" class="memory-grid"></div>
+          <p id="memoryOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Random Button Roulette</h2>
+          <p>One button, several questionable outcomes.</p>
+          <button onclick="buttonRoulette()">spin button roulette</button>
+          <p id="rouletteOut"></p>
+        </div>
+
+        <div class="box">
+          <h2>Find the Hidden Pixel</h2>
+          <p>The tiniest signal hides in the black rectangle.</p>
+          <button onclick="hidePixel()">hide pixel</button>
+          <p id="pixelOut"></p>
+          <div id="hiddenPixelGame" class="mini-game"></div>
         </div>
 
         <div class="box">

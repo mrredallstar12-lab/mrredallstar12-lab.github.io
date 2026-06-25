@@ -7,6 +7,10 @@ let reactionReady = false;
 let reactionStart = 0;
 let reactionTimer = 0;
 let fortuneClicks = 0;
+let fakeWindowTop = 4500;
+let fakeWindowCount = 0;
+let secretRitualCount = 0;
+const MAX_POPUPS = 12;
 
 const stickerBits = ["*", "#", "@", "%", "!!", "??", "VHS", "404", "CRT", "ZAP"];
 
@@ -157,30 +161,59 @@ function spawnSticker(){
   setTimeout(()=>d.remove(),2700);
 }
 
+function adMarkup(template){
+  const body = clean(template.body);
+  const fine = clean(template.fine);
+  const buttons = template.buttons.map((label)=>`<button>${clean(label)}</button>`).join("");
+  const title = `<div class="ad-title"><span>${clean(template.icon)} ${clean(template.title)}</span><button class="x" title="close">X</button></div>`;
+  if(template.className === "ad-prize"){
+    return `${title}<div class="ad-body"><div class="ad-burst">WINNER-ISH!</div><b>${body}</b><p class="ad-loud">Claim one imaginary trophy and a lifetime supply of blinking.</p><div class="winner-number">CERTIFICATE #${Math.floor(10000 + Math.random()*89999)}</div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-toolbar"){
+    return `${title}<div class="ad-body"><b>${body}</b><div class="fake-checkboxes"><label><input type="checkbox" checked> Weather Wormhole</label><label><input type="checkbox" checked> Coupon Radar</label><label><input type="checkbox"> Emotionally Gray Buttons</label></div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-fortune"){
+    return `${title}<div class="ad-body"><div class="starscope">*  MODEM HOROSCOPE  *</div><b>${body}</b><p>Your rising sign is: abandoned web ring.</p><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-banner"){
+    return `${title}<div class="ad-body"><div class="dance-line"><<< DANCE CLICK DANCE CLICK DANCE >>></div><b>${body}</b><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-download"){
+    return `${title}<div class="ad-body"><b>${body}</b><div class="download-file">File: nothing_${Math.floor(Math.random()*900+100)}.zip<br>Speed: ${Math.floor(Math.random()*48+3)} kb/s<br>Status: theatrically paused</div><div class="fake-progress"></div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-visitor"){
+    return `${title}<div class="ad-body"><b>${body}</b><div class="visitor-certificate"><span>${String(Math.floor(100000 + Math.random()*899999))}</span><small>LOCAL FAKE VISITOR CERTIFICATE</small></div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-ring"){
+    return `${title}<div class="ad-body"><b>${body}</b><div class="ring-buttons"><button>PREV</button><button>RANDOM</button><button>NEXT</button></div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-alert"){
+    return `${title}<div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>${body}</b><p>Recommended action: acknowledge the nonsense.</p><p>${buttons}</p><p class="ad-fine">${fine}</p></div></div>`;
+  }
+  if(template.className === "ad-aquarium"){
+    return `${title}<div class="ad-body"><div class="ad-water">o O o O o</div><b>${body}</b><p>Sponsored by bubbles that are definitely not sentient.</p><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  if(template.className === "ad-coupon"){
+    return `${title}<div class="ad-body coupon-body"><b>${body}</b><p>Clip along the imaginary dashed line.</p><div class="barcode">|||| ||| || ||||| | ||||</div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+  }
+  return `${title}<div class="ad-body"><b>${body}</b><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
+}
+
 function spawnAd(manual=false){
-  const maxAds = manual ? 99 : 8;
-  if(document.querySelectorAll(".popup-ad").length >= maxAds) return;
+  if(document.querySelectorAll(".popup-ad").length >= MAX_POPUPS) return;
   const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
   const ad = document.createElement("div");
   ad.className = `popup-ad ${template.className}`;
-  ad.style.left = Math.max(5,Math.random() * Math.max(20,innerWidth - 350)) + "px";
+  ad.style.left = Math.max(5,Math.random() * Math.max(20,innerWidth - 540)) + "px";
   ad.style.top = Math.max(5,Math.random() * Math.max(20,innerHeight - 255)) + "px";
-  ad.innerHTML = `
-    <div class="ad-title"><span>${template.icon} ${template.title}</span><button class="x" title="close">X</button></div>
-    <div class="ad-body">
-      <b>${template.body}</b>
-      <p>${["Limited-time imaginary offer.","Certified harmless parody.","Best viewed while suspicious.","Now with 30% more blinking."][Math.floor(Math.random()*4)]}</p>
-      <div class="fake-progress"></div>
-      <p>${template.buttons.map((label)=>`<button>${label}</button>`).join("")}</p>
-      <p class="ad-fine">${template.fine}</p>
-    </div>`;
+  ad.innerHTML = adMarkup(template);
   document.body.appendChild(ad);
   ad.querySelector(".x").onclick = () => ad.remove();
   ad.querySelectorAll(".ad-body button").forEach((button)=>{
     button.onclick = () => {
       spawnSticker();
       if(template.className === "ad-aquarium") aquariumEvent();
-      if(Math.random() > .6) spawnAd(true);
+      if(Math.random() > .72) spawnAd(true);
     };
   });
   makeDraggable(ad,ad.querySelector(".ad-title"));
@@ -190,9 +223,11 @@ function spawnAd(manual=false){
 function updateAdStormButton(){
   $$("[data-ad-storm]").forEach((button)=>{
     button.textContent = adStorm ? "stop ad storm" : "start ad storm";
+    button.setAttribute("aria-pressed",String(adStorm));
   });
-  const status = $("#adStormStatus");
-  if(status) status.textContent = adStorm ? "Ad storm: broadcasting fake popups." : "Ad storm: paused.";
+  $$("[data-ad-storm-status], #adStormStatus").forEach((status)=>{
+    status.textContent = adStorm ? "Ad storm: broadcasting." : "Ad storm: paused.";
+  });
 }
 
 function runAdStorm(){
@@ -211,8 +246,14 @@ function toggleAdStorm(){
 
 function toggleSpinMode(){
   document.body.classList.toggle("spin-mode");
+  updateSpinButtons();
+}
+
+function updateSpinButtons(){
+  const spinning = document.body.classList.contains("spin-mode");
   $$("[data-spin-toggle]").forEach((button)=>{
-    button.textContent = document.body.classList.contains("spin-mode") ? "stop spin mode" : "spin mode";
+    button.textContent = spinning ? "stop spin mode" : "spin mode";
+    button.setAttribute("aria-pressed",String(spinning));
   });
 }
 
@@ -411,6 +452,80 @@ function fortuneClicker(){
   out.textContent = `Fortune clicks: ${fortuneClicks}. ${randomFortune()}`;
 }
 
+function startMemoryGame(){
+  const board = $("#memoryBoard");
+  const out = $("#memoryOut");
+  if(!board) return;
+  const symbols = ["CRT","404","AD","VHS","CRT","404","AD","VHS"].sort(()=>Math.random()-.5);
+  let first = null;
+  let matches = 0;
+  board.innerHTML = "";
+  symbols.forEach((symbol)=>{
+    const tile = document.createElement("button");
+    tile.className = "memory-tile";
+    tile.dataset.symbol = symbol;
+    tile.textContent = "?";
+    tile.onclick = () => {
+      if(tile.classList.contains("matched") || tile === first) return;
+      tile.textContent = symbol;
+      if(!first){
+        first = tile;
+        return;
+      }
+      if(first.dataset.symbol === symbol){
+        tile.classList.add("matched");
+        first.classList.add("matched");
+        matches++;
+        first = null;
+        out.textContent = matches === 4 ? "Memory cabinet cleared. The archive reluctantly applauds." : "Match logged.";
+        if(matches === 4) spawnConfetti();
+      }else{
+        const old = first;
+        first = null;
+        out.textContent = "No match. Static shuffles in the corner.";
+        setTimeout(()=>{old.textContent = "?"; tile.textContent = "?"},650);
+      }
+    };
+    board.appendChild(tile);
+  });
+  out.textContent = "Find the four matching signal pairs.";
+}
+
+function buttonRoulette(){
+  const out = $("#rouletteOut");
+  const results = [
+    "Roulette result: one fake popup.",
+    "Roulette result: confetti overload.",
+    "Roulette result: nothing, but loudly.",
+    "Roulette result: secret static wink.",
+    "Roulette result: button confidence increased."
+  ];
+  const roll = Math.floor(Math.random() * results.length);
+  if(out) out.textContent = results[roll];
+  if(roll === 0) spawnAd(true);
+  if(roll === 1) spawnConfetti();
+  if(roll === 3) document.body.classList.add("static-burst"), setTimeout(()=>document.body.classList.remove("static-burst"),1400);
+}
+
+function hidePixel(){
+  const area = $("#hiddenPixelGame");
+  const out = $("#pixelOut");
+  if(!area) return;
+  area.innerHTML = "";
+  const p = document.createElement("button");
+  p.className = "hidden-pixel";
+  p.title = "hidden pixel";
+  p.style.left = Math.random() * 92 + "%";
+  p.style.top = Math.random() * 82 + "%";
+  p.onclick = () => {
+    p.remove();
+    out.textContent = "Hidden pixel found. It was pretending to be dust.";
+    spawnSticker();
+  };
+  area.appendChild(p);
+  out.textContent = "Find the tiny blinking pixel.";
+}
+
 function badPassword(){
   const parts = ["signal","static","crt","mysterybolt","coupon","archive","button","beacon","void"];
   const out = $("#passOut");
@@ -567,22 +682,78 @@ function scrambleMeters(){
   if(out) out.textContent = "Meters recalibrated without permission.";
 }
 
+function generateWarning(){
+  const warnings = [
+    "Warning: specimen is blinking in alphabetical order.",
+    "Warning: coupon pressure exceeds recommended nonsense limits.",
+    "Warning: fake science panel has achieved confidence.",
+    "Warning: loading void leaked into the snack drawer.",
+    "Warning: static density is now crunchy."
+  ];
+  const out = $("#warningOut");
+  if(out) out.textContent = warnings[Math.floor(Math.random() * warnings.length)];
+}
+
+function toggleContainment(){
+  const out = $("#containmentOut");
+  document.body.classList.toggle("containment-mode");
+  if(out) out.textContent = document.body.classList.contains("containment-mode") ? "Containment tape deployed around the vibes." : "Containment tape removed. Good luck.";
+}
+
+function recalibrateBeacon(){
+  const out = $("#beaconOut");
+  if(out) out.textContent = ["Beacon points north-ish.","Beacon points toward the fake ad museum.","Beacon refuses cardinal directions.","Beacon now tracks suspicious buttons."][Math.floor(Math.random()*4)];
+  spawnSticker();
+}
+
 function flipPanel(){
   document.body.classList.toggle("nightmare");
   const out = $("#labOut");
   if(out) out.textContent = document.body.classList.contains("nightmare") ? "Spectrum inversion active." : "Spectrum inversion parked.";
 }
 
+function focusFakeWindow(w){
+  fakeWindowTop++;
+  w.style.zIndex = fakeWindowTop;
+  $$(".taskbar-window").forEach((button)=>button.classList.remove("active"));
+  const task = document.querySelector(`[data-window-button="${w.dataset.windowId}"]`);
+  if(task) task.classList.add("active");
+}
+
+function addTaskbarButton(w,title){
+  const bar = $("#taskbarButtons");
+  if(!bar) return null;
+  const button = document.createElement("button");
+  button.className = "taskbar-window active";
+  button.dataset.windowButton = w.dataset.windowId;
+  button.textContent = title;
+  button.onclick = () => {
+    w.style.display = "block";
+    focusFakeWindow(w);
+  };
+  bar.appendChild(button);
+  return button;
+}
+
 function openFakeWindow(title,body){
   const w = document.createElement("div");
   w.className = "fake-window";
+  w.dataset.windowId = "fake-window-" + (++fakeWindowCount);
   w.style.left = Math.max(10,Math.random() * Math.max(20,innerWidth - 390)) + "px";
   w.style.top = Math.max(10,Math.random() * Math.max(20,innerHeight - 245)) + "px";
-  w.innerHTML = `<div class="win-title"><span>${title}</span><button class="x">X</button></div><div class="win-body"><p>${body}</p><button>OK</button><button onclick="spawnAd(true)">fake help</button></div>`;
+  w.innerHTML = `<div class="win-title"><span>${clean(title)}</span><button class="x">X</button></div><div class="win-body"><p>${clean(body)}</p><button class="win-ok">OK</button><button class="win-help">fake help</button></div>`;
   document.body.appendChild(w);
-  w.querySelector(".x").onclick = () => w.remove();
-  w.querySelector(".win-body button").onclick = () => w.remove();
+  const taskButton = addTaskbarButton(w,title);
+  const closeWindow = () => {
+    if(taskButton) taskButton.remove();
+    w.remove();
+  };
+  w.querySelector(".x").onclick = closeWindow;
+  w.querySelector(".win-ok").onclick = closeWindow;
+  w.querySelector(".win-help").onclick = () => spawnAd(true);
+  w.onmousedown = () => focusFakeWindow(w);
   makeDraggable(w,w.querySelector(".win-title"));
+  focusFakeWindow(w);
 }
 
 function desktopClock(){
@@ -600,15 +771,25 @@ function desktopAlert(){
 function addFish(){
   const tank = $("#aquarium");
   if(!tank) return;
+  const creatures = [
+    {type:"fish", symbol:"><(((o>"},
+    {type:"fish", symbol:"><>"},
+    {type:"eel", symbol:"~==~~"},
+    {type:"crab", symbol:"(V)V"},
+    {type:"boot", symbol:"L__"},
+    {type:"sub", symbol:"<|=|>"},
+    {type:"bubble-creature", symbol:"(o)"}
+  ];
+  const creature = creatures[Math.floor(Math.random() * creatures.length)];
   const f = document.createElement("div");
-  f.className = "fish";
-  f.textContent = ["fish","eel","ray","crab","boot","sub"][Math.floor(Math.random()*6)];
+  f.className = `fish creature creature-${creature.type}`;
+  f.textContent = creature.symbol;
   f.style.top = 18 + Math.random() * 245 + "px";
   f.style.animationDuration = 7 + Math.random() * 12 + "s";
   f.style.animationDelay = -(Math.random() * 6) + "s";
   f.onclick = () => {
     const out = $("#fishOut");
-    if(out) out.textContent = "The aquarium resident filed a tiny incident report.";
+    if(out) out.textContent = `The ${creature.type.replace("-"," ")} filed a tiny incident report.`;
     makeBubble(tank,parseFloat(f.style.top) || 120);
   };
   tank.appendChild(f);
@@ -674,6 +855,19 @@ function unlockSecret(){
   }
 }
 
+function secretRitual(){
+  secretRitualCount++;
+  const out = $("#ritualOut");
+  const steps = [
+    "Ritual step 1: tap the invisible banner.",
+    "Ritual step 2: sort the forbidden files by smell.",
+    "Ritual step 3: ask the loading bar for forgiveness.",
+    "Ritual complete: the archive emits one respectful beep."
+  ];
+  if(out) out.textContent = steps[Math.min(secretRitualCount - 1, steps.length - 1)];
+  if(secretRitualCount % 4 === 0) spawnConfetti();
+}
+
 function makeNoiseText(btn){
   btn.textContent = ["BEEP","BOOP","BZZT","STATIC","NOPE"][Math.floor(Math.random()*5)];
   spawnSticker();
@@ -727,6 +921,7 @@ addEventListener("DOMContentLoaded",()=>{
   aquarium();
   bouncingLogo();
   updateAdStormButton();
+  updateSpinButtons();
 
   window.spawnConfetti = spawnConfetti;
   window.fortune = fortune;
@@ -751,12 +946,16 @@ addEventListener("DOMContentLoaded",()=>{
   window.fakeCaptcha = fakeCaptcha;
   window.startCornerHunt = startCornerHunt;
   window.fortuneClicker = fortuneClicker;
+  window.startMemoryGame = startMemoryGame;
+  window.buttonRoulette = buttonRoulette;
+  window.hidePixel = hidePixel;
   window.badPassword = badPassword;
   window.addFish = addFish;
   window.feedFish = feedFish;
   window.aquariumEvent = aquariumEvent;
   window.randomSecret = randomSecret;
   window.unlockSecret = unlockSecret;
+  window.secretRitual = secretRitual;
   window.makeNoiseText = makeNoiseText;
   window.randomWebringJump = randomWebringJump;
   window.randomObjectShrine = randomObjectShrine;
@@ -764,5 +963,8 @@ addEventListener("DOMContentLoaded",()=>{
   window.voidMessage = voidMessage;
   window.mazeChoice = mazeChoice;
   window.scrambleMeters = scrambleMeters;
+  window.generateWarning = generateWarning;
+  window.toggleContainment = toggleContainment;
+  window.recalibrateBeacon = recalibrateBeacon;
   window.flipPanel = flipPanel;
 });

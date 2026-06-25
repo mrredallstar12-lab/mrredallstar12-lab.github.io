@@ -44,6 +44,7 @@
           <button onclick="spawnAd(true)">summon fake ad</button>
           <button data-ad-storm onclick="toggleAdStorm()">start ad storm</button>
           <button onclick="spawnSticker()">random sticker</button>
+          <p data-ad-storm-status>Ad storm: paused.</p>
         </div>
       </aside>
 
@@ -52,16 +53,20 @@
           <h2>Totally Real Desktop</h2>
           <p>Click the icons. Fake windows will appear and can be dragged by their title bars.</p>
           <div class="fake-desktop">
-            <button onclick="openFakeWindow('Archive Computer','There are 4 drives. One is labeled MYSTERY. It refuses to elaborate.')">[PC]<br>Computer</button>
-            <button onclick="openFakeWindow('Recycle Bin','Contains: old_homepage.tmp, 18 broken shortcuts, and one expired banner.')">[BIN]<br>Recycle Bin</button>
-            <button onclick="openFakeWindow('MIDI Folder','Now playing: imaginary solo with too much reverb.')">[MIDI]<br>Music</button>
-            <button onclick="openFakeWindow('Coupon Vault','No valid coupons found. Several invalid coupons are glowing.')">[%]<br>Coupons</button>
-            <button onclick="openFakeWindow('Do Not Open','You opened it. A fake pop-up has been summoned.'); spawnAd(true)">[!]<br>Do Not Open</button>
-            <button onclick="openFakeWindow('Archive Notes','File corrupted aesthetically, but readable in spirit.')">[TXT]<br>Notes</button>
-            <button onclick="openFakeWindow('Tiny Aquarium Cam','The fish are pixels. The pixels are watching the bubbles.')">[AQUA]<br>Aquarium Cam</button>
-            <button onclick="openFakeWindow('Web Ring Dialer','Connecting to a neighbor site that may never have existed.')">[RING]<br>Web Ring</button>
-            <button onclick="desktopAlert()">[ALERT]<br>Alert</button>
-            <button onclick="openFakeWindow('Static Paint','Brush selected: television snow. Canvas selected: everything.')">[PAINT]<br>Static Paint</button>
+            <button class="desktop-icon" onclick="openFakeWindow('Archive Computer','There are 4 drives. One is labeled MYSTERY. It refuses to elaborate.')"><span class="pixel-icon">PC</span><span>Computer</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Recycle Bin','Contains: archive_dust.tmp, 18 broken shortcuts, and one expired banner.')"><span class="pixel-icon">BIN</span><span>Recycle Bin</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('MIDI Folder','Now playing: imaginary solo with too much reverb.')"><span class="pixel-icon folder">MIDI</span><span>Music</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Coupon Vault','No valid coupons found. Several invalid coupons are glowing.')"><span class="pixel-icon folder">%</span><span>Coupons</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Do Not Open','You opened it. A fake pop-up has been summoned.'); spawnAd(true)"><span class="pixel-icon alert">!</span><span>Do Not Open</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Archive Notes','File corrupted aesthetically, but readable in spirit.')"><span class="pixel-icon disk">TXT</span><span>Notes</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Tiny Aquarium Cam','The fish-like symbols are watching the bubbles.')"><span class="pixel-icon net">AQUA</span><span>Aquarium Cam</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Web Ring Dialer','Connecting to a neighbor site that may never have existed.')"><span class="pixel-icon net">RING</span><span>Web Ring</span></button>
+            <button class="desktop-icon" onclick="desktopAlert()"><span class="pixel-icon alert">ERR</span><span>Alert</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Static Paint','Brush selected: television snow. Canvas selected: everything.')"><span class="pixel-icon paint">ART</span><span>Static Paint</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Mystery Drive','Drive contents: one loose pixel, two fake receipts, and a folder named definitely-later.')"><span class="pixel-icon disk">D:</span><span>Mystery Drive</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Popup Settings','Slider stuck at dramatic. Checkbox labeled polite mode refuses to stay checked.')"><span class="pixel-icon">CFG</span><span>Popup Settings</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Broken Shortcut','Shortcut target moved into the Tiny Link Maze.')"><span class="pixel-icon alert">?</span><span>Broken Shortcut</span></button>
+            <button class="desktop-icon" onclick="openFakeWindow('Forbidden Files','Files listed: no_normal_pages.ini, coupon_ash.dat, orbit_items.txt.')"><span class="pixel-icon folder">LOCK</span><span>Forbidden Files</span></button>
           </div>
         </div>
 
@@ -73,6 +78,7 @@
             <span>odd_signal.html</span>
             <span>fake_popup.log</span>
             <span id="clockBox"></span>
+            <span id="taskbarButtons"></span>
           </div>
         </div>
       </main>

@@ -3,6 +3,7 @@ const $$ = (selector) => document.querySelectorAll(selector);
 
 let adStorm = false;
 let adStormTimer = 0;
+let randomAdTimer = 0;
 let reactionReady = false;
 let reactionStart = 0;
 let reactionTimer = 0;
@@ -11,8 +12,11 @@ let fakeWindowTop = 4500;
 let fakeWindowCount = 0;
 let secretRitualCount = 0;
 const MAX_POPUPS = 12;
+let soundEnabled = localStorage.getItem("oddSoundEnabled") !== "false";
+let audioContext = null;
 
 const stickerBits = ["*", "#", "@", "%", "!!", "??", "VHS", "404", "CRT", "ZAP"];
+const puffBits = ["*", "+", "x", "404", "CRT", "VHS", "ZAP", "!", "?", "pixel", "beep"];
 
 const adTemplates = [
   {
@@ -99,6 +103,120 @@ const adTemplates = [
 
 function clean(text){
   return String(text).replace(/[<>&]/g,(char)=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[char]));
+}
+
+function clickPuff(x,y){
+  const count = 7;
+  for(let i=0;i<count;i++){
+    const bit = document.createElement("span");
+    bit.className = "click-puff";
+    bit.textContent = puffBits[Math.floor(Math.random() * puffBits.length)];
+    const angle = (Math.PI * 2 * i / count) + Math.random() * .55;
+    const distance = 18 + Math.random() * 28;
+    bit.style.left = x + "px";
+    bit.style.top = y + "px";
+    bit.style.setProperty("--dx",Math.cos(angle) * distance + "px");
+    bit.style.setProperty("--dy",Math.sin(angle) * distance + "px");
+    bit.style.color = `hsl(${Math.random() * 360},100%,72%)`;
+    document.body.appendChild(bit);
+    setTimeout(()=>bit.remove(),520);
+  }
+}
+
+function getAudioContext(){
+  if(!audioContext){
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if(!AudioCtx) return null;
+    audioContext = new AudioCtx();
+  }
+  if(audioContext.state === "suspended") audioContext.resume();
+  return audioContext;
+}
+
+function tone(ctx,freq,start,duration,type="square",volume=.045){
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq,start);
+  gain.gain.setValueAtTime(0,start);
+  gain.gain.linearRampToValueAtTime(volume,start + .01);
+  gain.gain.exponentialRampToValueAtTime(.0001,start + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration + .03);
+}
+
+function playSound(type="beep"){
+  if(!soundEnabled) return;
+  const ctx = getAudioContext();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+  const patterns = {
+    nav:[[520,0,.035,"triangle",.025]],
+    blip:[[680,0,.045,"square",.035],[940,.045,.04,"square",.025]],
+    pop:[[260,0,.035,"sine",.05],[120,.035,.045,"sine",.03]],
+    coin:[[784,0,.045,"square",.04],[1046,.055,.06,"square",.035]],
+    secret:[[155,0,.11,"sawtooth",.035],[196,.09,.12,"triangle",.03]],
+    buzz:[[90,0,.12,"sawtooth",.05],[74,.05,.12,"sawtooth",.04]],
+    confetti:[[523,0,.04,"triangle",.035],[659,.045,.04,"triangle",.035],[784,.09,.06,"triangle",.035]],
+    alarm:[[440,0,.055,"square",.035],[330,.07,.055,"square",.035],[440,.14,.055,"square",.035]],
+    wobble:[[220,0,.07,"sine",.035],[280,.07,.07,"sine",.035],[210,.14,.08,"sine",.03]],
+    beep:[[620,0,.045,"square",.035]]
+  };
+  (patterns[type] || patterns.beep).forEach(([freq,offset,duration,wave,volume])=>tone(ctx,freq,now+offset,duration,wave,volume));
+}
+
+function resolveSoundType(target){
+  const explicit = target.closest("[data-sound]");
+  if(explicit) return explicit.dataset.sound;
+  if(target.closest(".popup-ad .x,.fake-window .x")) return "pop";
+  if(target.closest(".popup-ad button")) return "blip";
+  if(target.closest(".nav a")) return "nav";
+  if(target.closest("#secretPanel,#secretPassword") || /unlock|secret|ritual/i.test(target.textContent || "")) return "secret";
+  if(target.closest(".mini-game,.captcha-grid,.memory-grid") || /arcade|reaction|captcha|mole|pixel|memory|roulette|fortune|game|coin/i.test(target.textContent || "")) return "coin";
+  if(target.closest("[data-ad-storm]")) return "alarm";
+  if(target.closest("[data-spin-toggle]")) return "wobble";
+  if(/confetti|overdo|chaos/i.test(target.textContent || "")) return "confetti";
+  if(target.closest("a")) return "nav";
+  if(target.closest("button")) return "beep";
+  return "beep";
+}
+
+function attachGlobalClickEffects(){
+  document.addEventListener("click",(e)=>{
+    const target = e.target;
+    if(target.closest(".ad-title,.win-title") && !target.closest("button")) return;
+    clickPuff(e.clientX,e.clientY);
+    if(target.closest("button,a,input,select,textarea,.mini-game,.fake-desktop")) playSound(resolveSoundType(target));
+  },true);
+}
+
+function updateSoundButton(){
+  $$(".sound-toggle").forEach((button)=>{
+    button.textContent = soundEnabled ? "sound on" : "sound off";
+    button.setAttribute("aria-pressed",String(soundEnabled));
+  });
+}
+
+function toggleSound(){
+  soundEnabled = !soundEnabled;
+  localStorage.setItem("oddSoundEnabled",String(soundEnabled));
+  updateSoundButton();
+  if(soundEnabled) playSound("blip");
+}
+
+function addSoundToggle(){
+  $$(".box").forEach((box)=>{
+    const heading = box.querySelector("h3");
+    if(!heading || heading.textContent.trim().toLowerCase() !== "site controls" || box.querySelector(".sound-toggle")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sound-toggle";
+    button.dataset.sound = "blip";
+    button.onclick = toggleSound;
+    box.appendChild(button);
+  });
+  updateSoundButton();
 }
 
 function visitorCounter(){
@@ -220,21 +338,37 @@ function spawnAd(manual=false){
   if(!manual) setTimeout(()=>{if(ad.isConnected && Math.random() > .25) ad.remove()},9000 + Math.random() * 8000);
 }
 
+function scheduleNextRandomAd(initial=false){
+  clearTimeout(randomAdTimer);
+  const delay = initial ? 4000 + Math.random() * 6000 : 12000 + Math.random() * 13000;
+  randomAdTimer = setTimeout(()=>{
+    if(!adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false);
+    scheduleNextRandomAd(false);
+  },delay);
+}
+
+function startRandomAdScheduler(){
+  scheduleNextRandomAd(true);
+}
+
 function updateAdStormButton(){
   $$("[data-ad-storm]").forEach((button)=>{
     button.textContent = adStorm ? "stop ad storm" : "start ad storm";
     button.setAttribute("aria-pressed",String(adStorm));
   });
   $$("[data-ad-storm-status], #adStormStatus").forEach((status)=>{
-    status.textContent = adStorm ? "Ad storm: broadcasting." : "Ad storm: paused.";
+    status.textContent = adStorm ? "Ad storm: BROADCASTING FAST. Close buttons remain legally available." : "Ad storm: paused.";
   });
 }
 
 function runAdStorm(){
   clearTimeout(adStormTimer);
   if(!adStorm) return;
-  spawnAd(false);
-  adStormTimer = setTimeout(runAdStorm,2200 + Math.random() * 4200);
+  const waves = 2 + Math.floor(Math.random() * 2);
+  for(let i=0;i<waves;i++){
+    if(document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false);
+  }
+  adStormTimer = setTimeout(runAdStorm,600 + Math.random() * 800);
 }
 
 function toggleAdStorm(){
@@ -424,7 +558,10 @@ function fakeCaptcha(){
   const out = $("#captchaOut");
   const good = Math.random() > .45;
   out.textContent = good ? "Accepted. The archive believes you are mostly human." : "Rejected. Please select all squares containing existential dread.";
-  if(!good) spawnAd(true);
+  if(!good){
+    playSound("buzz");
+    spawnAd(true);
+  }
 }
 
 function startCornerHunt(){
@@ -848,9 +985,11 @@ function unlockSecret(){
   if(input.value.trim().toLowerCase() === "signal404"){
     panel.classList.add("unlocked");
     out.textContent = "ACCESS GRANTED: deep archive door unstuck.";
+    playSound("secret");
     spawnConfetti();
   }else{
     out.textContent = "ACCESS DENIED: the archive heard static.";
+    playSound("buzz");
     spawnAd(true);
   }
 }
@@ -920,13 +1059,20 @@ addEventListener("DOMContentLoaded",()=>{
   desktopClock();
   aquarium();
   bouncingLogo();
+  addSoundToggle();
+  attachGlobalClickEffects();
   updateAdStormButton();
   updateSpinButtons();
+  startRandomAdScheduler();
 
   window.spawnConfetti = spawnConfetti;
+  window.clickPuff = clickPuff;
+  window.playSound = playSound;
+  window.toggleSound = toggleSound;
   window.fortune = fortune;
   window.spawnAd = spawnAd;
   window.toggleAdStorm = toggleAdStorm;
+  window.startRandomAdScheduler = startRandomAdScheduler;
   window.toggleSpinMode = toggleSpinMode;
   window.spawnSticker = spawnSticker;
   window.fakeDownload = fakeDownload;

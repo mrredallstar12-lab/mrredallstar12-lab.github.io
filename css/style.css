@@ -357,6 +357,21 @@ meter{width:100%}
 .sticker{position:fixed;z-index:2400;font-size:34px;pointer-events:none;animation:sticker 2.6s forwards}
 @keyframes sticker{0%{transform:scale(.2) rotate(0);opacity:0}25%{opacity:1}100%{transform:scale(1.5) rotate(360deg);opacity:0}}
 .confetti-bit{position:fixed;top:-24px;z-index:998;pointer-events:none;will-change:transform}
+.click-puff{
+  position:fixed;
+  z-index:6500;
+  pointer-events:none;
+  font:bold 12px "Courier New",monospace;
+  text-shadow:1px 1px #000,0 0 8px currentColor;
+  animation:clickPuff .48s ease-out forwards;
+  transform:translate(-50%,-50%);
+}
+@keyframes clickPuff{
+  from{opacity:1;transform:translate(-50%,-50%) scale(.8) rotate(0)}
+  to{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.8) rotate(160deg)}
+}
+
+.sound-toggle{background:linear-gradient(#eaffea,#86ff9a);border-color:#bfffc8;color:#000}
 
 .fake-window{
   position:fixed;
@@ -371,8 +386,16 @@ meter{width:100%}
 .fake-window .win-title{background:#000080;color:#fff;padding:4px;font-weight:bold;display:flex;justify-content:space-between}
 .fake-window .win-body{padding:12px}
 
-.spin-mode .box,.spin-mode .hero,.spin-mode .topbar{animation:wobble 1.6s infinite alternate}
-@keyframes wobble{to{transform:rotate(.45deg)}}
+.spin-mode .box{animation:slowSpin 7s linear infinite}
+.spin-mode .hero,.spin-mode .topbar{animation:bigWobble 1.2s ease-in-out infinite alternate}
+.spin-mode .button,.spin-mode button,.spin-mode .nav a,.spin-mode .badge{animation:buttonTilt .55s ease-in-out infinite alternate}
+.spin-mode .popup-ad,.spin-mode .fake-window{animation:tinySpin 2.6s ease-in-out infinite alternate}
+.spin-mode .bounce-logo > div{animation:logoTwist .8s linear infinite}
+@keyframes slowSpin{from{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg)}to{transform:rotate(-1.4deg)}}
+@keyframes bigWobble{from{transform:rotate(-2deg) scale(1)}to{transform:rotate(2deg) scale(1.015)}}
+@keyframes buttonTilt{from{transform:rotate(-5deg) translateY(-1px)}to{transform:rotate(5deg) translateY(1px)}}
+@keyframes tinySpin{from{transform:rotate(-1.8deg)}to{transform:rotate(1.8deg)}}
+@keyframes logoTwist{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .nightmare{filter:hue-rotate(120deg) saturate(1.7)}
 .containment-mode .box{outline:3px dashed #fff000;outline-offset:-8px}
 .static-burst{animation:staticBurst .35s steps(2) 5}

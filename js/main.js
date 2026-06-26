@@ -1208,21 +1208,23 @@ function bouncingLogo(){
   let trailTick = 0;
   let activeTrails = 0;
   function spawnVdoTrail(tx,ty,w,h){
-    if(document.hidden || activeTrails > 7) return;
+    if(document.hidden || activeTrails >= 14) return;
     activeTrails++;
     const trail = document.createElement("div");
+    const trailWidth = Math.max(52,Math.round(w * .72));
+    const trailHeight = Math.max(28,Math.round(h * .58));
     trail.className = "vdo-trail";
     trail.setAttribute("aria-hidden","true");
     trail.textContent = "VDO";
-    trail.style.left = 30 + tx + "px";
-    trail.style.top = 30 + ty + "px";
-    trail.style.width = Math.max(52,Math.round(w * .72)) + "px";
-    trail.style.height = Math.max(28,Math.round(h * .58)) + "px";
+    trail.style.width = trailWidth + "px";
+    trail.style.height = trailHeight + "px";
+    trail.style.left = 30 + tx + (w - trailWidth) / 2 + "px";
+    trail.style.top = 30 + ty + (h - trailHeight) / 2 + "px";
     document.body.appendChild(trail);
     setTimeout(()=>{
       trail.remove();
       activeTrails = Math.max(0,activeTrails - 1);
-    },680);
+    },420);
   }
   function step(){
     const w = logo.offsetWidth;
@@ -1242,7 +1244,7 @@ function bouncingLogo(){
       if(Math.random() > .82) spawnSticker();
     }
     logo.style.transform = `translate(${x}px,${y}px)`;
-    if(trailTick++ % 7 === 0) spawnVdoTrail(previousX,previousY,w,h);
+    if(trailTick++ % 2 === 0) spawnVdoTrail(previousX,previousY,w,h);
     requestAnimationFrame(step);
   }
   step();

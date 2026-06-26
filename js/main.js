@@ -315,6 +315,51 @@ const achievementCatalog = {
   dialupWhisperer:{name:"Dial-up Whisperer",desc:"Wake a fossilized modem secret."}
 };
 
+const closeMilestonePopups = [
+  {
+    closes:25,
+    id:"ads:closer-25",
+    title:"STATIC RECEIPT OFFICE",
+    body:"The close button union issued you a receipt for rectangle removal.",
+    item:"Static Receipt"
+  },
+  {
+    closes:40,
+    id:"ads:close-audit",
+    title:"CLOSE BUTTON AUDIT",
+    body:"You have closed enough fake ads to make the archive nervous.",
+    item:"Basement Ad Ticket"
+  },
+  {
+    closes:100,
+    id:"ads:hundred-closures",
+    title:"POPUP PEST CONTROL BOARD",
+    body:"One hundred fake ads have been escorted from the premises.",
+    item:"Emergency Popup Helmet"
+  },
+  {
+    closes:250,
+    id:"ads:rectangle-veteran",
+    title:"RECTANGLE VETERAN CERTIFICATE",
+    body:"The archive recognizes your long service in the Fake Window Removal Department.",
+    item:"Forgotten Webring Token"
+  },
+  {
+    closes:500,
+    id:"ads:ad-museum-key",
+    title:"AD MUSEUM BASEMENT KEY",
+    body:"A velvet rope lifted somewhere under the fake ad museum.",
+    item:"Basement Ad Ticket"
+  },
+  {
+    closes:1000,
+    id:"ads:close-button-myth",
+    title:"CLOSE BUTTON MYTHOLOGY",
+    body:"The close button is no longer a button. It is a folklore object.",
+    item:"Archive Tooth"
+  }
+];
+
 const currencyNames = ["Static Coins","Popup Bucks","Coupon Dust"];
 const chaosLabels = ["calm","weird","annoying","haunted","dial-up apocalypse"];
 const questPhrase = "bolt-coupon-vhs";
@@ -478,6 +523,70 @@ function renderSecretCount(){
   }
 }
 
+function getUnlockedCloseMilestones(){
+  const secrets = getDiscoveredSecrets();
+  return closeMilestonePopups.filter((milestone)=>secrets[milestone.id]);
+}
+
+function renderCloseMilestoneMenu(){
+  const host = $("#achievementGrid") || $("#inventoryGrid");
+  if(!host) return;
+
+  let panel = $("#closeMilestonePanel");
+  if(!panel){
+    panel = document.createElement("div");
+    panel.id = "closeMilestonePanel";
+    panel.className = "box secret-count-box close-milestone-panel";
+    host.parentNode.insertBefore(panel,host);
+  }
+
+  const closed = Number(localStorage.getItem("oddClosedAds") || 0);
+  const secrets = getDiscoveredSecrets();
+
+  panel.innerHTML = `
+    <h2>Secret Popup Archive</h2>
+    <p>Closed fake ads: <b>${closed}</b></p>
+    <p>Unlocked fake ad milestone popups can be replayed here. Locked ones are still buried under rectangle paperwork.</p>
+    <div class="close-milestone-list">
+      ${closeMilestonePopups.map((milestone)=>{
+        const unlocked = !!secrets[milestone.id];
+        return `
+          <div class="close-milestone-card ${unlocked ? "unlocked" : "locked"}">
+            <h3>${clean(unlocked ? milestone.title : "LOCKED POPUP FILE")}</h3>
+            <p>${unlocked ? clean(milestone.body) : `Unlocks at ${milestone.closes} fake ad closes.`}</p>
+            <button ${unlocked ? "" : "disabled"} onclick="replayCloseMilestone('${clean(milestone.id)}')">
+              ${unlocked ? "replay popup" : "locked"}
+            </button>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function spawnCloseMilestonePopup(milestone,{replay=false}={}){
+  if(!milestone) return;
+  if(archiveIsMirrorLocked()) return;
+  if(popupsAreMuted() && !replay) return;
+
+  const replayText = " This is a replay from the Secret Popup Archive.";
+  const rewardText = replay ? "" : ` Reward filed: ${milestone.item}.`;
+  spawnSecretPopup(
+    milestone.id,
+    milestone.title,
+    replay ? `${milestone.body}${replayText}` : `${milestone.body}${rewardText}`,
+    null,
+    {allowMuted:replay}
+  );
+}
+
+function replayCloseMilestone(id){
+  const secrets = getDiscoveredSecrets();
+  const milestone = closeMilestonePopups.find((entry)=>entry.id === id);
+  if(!milestone || !secrets[id]) return;
+  spawnCloseMilestonePopup(milestone,{replay:true});
+}
+
 function secretToast(message){
   if(archiveIsMirrorLocked()) return;
   const toast = document.createElement("div");
@@ -518,6 +627,7 @@ function discoverSecret(id,message,rewardItem,options={}){
     renderSecretCount();
     renderInventory();
     renderAchievements();
+    renderCloseMilestoneMenu();
     updateArchiveDashboard();
     return !already;
   }
@@ -631,8 +741,8 @@ function panicButton(){
   updateArchiveDashboard();
 }
 
-function spawnSecretPopup(id,title,body,rewardItem){
-  if(archiveIsMirrorLocked() || popupsAreMuted()) return;
+function spawnSecretPopup(id,title,body,rewardItem,options={}){
+  if(archiveIsMirrorLocked() || (popupsAreMuted() && !options.allowMuted)) return;
   if(document.querySelectorAll(".popup-ad").length >= getPopupCap()) return;
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert secret-popup";
@@ -646,8 +756,9 @@ function spawnSecretPopup(id,title,body,rewardItem){
     awardAdClose();
     ad.remove();
   };
+  const buttonReward = options.buttonReward === undefined ? rewardItem : options.buttonReward;
   ad.querySelectorAll(".ad-body button").forEach((button)=>button.onclick = () => {
-    if(rewardItem) addInventoryItem(rewardItem,1);
+    if(buttonReward) addInventoryItem(buttonReward,1);
     spawnSticker();
   });
   makeDraggable(ad,ad.querySelector(".ad-title"));
@@ -658,8 +769,18 @@ function awardAdClose(){
   addCurrency("Popup Bucks",1);
   const closed = incrementStat("oddClosedAds",1);
   if(closed >= 10) unlockAchievement("popupPest");
-  if(closed >= 25) discoverSecret("ads:closer-25","The close button union issued you a Static Receipt.","Static Receipt",{silent:true});
-  if(closed >= 40) spawnSecretPopup("close-audit","CLOSE BUTTON AUDIT","You have closed enough fake ads to make the archive nervous.","Basement Ad Ticket");
+  closeMilestonePopups.forEach((milestone)=>{
+    if(closed >= milestone.closes){
+      const newlyUnlocked = discoverSecret(
+        milestone.id,
+        `${milestone.title}: ${milestone.body}`,
+        milestone.item,
+        {silent:true}
+      );
+      if(newlyUnlocked) spawnCloseMilestonePopup(milestone);
+    }
+  });
+  renderCloseMilestoneMenu();
 }
 
 function addQuestClue(id,text){
@@ -2738,6 +2859,7 @@ addEventListener("DOMContentLoaded",()=>{
   renderQuestClues();
   renderShop();
   renderSecretCount();
+  renderCloseMilestoneMenu();
   startRandomAdScheduler();
   startRandomEventEngine();
   if(!archiveIsMirrorLocked()){
@@ -2753,6 +2875,10 @@ addEventListener("DOMContentLoaded",()=>{
   window.getDiscoveredSecrets = getDiscoveredSecrets;
   window.countDiscoveredSecrets = countDiscoveredSecrets;
   window.renderSecretCount = renderSecretCount;
+  window.getUnlockedCloseMilestones = getUnlockedCloseMilestones;
+  window.renderCloseMilestoneMenu = renderCloseMilestoneMenu;
+  window.spawnCloseMilestonePopup = spawnCloseMilestonePopup;
+  window.replayCloseMilestone = replayCloseMilestone;
   window.performSecretCode = performSecretCode;
   window.setChaosLevel = setChaosLevel;
   window.triggerRandomEvent = triggerRandomEvent;

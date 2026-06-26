@@ -716,6 +716,28 @@ meter{width:100%}
 }
 @keyframes secretToastPop{from{transform:translateY(12px) rotate(-1deg);opacity:0}to{transform:translateY(0) rotate(.5deg);opacity:1}}
 .secret-count-box{border-color:#0ff;background:rgba(0,18,28,.9)}
+.close-milestone-list{
+  display:grid;
+  gap:8px;
+}
+.close-milestone-card{
+  border:3px ridge #777;
+  background:rgba(0,0,0,.45);
+  padding:8px;
+}
+.close-milestone-card h3{margin:0 0 6px}
+.close-milestone-card.unlocked{
+  border-color:#00ffff;
+  box-shadow:0 0 12px rgba(0,255,255,.45);
+}
+.close-milestone-card.locked{
+  opacity:.65;
+  filter:grayscale(.8);
+}
+.close-milestone-card button:disabled{
+  cursor:not-allowed;
+  opacity:.6;
+}
 .secret-shop-card{border-style:dashed;background:rgba(45,0,45,.9)}
 .secret-pixel{
   position:fixed;

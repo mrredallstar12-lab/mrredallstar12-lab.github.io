@@ -396,10 +396,55 @@ function closeAllPopupAds(){
   return ads.length;
 }
 
+function fallbackAdMarkup(label="FALLBACK FAKE AD"){
+  return `<div class="ad-title"><span>! ${clean(label)}</span><button class="x" title="close">X</button></div><div class="ad-body"><b>This ad template failed to render, so the archive deployed a backup rectangle with text.</b><p><button>acknowledge rectangle</button></p><p class="ad-fine">Fallback parody popup.</p></div>`;
+}
+
+function verifyPopupMarkup(ad,html,context){
+  const hasTitle = Boolean(ad.querySelector(".ad-title"));
+  const hasBody = Boolean(ad.querySelector(".ad-body"));
+  console.debug("[Odd Frequency] popup markup", {context,htmlLength:html.length,hasTitle,hasBody});
+  if(hasTitle && hasBody){
+    ad.classList.remove("debug-empty");
+    return true;
+  }
+  console.warn("[Odd Frequency] popup template failed; using fallback markup", {context,htmlLength:html.length,hasTitle,hasBody});
+  ad.classList.add("debug-empty");
+  ad.innerHTML = fallbackAdMarkup(context);
+  return false;
+}
+
+function forcePopupInternalsVisible(ad,context){
+  const title = ad.querySelector(".ad-title");
+  const body = ad.querySelector(".ad-body");
+  ad.style.visibility = "visible";
+  ad.style.opacity = "1";
+  if(title){
+    title.style.visibility = "visible";
+    title.style.opacity = "1";
+    if(title.getBoundingClientRect().height < 16){
+      console.warn("[Odd Frequency] popup title measured too short; forcing title min-height", {context});
+      title.style.minHeight = "32px";
+      title.style.display = "flex";
+    }
+  }
+  if(body){
+    body.style.visibility = "visible";
+    body.style.opacity = "1";
+    if(body.getBoundingClientRect().height < 60){
+      console.warn("[Odd Frequency] popup body measured too short; forcing body min-height", {context});
+      body.style.minHeight = "130px";
+      body.style.display = "block";
+    }
+  }
+}
+
 function spawnPanicAd(count){
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert panic-ad";
-  ad.innerHTML = `<div class="ad-title"><span>! PANIC SYSTEM</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>panic acknowledged, one emergency popup remains.</b><p>${count} popup(s) removed. Panic mode failed successfully.</p><p><button>accept receipt</button><button>panic again later</button></p><p class="ad-fine">This is a fake theatrical system notice.</p></div></div>`;
+  const html = `<div class="ad-title"><span>! PANIC SYSTEM</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>panic acknowledged, one emergency popup remains.</b><p>${count} popup(s) removed. Panic mode failed successfully.</p><p><button>accept receipt</button><button>panic again later</button></p><p class="ad-fine">This is a fake theatrical system notice.</p></div></div>`;
+  ad.innerHTML = html;
+  verifyPopupMarkup(ad,html,"panic-ad");
   document.body.appendChild(ad);
   positionPopupSafely(ad,"panic-ad");
   ad.querySelector(".x").onclick = () => {
@@ -881,7 +926,7 @@ function clampPopupPosition(element,preferredLeft,preferredTop,className=element
   let layoutWidth = element.offsetWidth || rect.width;
   let layoutHeight = element.offsetHeight || rect.height;
   if(layoutHeight < 100){
-    element.style.minHeight = "170px";
+    element.style.minHeight = "190px";
     console.warn("[Odd Frequency] ad measured unusually short; forcing popup min-height", {className,height:layoutHeight});
     rect = element.getBoundingClientRect();
     layoutWidth = element.offsetWidth || rect.width;
@@ -898,25 +943,36 @@ function clampPopupPosition(element,preferredLeft,preferredTop,className=element
   element.style.left = left + "px";
   element.style.top = top + "px";
   element.style.visibility = "visible";
+  element.style.opacity = "1";
   if(debug) console.debug("[Odd Frequency] ad positioned", {className,width:layoutWidth,height:layoutHeight,left,top});
 }
 
 function positionPopupSafely(element,className=element.className){
   const pad = 12;
   const viewport = getVisualViewportBox();
-  element.style.visibility = "hidden";
+  element.style.visibility = "visible";
+  element.style.opacity = "0";
   element.style.left = viewport.offsetLeft + pad + "px";
   element.style.top = viewport.offsetTop + pad + "px";
   const rect = element.getBoundingClientRect();
   const safeWidth = Math.min(element.offsetWidth || rect.width || 360,Math.max(1,viewport.width - pad * 2));
-  const safeHeight = Math.min(Math.max(element.offsetHeight || rect.height || 170,170),Math.max(1,viewport.height - pad * 2));
+  const safeHeight = Math.min(Math.max(element.offsetHeight || rect.height || 190,190),Math.max(1,viewport.height - pad * 2));
   const maxLeft = Math.max(viewport.offsetLeft + pad,viewport.offsetLeft + viewport.width - safeWidth - pad);
   const maxTop = Math.max(viewport.offsetTop + pad,viewport.offsetTop + viewport.height - safeHeight - pad);
   const left = viewport.offsetLeft + pad + Math.random() * Math.max(0,maxLeft - (viewport.offsetLeft + pad));
   const top = viewport.offsetTop + pad + Math.random() * Math.max(0,maxTop - (viewport.offsetTop + pad));
   clampPopupPosition(element,left,top,className,true);
-  requestAnimationFrame(()=>clampPopupPosition(element,parseFloat(element.style.left) || left,parseFloat(element.style.top) || top,className,true));
-  setTimeout(()=>{if(element.isConnected) clampPopupPosition(element,parseFloat(element.style.left) || left,parseFloat(element.style.top) || top,className,true)},240);
+  forcePopupInternalsVisible(element,className);
+  requestAnimationFrame(()=>{
+    clampPopupPosition(element,parseFloat(element.style.left) || left,parseFloat(element.style.top) || top,className,true);
+    forcePopupInternalsVisible(element,className);
+  });
+  setTimeout(()=>{
+    if(element.isConnected){
+      clampPopupPosition(element,parseFloat(element.style.left) || left,parseFloat(element.style.top) || top,className,true);
+      forcePopupInternalsVisible(element,className);
+    }
+  },240);
 }
 
 function awardAdTemplateReward(template){
@@ -948,7 +1004,9 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
   const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
   const ad = document.createElement("div");
   ad.className = `popup-ad ${template.className}`;
-  ad.innerHTML = adMarkup(template);
+  const html = adMarkup(template);
+  ad.innerHTML = html;
+  verifyPopupMarkup(ad,html,template.className);
   document.body.appendChild(ad);
   positionPopupSafely(ad,template.className);
   ad.querySelector(".x").onclick = () => {
@@ -966,8 +1024,8 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
   makeDraggable(ad,ad.querySelector(".ad-title"));
   if(source !== "manual"){
     const chaos = getChaosLevel();
-    const min = source === "storm" ? 18000 : chaos >= 3 ? 30000 : 25000;
-    const max = source === "storm" ? 35000 : chaos >= 3 ? 55000 : 45000;
+    const min = source === "storm" ? 20000 : chaos >= 3 ? 45000 : 35000;
+    const max = source === "storm" ? 40000 : chaos >= 3 ? 70000 : 60000;
     setTimeout(()=>{if(ad.isConnected) ad.remove()},min + Math.random() * (max - min));
   }
 }
@@ -975,8 +1033,8 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
 function scheduleNextRandomAd(initial=false){
   clearTimeout(randomAdTimer);
   const chaos = getChaosLevel();
-  const ranges = [[16000,28000],[7000,13000],[5000,10000],[4000,8000],[3000,6000]];
-  const [min,max] = initial ? [3000,6000] : ranges[chaos];
+  const ranges = [[12000,20000],[5000,9000],[4000,7000],[3000,6000],[2000,4000]];
+  const [min,max] = initial ? [2000,4000] : ranges[chaos];
   const delay = min + Math.random() * (max - min);
   randomAdTimer = setTimeout(()=>{
     if(!adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false,"random");

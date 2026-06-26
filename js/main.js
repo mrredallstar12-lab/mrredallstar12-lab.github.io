@@ -522,10 +522,12 @@ function checkArchiveHost(){
   const message = `Odd Frequency Archive original signal: https://oddfrequencyarchive.com | canary: ${ARCHIVE_CANARY}`;
 
   if(OFFICIAL_ARCHIVE_HOSTS.includes(host)){
+    document.body.classList.remove("mirror-lockdown");
     console.info(message);
     return true;
   }
 
+  document.body.classList.add("mirror-lockdown");
   console.warn(message);
   console.warn("[Odd Frequency] UNAUTHORIZED MIRROR DETECTED", {host});
 
@@ -539,6 +541,7 @@ function checkArchiveHost(){
     <div class="mirror-warning-inner">
       <div class="mirror-warning-title">UNAUTHORIZED MIRROR DETECTED</div>
       <p>This copy of Odd Frequency Archive escaped containment.</p>
+      <p>The broadcast has been replaced with static.</p>
       <p>Official signal: <a href="https://oddfrequencyarchive.com">oddfrequencyarchive.com</a></p>
     </div>
   `;

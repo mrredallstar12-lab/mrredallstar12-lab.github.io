@@ -166,6 +166,8 @@ body.mirror-lockdown{
 body.mirror-lockdown .wrap{
   filter:grayscale(1) contrast(2.4) brightness(.35) blur(1px);
   opacity:.22;
+  pointer-events:none;
+  user-select:none;
 }
 body.mirror-lockdown::after{
   content:"";

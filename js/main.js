@@ -296,8 +296,7 @@ function getPurchases(){return readJSON("oddShopPurchases",{})}
 function getQuest(){return readJSON("oddQuest",{})}
 function getChaosLevel(){return Math.max(0,Math.min(4,Number(localStorage.getItem("oddChaosLevel") || 1)))}
 function getPopupCap(){
-  const caps = [4,8,12,18,HARD_MAX_POPUPS];
-  return caps[getChaosLevel()] ?? HARD_MAX_POPUPS;
+  return HARD_MAX_POPUPS;
 }
 
 function setStatusText(selector,text){
@@ -1223,16 +1222,16 @@ function scheduleNextRandomAd(initial=false){
   }
   const chaos = getChaosLevel();
   const ranges = [
-    [16000,26000],
-    [8000,14000],
-    [3500,7000],
+    [10000,18000],
+    [5500,10500],
+    [2500,5200],
     [1400,3200],
     [650,1500]
   ];
   const initialRanges = [
-    [5000,10000],
-    [3500,7000],
-    [2500,5000],
+    [3000,7000],
+    [2200,5200],
+    [1400,3600],
     [1200,2600],
     [650,1400]
   ];

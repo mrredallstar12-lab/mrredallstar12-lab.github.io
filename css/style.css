@@ -150,6 +150,9 @@ body:before{
 input,textarea,button,select{font-family:"Courier New",monospace}
 textarea,input,select{width:100%;background:#000;color:#0f0;border:2px inset #aaa;padding:8px}
 button{background:#ddd;border:3px outset #fff;padding:7px 10px;font-weight:bold;margin:3px;cursor:pointer}
+.quiet-signal-toggle{display:inline-block;font-size:11px;padding:4px 7px;border:2px inset #777;background:#140024;color:#b7a8d8;opacity:.78;text-transform:lowercase;box-shadow:inset 0 0 8px rgba(0,255,255,.18)}
+.quiet-signal-toggle:hover,.quiet-signal-toggle:focus{opacity:1;color:var(--yellow);border-color:var(--cyan);background:#24004a;outline:2px dotted var(--yellow)}
+.quiet-signal-toggle[aria-pressed="true"]{color:var(--lime);border-color:var(--lime);background:#001b13;text-shadow:0 0 6px var(--lime)}
 table{width:100%;border-collapse:collapse;background:#080018}
 td,th{border:2px groove #777;padding:7px;vertical-align:top}
 meter{width:100%}
@@ -525,6 +528,13 @@ meter{width:100%}
 .chaos-control{border-top:2px dotted #777;margin-top:8px;padding-top:8px}
 .chaos-control input{width:100%}
 .mini-status{font-size:11px;color:#ccc}
+.radio-note{border:2px dashed var(--cyan);background:#000;color:var(--lime);padding:7px;font:bold 12px "Courier New",monospace;text-shadow:0 0 6px var(--lime)}
+.radio-player{border:4px double var(--cyan);background:radial-gradient(circle at 20% 0,rgba(0,255,255,.18),transparent 34%),#090014;padding:10px;box-shadow:inset 0 0 18px rgba(0,255,255,.25),0 0 16px rgba(255,0,204,.35)}
+.radio-status{display:inline-block;border:3px outset #777;background:#001b13;color:var(--lime);padding:6px 8px;font:bold 13px "Courier New",monospace;text-shadow:0 0 8px var(--lime)}
+.radio-now{border-left:5px solid var(--hot);padding:7px 9px;background:rgba(255,0,204,.12)}
+.radio-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;padding:8px;border:2px dashed var(--yellow);background:rgba(0,0,0,.55)}
+.radio-controls label{display:flex;align-items:center;gap:6px;font:bold 12px "Courier New",monospace;color:var(--yellow)}
+.radio-controls input{width:150px}
 .secret-panel.unlocked{display:block;border:3px dashed #fff000;padding:10px;margin-top:8px}
 
 @media(max-width:850px){

@@ -396,6 +396,37 @@ function closeAllPopupAds(){
   return ads.length;
 }
 
+function popupsAreMuted(){
+  return localStorage.getItem("oddPopupsDisabled") === "true";
+}
+
+function updatePopupMuteButton(){
+  const muted = popupsAreMuted();
+  $$(".quiet-signal-toggle").forEach((button)=>{
+    button.textContent = muted ? "quiet signal: on" : "quiet signal";
+    button.setAttribute("aria-pressed",String(muted));
+    button.title = muted ? "Random fake popups are muted." : "Quiet the random fake popup system.";
+  });
+}
+
+function togglePopupMute(){
+  const next = !popupsAreMuted();
+  localStorage.setItem("oddPopupsDisabled",String(next));
+  if(next){
+    adStorm = false;
+    clearTimeout(adStormTimer);
+    clearTimeout(randomAdTimer);
+    closeAllPopupAds();
+    latestEvent("The archive lowered popup pressure.");
+  }
+  else {
+    latestEvent("Popup pressure restored. The archive is blinking again.");
+    scheduleNextRandomAd(true);
+  }
+  updatePopupMuteButton();
+  updateAdStormButton();
+}
+
 function spawnPanicAd(count){
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert panic-ad";
@@ -565,6 +596,13 @@ function enhanceSiteControls(){
       pet.onclick = () => spawnDesktopPet();
       box.appendChild(pet);
     }
+    if(!box.querySelector(".quiet-signal-toggle")){
+      const quiet = document.createElement("button");
+      quiet.type = "button";
+      quiet.className = "quiet-signal-toggle";
+      quiet.onclick = togglePopupMute;
+      box.appendChild(quiet);
+    }
     if(!box.querySelector(".chaos-control")){
       const wrap = document.createElement("div");
       wrap.className = "chaos-control";
@@ -573,6 +611,7 @@ function enhanceSiteControls(){
       wrap.querySelector(".chaos-slider").oninput = (e)=>setChaosLevel(e.target.value);
     }
   });
+  updatePopupMuteButton();
   updateChaosControls();
 }
 
@@ -1022,6 +1061,10 @@ ad.innerHTML = `       <div class="ad-title">         <span>! FALLBACK FAKE AD</
 }
 
 function spawnAd(manual=false,source=manual ? "manual" : "random"){
+  if(popupsAreMuted()){
+    if(manual) signalBanner("POPUPS MUTED: quiet signal is active.");
+    return;
+  }
   if(document.querySelectorAll(".popup-ad").length >= MAX_POPUPS) return;
   const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
   const ad = document.createElement("div");
@@ -1054,12 +1097,13 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
 
 function scheduleNextRandomAd(initial=false){
   clearTimeout(randomAdTimer);
+  if(popupsAreMuted()) return;
   const chaos = getChaosLevel();
   const ranges = [[12000,20000],[5000,9000],[4000,7000],[3000,6000],[2000,4000]];
   const [min,max] = initial ? [2000,4000] : ranges[chaos];
   const delay = min + Math.random() * (max - min);
   randomAdTimer = setTimeout(()=>{
-    if(!adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false,"random");
+    if(!popupsAreMuted() && !adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false,"random");
     scheduleNextRandomAd(false);
   },delay);
 }
@@ -1074,12 +1118,17 @@ function updateAdStormButton(){
     button.setAttribute("aria-pressed",String(adStorm));
   });
   $$("[data-ad-storm-status], #adStormStatus").forEach((status)=>{
-    status.textContent = adStorm ? "Ad storm: BROADCASTING FAST. Close buttons remain legally available." : "Ad storm: paused.";
+    status.textContent = popupsAreMuted() ? "Ad storm: muted by quiet signal." : adStorm ? "Ad storm: BROADCASTING FAST. Close buttons remain legally available." : "Ad storm: paused.";
   });
 }
 
 function runAdStorm(){
   clearTimeout(adStormTimer);
+  if(popupsAreMuted()){
+    adStorm = false;
+    updateAdStormButton();
+    return;
+  }
   if(!adStorm) return;
   const waves = 2 + Math.floor(Math.random() * 2);
   for(let i=0;i<waves;i++){
@@ -1089,6 +1138,13 @@ function runAdStorm(){
 }
 
 function toggleAdStorm(){
+  if(popupsAreMuted()){
+    adStorm = false;
+    clearTimeout(adStormTimer);
+    updateAdStormButton();
+    signalBanner("AD STORM MUTED: quiet signal is active.");
+    return;
+  }
   adStorm = !adStorm;
   updateAdStormButton();
   if(adStorm){
@@ -1922,20 +1978,83 @@ function askArchiveBot(topic){
   out.innerHTML += `<p><b>ArchiveBot 98:</b> ${clean(list[Math.floor(Math.random()*list.length)])}</p>`;
 }
 
+let archiveRadioAudio = null;
+let currentRadioStation = "";
+
+// Put owned or royalty-free MP3/OGG/WAV files in assets/audio, or replace src values with direct HTTPS stream URLs.
 const radioStations = {
-  "FM 40.4":{name:"Banner Ad Jazz",now:"saxophone over a blinking coupon",item:"Radio Static Sample"},
-  "FM 98.6":{name:"Aquarium Weather",now:"humid bubbles over soft modem rain",item:"Weather Pixel"},
-  "AM 666":{name:"Loading Bar Sermons",now:"99 percent forever and amen",item:"Broken Loading Bar"},
-  "FM 13.7":{name:"Coupon Emergency Broadcast",now:"urgent savings with no value",item:"Coupon Dust"},
-  "CH 404":{name:"Lost Signal",now:"static clue: bolt-coupon-vhs",item:"Radio Static Sample"},
-  "FM 88.8":{name:"VDO Corner Bounce Watch",now:"live commentary on a near miss",item:"VDO Spark"}
+  "FM 40.4":{name:"Banner Ad Jazz",now:"saxophone over a blinking coupon",item:"Radio Static Sample",src:"../assets/audio/banner-jazz.wav",type:"audio/wav"},
+  "FM 98.6":{name:"Aquarium Weather",now:"humid bubbles over soft modem rain",item:"Weather Pixel",src:"../assets/audio/aquarium-weather.wav",type:"audio/wav"},
+  "AM 666":{name:"Loading Bar Sermons",now:"99 percent forever and amen",item:"Broken Loading Bar",src:"../assets/audio/loading-sermon.wav",type:"audio/wav"},
+  "FM 13.7":{name:"Coupon Emergency Broadcast",now:"urgent savings with no value",item:"Coupon Dust",src:"../assets/audio/coupon-emergency.wav",type:"audio/wav"},
+  "CH 404":{name:"Lost Signal",now:"static clue: bolt-coupon-vhs",item:"Radio Static Sample",src:"../assets/audio/ch404-static.wav",type:"audio/wav"},
+  "FM 88.8":{name:"VDO Corner Bounce Watch",now:"live commentary on a near miss",item:"VDO Spark",src:"../assets/audio/vdo-corner.wav",type:"audio/wav"}
 };
+
+function getArchiveRadioAudio(){
+  if(!archiveRadioAudio){
+    archiveRadioAudio = new Audio();
+    archiveRadioAudio.preload = "none";
+    archiveRadioAudio.loop = true;
+    archiveRadioAudio.volume = Number(localStorage.getItem("oddRadioVolume") || .65);
+    archiveRadioAudio.addEventListener("error",()=>{
+      if(currentRadioStation) renderRadioOutput(currentRadioStation,"Playback blocked or stream unavailable. Try another station.");
+    });
+  }
+  return archiveRadioAudio;
+}
+
+function renderRadioOutput(station,status){
+  const data = radioStations[station];
+  const out = $("#radioOutput");
+  if(!out || !data) return;
+  const volume = Math.round(getArchiveRadioAudio().volume * 100);
+  const sourceText = data.src ? "Playing real archive audio" : "No real signal attached yet.";
+  out.innerHTML = `<div class="radio-player"><h2>${clean(station)} - ${clean(data.name)}</h2><p class="radio-now"><b>Now playing:</b> ${clean(data.now)}</p><p class="radio-status">${clean(status || sourceText)}</p><div class="radio-controls"><button onclick="radioPlay()">play</button><button onclick="radioPause()">pause</button><button onclick="radioStop()">stop</button><label>volume <input type="range" min="0" max="1" step="0.05" value="${getArchiveRadioAudio().volume}" oninput="setRadioVolume(this.value)"></label><span data-radio-volume-value>${volume}%</span></div><p class="mini-status">${data.src ? `Signal source: ${clean(data.src)}` : "Static-only station. Awaiting a real file or stream."}</p></div>`;
+}
+
+function radioPlay(){
+  const data = radioStations[currentRadioStation];
+  if(!data) return;
+  const audio = getArchiveRadioAudio();
+  if(!data.src){
+    renderRadioOutput(currentRadioStation,"No real signal attached yet.");
+    return;
+  }
+  if(!audio.src) audio.src = new URL(data.src,window.location.href).href;
+  audio.dataset.type = data.type || "";
+  audio.play()
+    .then(()=>renderRadioOutput(currentRadioStation,"Playing real archive audio."))
+    .catch(()=>renderRadioOutput(currentRadioStation,"Playback blocked or stream unavailable. Try another station."));
+}
+
+function radioPause(){
+  const audio = getArchiveRadioAudio();
+  audio.pause();
+  if(currentRadioStation) renderRadioOutput(currentRadioStation,"Paused in the static.");
+}
+
+function radioStop(){
+  const audio = getArchiveRadioAudio();
+  audio.pause();
+  try{audio.currentTime = 0}catch(e){}
+  if(currentRadioStation) renderRadioOutput(currentRadioStation,"Stopped. The antenna is sulking.");
+}
+
+function setRadioVolume(value){
+  const audio = getArchiveRadioAudio();
+  const volume = Math.max(0,Math.min(1,Number(value)));
+  audio.volume = volume;
+  localStorage.setItem("oddRadioVolume",String(volume));
+  $$("[data-radio-volume-value]").forEach((el)=>el.textContent = `${Math.round(volume * 100)}%`);
+}
 
 function tuneRadio(station){
   const data = radioStations[station];
   if(!data) return;
-  const out = $("#radioOutput");
-  if(out) out.innerHTML = `<h2>${station} - ${clean(data.name)}</h2><p>Now playing: ${clean(data.now)}</p>`;
+  currentRadioStation = station;
+  const audio = getArchiveRadioAudio();
+  renderRadioOutput(station,data.src ? "Waking real archive audio..." : "No real signal attached yet.");
   document.body.dataset.radioVibe = station.replace(/\W/g,"");
   addInventoryItem(data.item,1);
   addCurrency("Static Coins",2);
@@ -1943,6 +2062,20 @@ function tuneRadio(station){
   if(station === "CH 404") addQuestClue("radio","CH 404 repeats bolt-coupon-vhs");
   if(n >= 5) unlockAchievement("radioDrifter");
   playSound("blip");
+  if(data.src){
+    audio.pause();
+    audio.src = new URL(data.src,window.location.href).href;
+    audio.dataset.type = data.type || "";
+    audio.load();
+    audio.play()
+      .then(()=>renderRadioOutput(station,"Playing real archive audio."))
+      .catch(()=>renderRadioOutput(station,"Playback blocked or stream unavailable. Try another station."));
+  }
+  else {
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+  }
 }
 
 const weatherPlaces = ["Static City","Toolbar Swamp","Loading Void","Coupon Desert","Aquarium District","Desktop Plains","Popup Valley","VDO Ridge"];
@@ -2104,6 +2237,7 @@ addEventListener("DOMContentLoaded",()=>{
   window.fortune = fortune;
   window.spawnAd = spawnAd;
   window.toggleAdStorm = toggleAdStorm;
+  window.togglePopupMute = togglePopupMute;
   window.startRandomAdScheduler = startRandomAdScheduler;
   window.toggleSpinMode = toggleSpinMode;
   window.spawnSticker = spawnSticker;
@@ -2153,6 +2287,10 @@ addEventListener("DOMContentLoaded",()=>{
   window.generateLostPage = generateLostPage;
   window.askArchiveBot = askArchiveBot;
   window.tuneRadio = tuneRadio;
+  window.radioPlay = radioPlay;
+  window.radioPause = radioPause;
+  window.radioStop = radioStop;
+  window.setRadioVolume = setRadioVolume;
   window.refreshWeather = refreshWeather;
   window.installFakeUpdate = installFakeUpdate;
   window.viewPatchNotes = viewPatchNotes;

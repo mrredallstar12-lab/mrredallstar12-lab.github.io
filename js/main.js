@@ -14,6 +14,14 @@ let secretRitualCount = 0;
 const MAX_POPUPS = 12;
 let soundEnabled = localStorage.getItem("oddSoundEnabled") !== "false";
 let audioContext = null;
+const ARCHIVE_CANARY = "odd-frequency-canine-bolt-404-lm-original";
+const OFFICIAL_ARCHIVE_HOSTS = [
+  "oddfrequencyarchive.com",
+  "www.oddfrequencyarchive.com",
+  "mrredallstar12-lab.github.io",
+  "localhost",
+  "127.0.0.1"
+];
 
 const stickerBits = ["*", "#", "@", "%", "!!", "??", "VHS", "404", "CRT", "ZAP"];
 const puffBits = ["*", "+", "x", "404", "CRT", "VHS", "ZAP", "!", "?", "pixel", "beep"];
@@ -507,6 +515,35 @@ function signalBanner(text){
   banner.textContent = text;
   document.body.appendChild(banner);
   setTimeout(()=>banner.remove(),5200);
+}
+
+function checkArchiveHost(){
+  const host = window.location.hostname;
+  const message = `Odd Frequency Archive original signal: https://oddfrequencyarchive.com | canary: ${ARCHIVE_CANARY}`;
+
+  if(OFFICIAL_ARCHIVE_HOSTS.includes(host)){
+    console.info(message);
+    return true;
+  }
+
+  console.warn(message);
+  console.warn("[Odd Frequency] UNAUTHORIZED MIRROR DETECTED", {host});
+
+  if(document.querySelector(".mirror-warning")) return false;
+
+  const warning = document.createElement("div");
+  warning.className = "mirror-warning";
+  warning.setAttribute("role","status");
+  warning.setAttribute("aria-live","polite");
+  warning.innerHTML = `
+    <div class="mirror-warning-inner">
+      <div class="mirror-warning-title">UNAUTHORIZED MIRROR DETECTED</div>
+      <p>This copy of Odd Frequency Archive escaped containment.</p>
+      <p>Official signal: <a href="https://oddfrequencyarchive.com">oddfrequencyarchive.com</a></p>
+    </div>
+  `;
+  document.body.appendChild(warning);
+  return false;
 }
 
 function spawnFallingCoupon(){
@@ -2228,6 +2265,7 @@ addEventListener("DOMContentLoaded",()=>{
   desktopClock();
   aquarium();
   bouncingLogo();
+  checkArchiveHost();
   ensureExpandedNav();
   enhanceSiteControls();
   addSoundToggle();
@@ -2262,6 +2300,7 @@ addEventListener("DOMContentLoaded",()=>{
   window.toggleAdStorm = toggleAdStorm;
   window.togglePopupMute = togglePopupMute;
   window.startRandomAdScheduler = startRandomAdScheduler;
+  window.checkArchiveHost = checkArchiveHost;
   window.toggleSpinMode = toggleSpinMode;
   window.spawnSticker = spawnSticker;
   window.fakeDownload = fakeDownload;

@@ -396,59 +396,6 @@ function closeAllPopupAds(){
   return ads.length;
 }
 
-function fallbackAdMarkup(){
-  return `<div class="ad-title"><span>! FALLBACK FAKE AD</span><button class="x" title="close">X</button></div><div class="ad-body"><b>This ad template failed to render, so the archive deployed a backup rectangle with text.</b><p><button>acknowledge rectangle</button></p><p class="ad-fine">Fallback parody popup.</p></div>`;
-}
-
-function verifyPopupMarkup(ad,html,className){
-  const hasTitle = Boolean(ad.querySelector(".ad-title"));
-  const hasBody = Boolean(ad.querySelector(".ad-body"));
-  console.debug("[Odd Frequency] ad html generated", {className,length:html.length,hasTitle,hasBody});
-  if(hasTitle && hasBody){
-    ad.classList.remove("debug-empty");
-    return true;
-  }
-  console.warn("[Odd Frequency] ad template failed, using fallback", {className});
-  ad.classList.add("debug-empty");
-  ad.innerHTML = fallbackAdMarkup();
-  return false;
-}
-
-function forcePopupInternalsVisible(element,className){
-  if(!element) return;
-  element.style.visibility = "visible";
-  element.style.opacity = "1";
-  const title = element.querySelector(".ad-title");
-  const body = element.querySelector(".ad-body");
-  const close = element.querySelector(".x");
-  if(title){
-    title.style.display = "flex";
-    title.style.visibility = "visible";
-    title.style.opacity = "1";
-    title.style.minHeight = "32px";
-  }
-  if(body){
-    body.style.display = "block";
-    body.style.visibility = "visible";
-    body.style.opacity = "1";
-    body.style.minHeight = "130px";
-    body.style.overflowY = "auto";
-  }
-  if(close){
-    close.style.display = "inline-block";
-    close.style.visibility = "visible";
-    close.style.opacity = "1";
-  }
-  if(title && title.getBoundingClientRect().height < 20){
-    console.warn("[Odd Frequency] ad title too short", {className});
-    title.style.minHeight = "32px";
-  }
-  if(body && body.getBoundingClientRect().height < 60){
-    console.warn("[Odd Frequency] ad body too short", {className});
-    body.style.minHeight = "130px";
-  }
-}
-
 function spawnPanicAd(count){
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert panic-ad";
@@ -957,6 +904,55 @@ function clampPopupPosition(element,preferredLeft,preferredTop,className=element
   if(debug) console.debug("[Odd Frequency] ad positioned", {className,width:layoutWidth,height:layoutHeight,left,top});
 }
 
+function forcePopupInternalsVisible(element, className){
+if(!element) return;
+
+element.style.visibility = "visible";
+element.style.opacity = "1";
+
+const title = element.querySelector(".ad-title");
+const body = element.querySelector(".ad-body");
+const close = element.querySelector(".x");
+
+if(title){
+title.style.display = "flex";
+title.style.visibility = "visible";
+title.style.opacity = "1";
+title.style.minHeight = "32px";
+}else{
+console.warn("[Odd Frequency] popup missing title", {className});
+}
+
+if(body){
+body.style.display = "block";
+body.style.visibility = "visible";
+body.style.opacity = "1";
+body.style.minHeight = "130px";
+body.style.overflowY = "auto";
+body.style.color = body.style.color || "#000";
+}else{
+console.warn("[Odd Frequency] popup missing body", {className});
+}
+
+if(close){
+close.style.display = "inline-block";
+close.style.visibility = "visible";
+close.style.opacity = "1";
+}else{
+console.warn("[Odd Frequency] popup missing close button", {className});
+}
+
+if(title && title.getBoundingClientRect().height < 20){
+console.warn("[Odd Frequency] ad title too short", {className});
+title.style.minHeight = "32px";
+}
+
+if(body && body.getBoundingClientRect().height < 60){
+console.warn("[Odd Frequency] ad body too short", {className});
+body.style.minHeight = "130px";
+}
+}
+
 function positionPopupSafely(element,className=element.className){
   const pad = 12;
   const viewport = getVisualViewportBox();
@@ -1007,6 +1003,22 @@ function awardAdTemplateReward(template){
   if(reward === "Coupon Dust") addCurrency("Coupon Dust",1);
   else if(reward === "Popup Buck") addCurrency("Popup Bucks",1);
   else addInventoryItem(reward,1);
+}
+
+function verifyPopupMarkup(ad, html, className){
+console.debug("[Odd Frequency] ad html generated", {
+className,
+length: html.length,
+hasTitle: !!ad.querySelector(".ad-title"),
+hasBody: !!ad.querySelector(".ad-body")
+});
+
+if(!ad.querySelector(".ad-title") || !ad.querySelector(".ad-body")){
+console.warn("[Odd Frequency] ad template failed, using fallback", {className});
+ad.classList.add("debug-empty");
+ad.innerHTML = `       <div class="ad-title">         <span>! FALLBACK FAKE AD</span>         <button class="x" title="close">X</button>       </div>       <div class="ad-body">         <b>This ad template failed to render, so the archive deployed a backup rectangle with text.</b>         <p><button>acknowledge rectangle</button></p>         <p class="ad-fine">Fallback parody popup.</p>       </div>
+    `;
+}
 }
 
 function spawnAd(manual=false,source=manual ? "manual" : "random"){

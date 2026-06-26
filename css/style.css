@@ -436,7 +436,7 @@ meter{width:100%}
   letter-spacing:1px;
   text-shadow:0 0 4px #0ff,0 0 7px #f0c;
   box-shadow:0 0 8px rgba(0,255,255,.26),inset 0 0 8px rgba(255,0,204,.14);
-  opacity:.18;
+  opacity:.12;
   animation:vdoTrailFade .42s ease-out forwards;
 }
 @keyframes vdoTrailFade{to{opacity:0;transform:scale(.86);filter:blur(1px)}}

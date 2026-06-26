@@ -1205,10 +1205,9 @@ function bouncingLogo(){
   let vx = 2.2;
   let vy = 1.8;
   let hue = 0;
-  let trailTick = 0;
   let activeTrails = 0;
   function spawnVdoTrail(tx,ty,w,h){
-    if(document.hidden || activeTrails >= 14) return;
+    if(document.hidden || activeTrails >= 30) return;
     activeTrails++;
     const trail = document.createElement("div");
     const trailWidth = Math.max(52,Math.round(w * .72));
@@ -1244,7 +1243,7 @@ function bouncingLogo(){
       if(Math.random() > .82) spawnSticker();
     }
     logo.style.transform = `translate(${x}px,${y}px)`;
-    if(trailTick++ % 2 === 0) spawnVdoTrail(previousX,previousY,w,h);
+    spawnVdoTrail(previousX,previousY,w,h);
     requestAnimationFrame(step);
   }
   step();

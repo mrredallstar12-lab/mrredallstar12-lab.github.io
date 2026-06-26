@@ -12,7 +12,7 @@ let fortuneClicks = 0;
 let fakeWindowTop = 4500;
 let fakeWindowCount = 0;
 let secretRitualCount = 0;
-const MAX_POPUPS = 12;
+const HARD_MAX_POPUPS = 25;
 let soundEnabled = localStorage.getItem("oddSoundEnabled") !== "false";
 let audioContext = null;
 const ARCHIVE_CANARY = "odd-frequency-canine-bolt-404-lm-original";
@@ -295,6 +295,10 @@ function getCurrency(){return readJSON("oddCurrency",{"Static Coins":0,"Popup Bu
 function getPurchases(){return readJSON("oddShopPurchases",{})}
 function getQuest(){return readJSON("oddQuest",{})}
 function getChaosLevel(){return Math.max(0,Math.min(4,Number(localStorage.getItem("oddChaosLevel") || 1)))}
+function getPopupCap(){
+  const caps = [4,8,12,18,HARD_MAX_POPUPS];
+  return caps[getChaosLevel()] ?? HARD_MAX_POPUPS;
+}
 
 function setStatusText(selector,text){
   $$(selector).forEach((el)=>el.textContent = text);
@@ -354,7 +358,7 @@ function setChaosLevel(level){
 function updateChaosControls(){
   const level = getChaosLevel();
   $$(".chaos-slider").forEach((input)=>input.value = String(level));
-  setStatusText("[data-chaos-status]",`Chaos level ${level}: ${chaosLabels[level]}`);
+  setStatusText("[data-chaos-status]",`Chaos level ${level}: ${chaosLabels[level]} | popup cap ${getPopupCap()}`);
 }
 
 function getChaosMultiplier(){
@@ -376,7 +380,7 @@ function currencySummary(){
 
 function updateArchiveDashboard(){
   const level = getChaosLevel();
-  setStatusText("[data-dashboard-chaos]",`${level} - ${chaosLabels[level]}`);
+  setStatusText("[data-dashboard-chaos]",`${level} - ${chaosLabels[level]} | popup cap ${getPopupCap()}`);
   setStatusText("[data-dashboard-event]",localStorage.getItem("oddLatestEvent") || "none yet");
   setStatusText("[data-dashboard-inventory]",String(countInventoryItems()));
   setStatusText("[data-dashboard-achievements]",`${countAchievements()} / ${Object.keys(achievementCatalog).length}`);
@@ -1162,7 +1166,7 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
     if(manual) signalBanner("POPUPS MUTED: quiet signal is active.");
     return;
   }
-  if(document.querySelectorAll(".popup-ad").length >= MAX_POPUPS) return;
+  if(document.querySelectorAll(".popup-ad").length >= getPopupCap()) return;
   const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
   const ad = document.createElement("div");
   ad.className = `popup-ad ${template.className}`;
@@ -1186,9 +1190,24 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
   makeDraggable(ad,ad.querySelector(".ad-title"));
   if(source !== "manual"){
     const chaos = getChaosLevel();
-    const min = source === "storm" ? 20000 : chaos >= 3 ? 45000 : 35000;
-    const max = source === "storm" ? 40000 : chaos >= 3 ? 70000 : 60000;
-    setTimeout(()=>{if(ad.isConnected) ad.remove()},min + Math.random() * (max - min));
+    const lifetimes = [
+      [25000,42000],
+      [30000,52000],
+      [38000,65000],
+      [45000,80000],
+      [60000,95000]
+    ];
+    const [minLife,maxLife] = source === "storm" ? [30000,70000] : lifetimes[chaos] ?? [60000,95000];
+    setTimeout(()=>{if(ad.isConnected) ad.remove()},minLife + Math.random() * (maxLife - minLife));
+  }
+}
+
+function spawnAdBurst(count,source="random"){
+  if(archiveIsMirrorLocked()) return;
+  if(popupsAreMuted()) return;
+  for(let i = 0; i < count; i++){
+    if(document.querySelectorAll(".popup-ad").length >= getPopupCap()) break;
+    spawnAd(false,source);
   }
 }
 
@@ -1198,15 +1217,35 @@ function scheduleNextRandomAd(initial=false){
     randomAdTimer = 0;
     return;
   }
-  if(popupsAreMuted()) return;
+  if(popupsAreMuted()){
+    randomAdTimer = 0;
+    return;
+  }
   const chaos = getChaosLevel();
-  const ranges = [[12000,20000],[5000,9000],[4000,7000],[3000,6000],[2000,4000]];
-  const [min,max] = initial ? [2000,4000] : ranges[chaos];
+  const ranges = [
+    [16000,26000],
+    [8000,14000],
+    [3500,7000],
+    [1400,3200],
+    [650,1500]
+  ];
+  const initialRanges = [
+    [5000,10000],
+    [3500,7000],
+    [2500,5000],
+    [1200,2600],
+    [650,1400]
+  ];
+  const [min,max] = initial ? initialRanges[chaos] ?? [650,1400] : ranges[chaos] ?? [650,1500];
   const delay = min + Math.random() * (max - min);
   randomAdTimer = setTimeout(()=>{
     randomAdTimer = 0;
     if(archiveIsMirrorLocked()) return;
-    if(!popupsAreMuted() && !adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false,"random");
+    if(!popupsAreMuted() && !adStorm){
+      const chaos = getChaosLevel();
+      const burstCounts = [1,1,2,3,4];
+      spawnAdBurst(burstCounts[chaos] ?? 4,"random");
+    }
     scheduleNextRandomAd(false);
   },delay);
 }
@@ -1221,7 +1260,7 @@ function updateAdStormButton(){
     button.setAttribute("aria-pressed",String(adStorm));
   });
   $$("[data-ad-storm-status], #adStormStatus").forEach((status)=>{
-    status.textContent = archiveIsMirrorLocked() ? "Ad storm: mirror lockdown." : popupsAreMuted() ? "Ad storm: muted by quiet signal." : adStorm ? "Ad storm: BROADCASTING FAST. Close buttons remain legally available." : "Ad storm: paused.";
+    status.textContent = archiveIsMirrorLocked() ? "Ad storm: mirror lockdown." : popupsAreMuted() ? "Ad storm: muted by quiet signal." : adStorm ? `Ad storm: BROADCASTING FAST. Popup cap ${getPopupCap()}. Close buttons remain legally available.` : "Ad storm: paused.";
   });
 }
 
@@ -1239,11 +1278,20 @@ function runAdStorm(){
     return;
   }
   if(!adStorm) return;
-  const waves = 2 + Math.floor(Math.random() * 2);
-  for(let i=0;i<waves;i++){
-    if(document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false,"storm");
-  }
-  adStormTimer = setTimeout(runAdStorm,600 + Math.random() * 800);
+  const chaos = getChaosLevel();
+  const minWaves = [1,1,2,3,4][chaos] ?? 4;
+  const extraWaves = [0,1,1,2,3][chaos] ?? 3;
+  const waves = minWaves + Math.floor(Math.random() * (extraWaves + 1));
+  spawnAdBurst(waves,"storm");
+  const stormDelays = [
+    [1200,2200],
+    [900,1700],
+    [650,1300],
+    [450,950],
+    [250,700]
+  ];
+  const [minDelay,maxDelay] = stormDelays[chaos] ?? [250,700];
+  adStormTimer = setTimeout(runAdStorm,minDelay + Math.random() * (maxDelay - minDelay));
 }
 
 function toggleAdStorm(){
@@ -1251,6 +1299,7 @@ function toggleAdStorm(){
   if(popupsAreMuted()){
     adStorm = false;
     clearTimeout(adStormTimer);
+    adStormTimer = 0;
     updateAdStormButton();
     signalBanner("AD STORM MUTED: quiet signal is active.");
     return;
@@ -1262,7 +1311,10 @@ function toggleAdStorm(){
     addCurrency("Popup Bucks",3);
     runAdStorm();
   }
-  else clearTimeout(adStormTimer);
+  else {
+    clearTimeout(adStormTimer);
+    adStormTimer = 0;
+  }
 }
 
 function toggleSpinMode(){
@@ -2378,6 +2430,8 @@ addEventListener("DOMContentLoaded",()=>{
   window.toggleSound = toggleSound;
   window.fortune = fortune;
   window.spawnAd = spawnAd;
+  window.spawnAdBurst = spawnAdBurst;
+  window.getPopupCap = getPopupCap;
   window.toggleAdStorm = toggleAdStorm;
   window.togglePopupMute = togglePopupMute;
   window.startRandomAdScheduler = startRandomAdScheduler;

@@ -235,12 +235,65 @@ body.mirror-lockdown::before{
   }
 }
 body.mirror-lockdown .mirror-warning{
+  right:24px;
+  bottom:24px;
   z-index:10000;
+  max-width:min(520px,calc(100vw - 48px));
   pointer-events:none;
+  filter:
+    drop-shadow(0 0 16px #f0c)
+    drop-shadow(0 0 28px #0ff)
+    drop-shadow(0 0 46px rgba(255,255,0,.55));
 }
 body.mirror-lockdown .mirror-warning-inner{
   pointer-events:auto;
+  padding:16px 18px;
+  font-size:15px;
+  border-width:5px;
   animation:mirrorWarningPulse .8s steps(2) infinite;
+}
+body.mirror-lockdown .mirror-warning::before{
+  content:"";
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  width:min(46vw,720px);
+  height:140px;
+  transform:translate(-18px,-24px) rotate(-12deg);
+  transform-origin:right bottom;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(0,255,255,.08),
+      rgba(255,0,204,.13),
+      rgba(255,255,0,.09),
+      transparent
+    );
+  filter:blur(10px);
+  opacity:.85;
+  animation:mirrorSignalBeam 1.1s steps(3) infinite;
+}
+body.mirror-lockdown .mirror-warning a{
+  display:inline-block;
+  margin-top:2px;
+  font-size:16px;
+  color:#00ffff;
+  background:#000;
+  border:2px outset #00ffff;
+  padding:3px 7px;
+  text-decoration:none;
+  box-shadow:0 0 12px #00ffff;
+}
+body.mirror-lockdown .mirror-warning a:hover,
+body.mirror-lockdown .mirror-warning a:focus{
+  color:#000;
+  background:#fff000;
+  border-color:#fff000;
+  box-shadow:0 0 18px #fff000,0 0 32px #f0c;
+  outline:2px dotted #fff;
 }
 body.mirror-lockdown .bounce-logo{
   z-index:9950!important;
@@ -281,6 +334,20 @@ body.mirror-lockdown .vdo-trail{
       0 0 45px rgba(255,0,204,.55);
   }
 }
+@keyframes mirrorSignalBeam{
+  0%{
+    opacity:.35;
+    filter:blur(14px) hue-rotate(0deg);
+  }
+  50%{
+    opacity:.95;
+    filter:blur(8px) hue-rotate(70deg);
+  }
+  100%{
+    opacity:.55;
+    filter:blur(12px) hue-rotate(180deg);
+  }
+}
 @keyframes cursedVdoFlicker{
   0%{
     opacity:1;
@@ -307,6 +374,28 @@ body.mirror-lockdown .vdo-trail{
   }
   100%{
     clip-path:inset(0 0 0 0);
+  }
+}
+@media (max-width:700px){
+  body.mirror-lockdown .mirror-warning{
+    right:10px;
+    bottom:10px;
+    max-width:calc(100vw - 20px);
+  }
+
+  body.mirror-lockdown .mirror-warning-inner{
+    font-size:12px;
+    padding:10px 12px;
+  }
+
+  body.mirror-lockdown .mirror-warning::before{
+    width:80vw;
+    height:90px;
+    opacity:.45;
+  }
+
+  body.mirror-lockdown .mirror-warning a{
+    font-size:13px;
   }
 }
 

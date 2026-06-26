@@ -4,6 +4,7 @@ const $$ = (selector) => document.querySelectorAll(selector);
 let adStorm = false;
 let adStormTimer = 0;
 let randomAdTimer = 0;
+let randomEventTimer = 0;
 let reactionReady = false;
 let reactionStart = 0;
 let reactionTimer = 0;
@@ -333,6 +334,7 @@ function unlockAchievement(id){
 }
 
 function showAchievementToast(name){
+  if(archiveIsMirrorLocked()) return;
   const toast = document.createElement("div");
   toast.className = "achievement-toast";
   toast.innerHTML = `<b>ACHIEVEMENT UNLOCKED</b><br>${clean(name)}`;
@@ -404,6 +406,45 @@ function closeAllPopupAds(){
   return ads.length;
 }
 
+function archiveIsMirrorLocked(){
+  return !!document.body && document.body.classList.contains("mirror-lockdown");
+}
+
+function removeMirrorDynamicEffects(){
+  const selectors = [
+    ".popup-ad",
+    ".signal-banner",
+    ".fake-window",
+    ".sticker",
+    ".desktop-pet",
+    ".falling-coupon",
+    ".click-puff",
+    ".confetti-bit",
+    ".achievement-toast"
+  ];
+  $$(selectors.join(",")).forEach((element)=>element.remove());
+  document.body.classList.remove("static-burst","page-shake","nightmare","spin-mode");
+}
+
+function stopMirrorDynamicSystems(){
+  adStorm = false;
+  if(adStormTimer){
+    clearTimeout(adStormTimer);
+    adStormTimer = 0;
+  }
+  if(randomAdTimer){
+    clearTimeout(randomAdTimer);
+    randomAdTimer = 0;
+  }
+  if(randomEventTimer){
+    clearTimeout(randomEventTimer);
+    randomEventTimer = 0;
+  }
+  closeAllPopupAds();
+  removeMirrorDynamicEffects();
+  updateAdStormButton();
+}
+
 function popupsAreMuted(){
   return localStorage.getItem("oddPopupsDisabled") === "true";
 }
@@ -436,6 +477,7 @@ function togglePopupMute(){
 }
 
 function spawnPanicAd(count){
+  if(archiveIsMirrorLocked()) return;
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert panic-ad";
   const html = `<div class="ad-title"><span>! PANIC SYSTEM</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>panic acknowledged, one emergency popup remains.</b><p>${count} popup(s) removed. Panic mode failed successfully.</p><p><button>accept receipt</button><button>panic again later</button></p><p class="ad-fine">This is a fake theatrical system notice.</p></div></div>`;
@@ -452,6 +494,7 @@ function spawnPanicAd(count){
 }
 
 function panicButton(){
+  if(archiveIsMirrorLocked()) return;
   const closed = closeAllPopupAds();
   addInventoryItem("Emergency Panic Receipt",1);
   addCurrency("Popup Bucks",Math.max(1,closed));
@@ -510,6 +553,7 @@ function latestEvent(text){
 }
 
 function signalBanner(text){
+  if(archiveIsMirrorLocked()) return;
   const banner = document.createElement("div");
   banner.className = "signal-banner";
   banner.textContent = text;
@@ -528,6 +572,7 @@ function checkArchiveHost(){
   }
 
   document.body.classList.add("mirror-lockdown");
+  stopMirrorDynamicSystems();
   console.warn(message);
   console.warn("[Odd Frequency] UNAUTHORIZED MIRROR DETECTED", {host});
 
@@ -550,6 +595,7 @@ function checkArchiveHost(){
 }
 
 function spawnFallingCoupon(){
+  if(archiveIsMirrorLocked()) return;
   const coupon = document.createElement("div");
   coupon.className = "falling-coupon";
   coupon.textContent = "0% OFF";
@@ -559,6 +605,7 @@ function spawnFallingCoupon(){
 }
 
 function triggerRandomEvent(){
+  if(archiveIsMirrorLocked()) return;
   const events = [
     ()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1800);latestEvent("Static burst rattled the archive.");},
     ()=>{document.body.classList.add("page-shake");setTimeout(()=>document.body.classList.remove("page-shake"),900);latestEvent("Page shake from unstable table layout.");},
@@ -580,14 +627,18 @@ function triggerRandomEvent(){
 }
 
 function startRandomEventEngine(){
+  if(archiveIsMirrorLocked()) return;
   const delay = Math.max(9000,80000 - getChaosLevel()*15000) + Math.random() * Math.max(12000,30000 - getChaosLevel()*4000);
-  setTimeout(()=>{
+  randomEventTimer = setTimeout(()=>{
+    randomEventTimer = 0;
+    if(archiveIsMirrorLocked()) return;
     triggerRandomEvent();
     startRandomEventEngine();
   },delay);
 }
 
 function spawnDesktopPet(type){
+  if(archiveIsMirrorLocked()) return null;
   const types = {
     crab:{label:"(V)V",item:"Desktop Crab Shell",msg:"pixel crab clicks in square brackets"},
     modem:{label:"56K",item:"Tiny Modem",msg:"tiny modem whispers carrier tone"},
@@ -682,6 +733,7 @@ function ensureExpandedNav(){
 }
 
 function clickPuff(x,y){
+  if(archiveIsMirrorLocked()) return;
   const count = 4 + getChaosLevel() * 2;
   for(let i=0;i<count;i++){
     const bit = document.createElement("span");
@@ -723,6 +775,7 @@ function tone(ctx,freq,start,duration,type="square",volume=.045){
 }
 
 function playSound(type="beep"){
+  if(archiveIsMirrorLocked()) return;
   if(!soundEnabled) return;
   const ctx = getAudioContext();
   if(!ctx) return;
@@ -760,6 +813,7 @@ function resolveSoundType(target){
 
 function attachGlobalClickEffects(){
   document.addEventListener("click",(e)=>{
+    if(archiveIsMirrorLocked()) return;
     const target = e.target;
     if(target.closest(".ad-title,.win-title") && !target.closest("button")) return;
     clickPuff(e.clientX,e.clientY);
@@ -825,6 +879,7 @@ function randomQuote(){
 }
 
 function spawnConfetti(){
+  if(archiveIsMirrorLocked()) return;
   for(let i = 0; i < 85; i++){
     const d = document.createElement("div");
     d.className = "confetti-bit";
@@ -852,6 +907,7 @@ function spawnConfetti(){
 }
 
 function spawnSticker(){
+  if(archiveIsMirrorLocked()) return;
   const d = document.createElement("div");
   d.className = "sticker";
   d.textContent = stickerBits[Math.floor(Math.random() * stickerBits.length)];
@@ -1101,6 +1157,7 @@ ad.innerHTML = `       <div class="ad-title">         <span>! FALLBACK FAKE AD</
 }
 
 function spawnAd(manual=false,source=manual ? "manual" : "random"){
+  if(archiveIsMirrorLocked()) return;
   if(popupsAreMuted()){
     if(manual) signalBanner("POPUPS MUTED: quiet signal is active.");
     return;
@@ -1137,12 +1194,18 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
 
 function scheduleNextRandomAd(initial=false){
   clearTimeout(randomAdTimer);
+  if(archiveIsMirrorLocked()){
+    randomAdTimer = 0;
+    return;
+  }
   if(popupsAreMuted()) return;
   const chaos = getChaosLevel();
   const ranges = [[12000,20000],[5000,9000],[4000,7000],[3000,6000],[2000,4000]];
   const [min,max] = initial ? [2000,4000] : ranges[chaos];
   const delay = min + Math.random() * (max - min);
   randomAdTimer = setTimeout(()=>{
+    randomAdTimer = 0;
+    if(archiveIsMirrorLocked()) return;
     if(!popupsAreMuted() && !adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false,"random");
     scheduleNextRandomAd(false);
   },delay);
@@ -1158,12 +1221,18 @@ function updateAdStormButton(){
     button.setAttribute("aria-pressed",String(adStorm));
   });
   $$("[data-ad-storm-status], #adStormStatus").forEach((status)=>{
-    status.textContent = popupsAreMuted() ? "Ad storm: muted by quiet signal." : adStorm ? "Ad storm: BROADCASTING FAST. Close buttons remain legally available." : "Ad storm: paused.";
+    status.textContent = archiveIsMirrorLocked() ? "Ad storm: mirror lockdown." : popupsAreMuted() ? "Ad storm: muted by quiet signal." : adStorm ? "Ad storm: BROADCASTING FAST. Close buttons remain legally available." : "Ad storm: paused.";
   });
 }
 
 function runAdStorm(){
   clearTimeout(adStormTimer);
+  adStormTimer = 0;
+  if(archiveIsMirrorLocked()){
+    adStorm = false;
+    updateAdStormButton();
+    return;
+  }
   if(popupsAreMuted()){
     adStorm = false;
     updateAdStormButton();
@@ -1178,6 +1247,7 @@ function runAdStorm(){
 }
 
 function toggleAdStorm(){
+  if(archiveIsMirrorLocked()) return;
   if(popupsAreMuted()){
     adStorm = false;
     clearTimeout(adStormTimer);
@@ -1266,6 +1336,9 @@ function bouncingLogo(){
     },420);
   }
   function step(){
+    if(!logo.isConnected){
+      return;
+    }
     const w = logo.offsetWidth;
     const h = logo.offsetHeight;
     const previousX = x;
@@ -1728,6 +1801,7 @@ function addTaskbarButton(w,title){
 }
 
 function openFakeWindow(title,body){
+  if(archiveIsMirrorLocked()) return;
   const w = document.createElement("div");
   w.className = "fake-window";
   w.dataset.windowId = "fake-window-" + (++fakeWindowCount);
@@ -2259,6 +2333,7 @@ function summonSpiritEntry(){
 }
 
 addEventListener("DOMContentLoaded",()=>{
+  checkArchiveHost();
   visitorCounter();
   randomQuote();
   clickGame();
@@ -2268,7 +2343,6 @@ addEventListener("DOMContentLoaded",()=>{
   desktopClock();
   aquarium();
   bouncingLogo();
-  checkArchiveHost();
   ensureExpandedNav();
   enhanceSiteControls();
   addSoundToggle();
@@ -2284,7 +2358,11 @@ addEventListener("DOMContentLoaded",()=>{
   renderShop();
   startRandomAdScheduler();
   startRandomEventEngine();
-  setTimeout(()=>unlockAchievement("vdoWitness"),45000);
+  if(!archiveIsMirrorLocked()){
+    setTimeout(()=>{
+      if(!archiveIsMirrorLocked()) unlockAchievement("vdoWitness");
+    },45000);
+  }
 
   window.addInventoryItem = addInventoryItem;
   window.unlockAchievement = unlockAchievement;
@@ -2304,6 +2382,7 @@ addEventListener("DOMContentLoaded",()=>{
   window.togglePopupMute = togglePopupMute;
   window.startRandomAdScheduler = startRandomAdScheduler;
   window.checkArchiveHost = checkArchiveHost;
+  window.archiveIsMirrorLocked = archiveIsMirrorLocked;
   window.toggleSpinMode = toggleSpinMode;
   window.spawnSticker = spawnSticker;
   window.fakeDownload = fakeDownload;

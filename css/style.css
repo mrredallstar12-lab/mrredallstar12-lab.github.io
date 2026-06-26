@@ -169,6 +169,17 @@ body.mirror-lockdown .wrap{
   pointer-events:none;
   user-select:none;
 }
+body.mirror-lockdown .popup-ad,
+body.mirror-lockdown .signal-banner,
+body.mirror-lockdown .fake-window,
+body.mirror-lockdown .sticker,
+body.mirror-lockdown .desktop-pet,
+body.mirror-lockdown .falling-coupon,
+body.mirror-lockdown .click-puff,
+body.mirror-lockdown .confetti-bit,
+body.mirror-lockdown .achievement-toast{
+  display:none!important;
+}
 body.mirror-lockdown::after{
   content:"";
   position:fixed;
@@ -231,12 +242,71 @@ body.mirror-lockdown .mirror-warning-inner{
   pointer-events:auto;
   animation:mirrorWarningPulse .8s steps(2) infinite;
 }
+body.mirror-lockdown .bounce-logo{
+  z-index:9950!important;
+  filter:
+    contrast(3)
+    saturate(3)
+    hue-rotate(120deg)
+    drop-shadow(0 0 12px #0ff)
+    drop-shadow(0 0 22px #f0c)
+    drop-shadow(0 0 34px #ff0)!important;
+  mix-blend-mode:screen;
+}
+body.mirror-lockdown .bounce-logo > div{
+  animation:
+    cursedVdoFlicker .14s steps(2) infinite,
+    cursedVdoSkew .55s steps(3) infinite;
+}
+body.mirror-lockdown .vdo-trail{
+  z-index:9940!important;
+  color:#0ff;
+  opacity:.34;
+  filter:
+    blur(1.5px)
+    contrast(3)
+    hue-rotate(180deg)
+    drop-shadow(0 0 8px #f0c);
+  mix-blend-mode:screen;
+  text-shadow:
+    3px 0 #f0c,
+    -3px 0 #0ff,
+    0 0 14px #ff0;
+}
 @keyframes mirrorWarningPulse{
   50%{
     box-shadow:
       inset 0 0 26px rgba(255,0,0,.75),
       0 0 30px rgba(0,255,255,.75),
       0 0 45px rgba(255,0,204,.55);
+  }
+}
+@keyframes cursedVdoFlicker{
+  0%{
+    opacity:1;
+    transform:translate(0,0) scale(1);
+  }
+  50%{
+    opacity:.62;
+    transform:translate(2px,-2px) scale(1.08);
+  }
+  100%{
+    opacity:.9;
+    transform:translate(-3px,1px) scale(.96);
+  }
+}
+@keyframes cursedVdoSkew{
+  0%{
+    clip-path:inset(0 0 0 0);
+  }
+  33%{
+    clip-path:inset(8% 0 12% 0);
+  }
+  66%{
+    clip-path:inset(0 0 18% 0);
+  }
+  100%{
+    clip-path:inset(0 0 0 0);
   }
 }
 

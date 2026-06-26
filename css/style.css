@@ -422,6 +422,24 @@ meter{width:100%}
 }
 
 .bounce-logo small{display:block;font:8px Arial;letter-spacing:2px}
+.vdo-trail{
+  position:fixed;
+  z-index:2490;
+  pointer-events:none;
+  display:grid;
+  place-items:center;
+  border-radius:45%;
+  border:2px solid rgba(0,255,255,.55);
+  background:rgba(255,0,204,.12);
+  color:#bff;
+  font:bold 18px Impact,Arial Black,sans-serif;
+  letter-spacing:1px;
+  text-shadow:0 0 7px #0ff,0 0 11px #f0c;
+  box-shadow:0 0 14px rgba(0,255,255,.45),inset 0 0 12px rgba(255,0,204,.24);
+  opacity:.34;
+  animation:vdoTrailFade .68s ease-out forwards;
+}
+@keyframes vdoTrailFade{to{opacity:0;transform:scale(.78) skew(-5deg);filter:blur(1px)}}
 .sticker{position:fixed;z-index:2400;font-size:34px;pointer-events:none;animation:sticker 2.6s forwards}
 @keyframes sticker{0%{transform:scale(.2) rotate(0);opacity:0}25%{opacity:1}100%{transform:scale(1.5) rotate(360deg);opacity:0}}
 .confetti-bit{position:fixed;top:-24px;z-index:998;pointer-events:none;will-change:transform}

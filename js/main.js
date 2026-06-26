@@ -1205,9 +1205,30 @@ function bouncingLogo(){
   let vx = 2.2;
   let vy = 1.8;
   let hue = 0;
+  let trailTick = 0;
+  let activeTrails = 0;
+  function spawnVdoTrail(tx,ty,w,h){
+    if(document.hidden || activeTrails > 7) return;
+    activeTrails++;
+    const trail = document.createElement("div");
+    trail.className = "vdo-trail";
+    trail.setAttribute("aria-hidden","true");
+    trail.textContent = "VDO";
+    trail.style.left = 30 + tx + "px";
+    trail.style.top = 30 + ty + "px";
+    trail.style.width = Math.max(52,Math.round(w * .72)) + "px";
+    trail.style.height = Math.max(28,Math.round(h * .58)) + "px";
+    document.body.appendChild(trail);
+    setTimeout(()=>{
+      trail.remove();
+      activeTrails = Math.max(0,activeTrails - 1);
+    },680);
+  }
   function step(){
     const w = logo.offsetWidth;
     const h = logo.offsetHeight;
+    const previousX = x;
+    const previousY = y;
     const speedBoost = getPurchases()["Slightly Faster VDO"] ? .35 : 0;
     const speed = getChaosMultiplier() + speedBoost;
     x += vx * speed;
@@ -1221,6 +1242,7 @@ function bouncingLogo(){
       if(Math.random() > .82) spawnSticker();
     }
     logo.style.transform = `translate(${x}px,${y}px)`;
+    if(trailTick++ % 7 === 0) spawnVdoTrail(previousX,previousY,w,h);
     requestAnimationFrame(step);
   }
   step();

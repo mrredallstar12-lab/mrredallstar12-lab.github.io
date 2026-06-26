@@ -177,7 +177,9 @@ body.mirror-lockdown .desktop-pet,
 body.mirror-lockdown .falling-coupon,
 body.mirror-lockdown .click-puff,
 body.mirror-lockdown .confetti-bit,
-body.mirror-lockdown .achievement-toast{
+body.mirror-lockdown .achievement-toast,
+body.mirror-lockdown .secret-toast,
+body.mirror-lockdown .secret-pixel{
   display:none!important;
 }
 body.mirror-lockdown::after{
@@ -297,6 +299,7 @@ body.mirror-lockdown .mirror-warning a:focus{
 }
 body.mirror-lockdown .bounce-logo{
   z-index:9950!important;
+  pointer-events:none!important;
   filter:
     contrast(3)
     saturate(3)
@@ -673,7 +676,8 @@ meter{width:100%}
   letter-spacing:1px;
   text-shadow:1px 1px #fff;
   box-shadow:0 0 20px #fff,0 0 35px #0ff;
-  pointer-events:none;
+  pointer-events:auto;
+  cursor:pointer;
 }
 
 .bounce-logo small{display:block;font:8px Arial;letter-spacing:2px}
@@ -695,6 +699,49 @@ meter{width:100%}
   animation:vdoTrailFade .42s ease-out forwards;
 }
 @keyframes vdoTrailFade{to{opacity:0;transform:scale(.86);filter:blur(1px)}}
+.secret-toast{
+  position:fixed;
+  left:18px;
+  bottom:18px;
+  z-index:8050;
+  max-width:min(360px,calc(100vw - 36px));
+  background:repeating-linear-gradient(45deg,#001b13 0 10px,#000 10px 20px);
+  color:#fff000;
+  border:4px double #0ff;
+  box-shadow:0 0 22px #f0c,6px 6px #000;
+  padding:10px 12px;
+  font:bold 13px "Courier New",monospace;
+  text-shadow:2px 2px #000,0 0 8px #0ff;
+  animation:secretToastPop .22s steps(2);
+}
+@keyframes secretToastPop{from{transform:translateY(12px) rotate(-1deg);opacity:0}to{transform:translateY(0) rotate(.5deg);opacity:1}}
+.secret-count-box{border-color:#0ff;background:rgba(0,18,28,.9)}
+.secret-shop-card{border-style:dashed;background:rgba(45,0,45,.9)}
+.secret-pixel{
+  position:fixed;
+  z-index:6100;
+  width:12px;
+  height:12px;
+  min-width:12px;
+  padding:0!important;
+  margin:0!important;
+  border:1px dotted rgba(255,255,255,.35)!important;
+  background:rgba(0,0,0,.2)!important;
+  color:#0ff!important;
+  font:bold 10px "Courier New",monospace!important;
+  line-height:9px!important;
+  text-align:center;
+  opacity:.38;
+  box-shadow:0 0 5px #0ff;
+}
+.secret-pixel:hover,.secret-pixel:focus{opacity:1;transform:scale(1.8);outline:2px dashed #fff000}
+.secret-pixel-rare{color:#fff000!important;box-shadow:0 0 8px #f0c}
+.secret-signal-drift{filter:hue-rotate(210deg) contrast(1.6) saturate(1.8)}
+.biggie-mode .box{box-shadow:0 0 28px #fff000,inset 0 0 20px rgba(255,0,204,.35)}
+.biggie-mode .logo{transform:scale(1.03) rotate(-1deg)}
+.secret-popup .ad-title{background:#3b0066;color:#fff000}
+.secret-popup .ad-body{background:#090014;color:#fff}
+.secret-popup .ad-fine{color:#d7b7ff}
 .sticker{position:fixed;z-index:2400;font-size:34px;pointer-events:none;animation:sticker 2.6s forwards}
 @keyframes sticker{0%{transform:scale(.2) rotate(0);opacity:0}25%{opacity:1}100%{transform:scale(1.5) rotate(360deg);opacity:0}}
 .confetti-bit{position:fixed;top:-24px;z-index:998;pointer-events:none;will-change:transform}

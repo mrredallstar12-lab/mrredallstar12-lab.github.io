@@ -105,8 +105,384 @@ function clean(text){
   return String(text).replace(/[<>&]/g,(char)=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[char]));
 }
 
+function readJSON(key,fallback){
+  try{return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback))}
+  catch{return fallback}
+}
+
+function writeJSON(key,value){
+  localStorage.setItem(key,JSON.stringify(value));
+}
+
+const inventoryCatalog = {
+  "Mystery Bolt":{rarity:"odd",desc:"A spare bolt with no known source and too much confidence."},
+  "Expired Banner Ad":{rarity:"stale",desc:"Still blinking after the offer ended."},
+  "CRT Dust":{rarity:"common",desc:"Fine glowing powder from the scanline shelf."},
+  "404 Shard":{rarity:"sharp",desc:"A tiny broken piece of not-found."},
+  "Tiny Modem":{rarity:"rare",desc:"Screams quietly when placed near a coupon."},
+  "Cursed Coupon":{rarity:"cursed",desc:"Worth zero percent off something imaginary."},
+  "Loose Pixel":{rarity:"common",desc:"Keeps escaping the monitor border."},
+  "Broken Loading Bar":{rarity:"unreliable",desc:"Never reaches 100 unless nobody is watching."},
+  "Aquarium Bubble":{rarity:"wet",desc:"A bubble from the pixel tank."},
+  "Fake Toolbar":{rarity:"sticky",desc:"Adds no features and three feelings."},
+  "Haunted Floppy":{rarity:"vintage",desc:"Labeled FINAL_REAL_USE_THIS."},
+  "Static Coin":{rarity:"currency",desc:"A coin with radio fuzz stamped on it."},
+  "Popup Buck":{rarity:"currency",desc:"Legal tender inside no real economy."},
+  "Coupon Dust":{rarity:"currency",desc:"Powdered savings, do not inhale."},
+  "VDO Spark":{rarity:"bright",desc:"Fell off the bouncing signal blob."},
+  "Emergency Panic Receipt":{rarity:"official",desc:"Proof that panic failed successfully."},
+  "Desktop Crab Shell":{rarity:"desktop",desc:"A tiny shell from a taskbar incident."},
+  "Radio Static Sample":{rarity:"audio",desc:"Stored in a jar labeled CH 404."},
+  "Weather Pixel":{rarity:"forecast",desc:"Partly cloudy with a chance of blinking."},
+  "Fake Patch Note":{rarity:"update",desc:"Claims to fix one issue by creating three."}
+};
+
+const achievementCatalog = {
+  popupPest:{name:"Popup Pest Control",desc:"Close 10 fake ads."},
+  adStormSurvivor:{name:"Ad Storm Survivor",desc:"Start ad storm."},
+  secretDoor:{name:"Secret Door Opener",desc:"Unlock ???."},
+  pixelHunter:{name:"Pixel Hunter",desc:"Find the hidden pixel."},
+  aquariumGoblin:{name:"Aquarium Goblin",desc:"Feed the aquarium."},
+  panicBeliever:{name:"Panic Believer",desc:"Press the panic button."},
+  staticEnjoyer:{name:"Static Enjoyer",desc:"Trigger 5 random events."},
+  buttonGremlin:{name:"Button Gremlin",desc:"Click 100 buttons."},
+  chaosTechnician:{name:"Chaos Technician",desc:"Set chaos level to dial-up apocalypse."},
+  vdoWitness:{name:"VDO Witness",desc:"Keep the site open long enough to watch the signal bounce."},
+  fileGoblin:{name:"File Goblin",desc:"Open 10 fake files."},
+  radioDrifter:{name:"Radio Drifter",desc:"Tune 5 fake stations."},
+  weatherLiar:{name:"Weather Liar",desc:"Refresh fake weather 5 times."},
+  patchSurvivor:{name:"Patch Survivor",desc:"Survive a fake update failure."},
+  shopVictim:{name:"Shop Victim",desc:"Buy any fake shop item."},
+  deeperArchive:{name:"Deeper Archive",desc:"Unlock the second secret phrase."}
+};
+
+const currencyNames = ["Static Coins","Popup Bucks","Coupon Dust"];
+const chaosLabels = ["calm","weird","annoying","haunted","dial-up apocalypse"];
+const questPhrase = "bolt-coupon-vhs";
+
+function getInventory(){return readJSON("oddInventory",{})}
+function getAchievements(){return readJSON("oddAchievements",{})}
+function getCurrency(){return readJSON("oddCurrency",{"Static Coins":0,"Popup Bucks":0,"Coupon Dust":0})}
+function getPurchases(){return readJSON("oddShopPurchases",{})}
+function getQuest(){return readJSON("oddQuest",{})}
+function getChaosLevel(){return Math.max(0,Math.min(4,Number(localStorage.getItem("oddChaosLevel") || 1)))}
+
+function setStatusText(selector,text){
+  $$(selector).forEach((el)=>el.textContent = text);
+}
+
+function addInventoryItem(itemName,amount=1){
+  const inv = getInventory();
+  inv[itemName] = (Number(inv[itemName]) || 0) + amount;
+  writeJSON("oddInventory",inv);
+  localStorage.setItem("oddLatestItem",itemName);
+  updateArchiveDashboard();
+  return inv[itemName];
+}
+
+function addCurrency(type,amount=1){
+  const currency = getCurrency();
+  currency[type] = (Number(currency[type]) || 0) + amount;
+  writeJSON("oddCurrency",currency);
+  updateArchiveDashboard();
+}
+
+function incrementStat(key,amount=1){
+  const n = Number(localStorage.getItem(key) || 0) + amount;
+  localStorage.setItem(key,String(n));
+  return n;
+}
+
+function unlockAchievement(id){
+  if(!achievementCatalog[id]) return false;
+  const achievements = getAchievements();
+  if(achievements[id]) return false;
+  achievements[id] = {unlocked:true,date:new Date().toLocaleString()};
+  writeJSON("oddAchievements",achievements);
+  showAchievementToast(achievementCatalog[id].name);
+  updateArchiveDashboard();
+  return true;
+}
+
+function showAchievementToast(name){
+  const toast = document.createElement("div");
+  toast.className = "achievement-toast";
+  toast.innerHTML = `<b>ACHIEVEMENT UNLOCKED</b><br>${clean(name)}`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),4200);
+  playSound("confetti");
+}
+
+function setChaosLevel(level){
+  const next = Math.max(0,Math.min(4,Number(level)));
+  localStorage.setItem("oddChaosLevel",String(next));
+  if(next === 4) unlockAchievement("chaosTechnician");
+  updateChaosControls();
+  updateArchiveDashboard();
+}
+
+function updateChaosControls(){
+  const level = getChaosLevel();
+  $$(".chaos-slider").forEach((input)=>input.value = String(level));
+  setStatusText("[data-chaos-status]",`Chaos level ${level}: ${chaosLabels[level]}`);
+}
+
+function getChaosMultiplier(){
+  return 1 + getChaosLevel() * .35;
+}
+
+function countInventoryItems(){
+  return Object.values(getInventory()).reduce((sum,n)=>sum + Number(n || 0),0);
+}
+
+function countAchievements(){
+  return Object.keys(getAchievements()).length;
+}
+
+function currencySummary(){
+  const currency = getCurrency();
+  return currencyNames.map((name)=>`${name}: ${Number(currency[name] || 0)}`).join(" | ");
+}
+
+function updateArchiveDashboard(){
+  const level = getChaosLevel();
+  setStatusText("[data-dashboard-chaos]",`${level} - ${chaosLabels[level]}`);
+  setStatusText("[data-dashboard-event]",localStorage.getItem("oddLatestEvent") || "none yet");
+  setStatusText("[data-dashboard-inventory]",String(countInventoryItems()));
+  setStatusText("[data-dashboard-achievements]",`${countAchievements()} / ${Object.keys(achievementCatalog).length}`);
+  setStatusText("[data-dashboard-currency]",currencySummary());
+  setStatusText("[data-dashboard-item]",localStorage.getItem("oddLatestItem") || "nothing collected yet");
+  setStatusText("[data-dashboard-mood]",archiveMood());
+}
+
+function archiveMood(){
+  return ["sleepy static","button confidence rising","popup humidity high","fish tank suspicious","coupon pressure unstable"][Math.floor(Math.random()*5)];
+}
+
+function awardRandomJunk(reason="interaction"){
+  const items = Object.keys(inventoryCatalog);
+  const item = items[Math.floor(Math.random()*items.length)];
+  addInventoryItem(item,1);
+  if(reason === "ad") addCurrency("Popup Bucks",1);
+  else if(reason === "event") addCurrency("Static Coins",1);
+  else if(reason === "coupon") addCurrency("Coupon Dust",1);
+  else addCurrency(currencyNames[Math.floor(Math.random()*currencyNames.length)],1);
+  return item;
+}
+
+function closeAllPopupAds(){
+  const ads = $$(".popup-ad");
+  ads.forEach((ad)=>ad.remove());
+  return ads.length;
+}
+
+function spawnPanicAd(count){
+  const ad = document.createElement("div");
+  ad.className = "popup-ad ad-alert panic-ad";
+  ad.style.left = Math.max(8,Math.random() * Math.max(20,innerWidth - 360)) + "px";
+  ad.style.top = Math.max(8,Math.random() * Math.max(20,innerHeight - 240)) + "px";
+  ad.innerHTML = `<div class="ad-title"><span>! PANIC SYSTEM</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>panic acknowledged, one emergency popup remains.</b><p>${count} popup(s) removed. Panic mode failed successfully.</p><p><button>accept receipt</button><button>panic again later</button></p><p class="ad-fine">This is a fake theatrical system notice.</p></div></div>`;
+  document.body.appendChild(ad);
+  ad.querySelector(".x").onclick = () => {
+    awardAdClose();
+    ad.remove();
+  };
+  ad.querySelectorAll(".ad-body button").forEach((button)=>button.onclick = () => spawnSticker());
+  makeDraggable(ad,ad.querySelector(".ad-title"));
+}
+
+function panicButton(){
+  const closed = closeAllPopupAds();
+  addInventoryItem("Emergency Panic Receipt",1);
+  addCurrency("Popup Bucks",Math.max(1,closed));
+  unlockAchievement("panicBeliever");
+  playSound("alarm");
+  spawnPanicAd(closed);
+  updateArchiveDashboard();
+}
+
+function awardAdClose(){
+  addInventoryItem("Expired Banner Ad",1);
+  addCurrency("Popup Bucks",1);
+  const closed = incrementStat("oddClosedAds",1);
+  if(closed >= 10) unlockAchievement("popupPest");
+}
+
+function addQuestClue(id,text){
+  const quest = getQuest();
+  if(!quest[id]){
+    quest[id] = {text,date:new Date().toLocaleString()};
+    writeJSON("oddQuest",quest);
+    addInventoryItem("404 Shard",1);
+  }
+  renderQuestClues();
+}
+
+function renderQuestClues(){
+  const quest = getQuest();
+  const list = $("#questClues");
+  if(!list) return;
+  list.innerHTML = Object.entries(quest).map(([id,data])=>`<li><b>${clean(id)}</b>: ${clean(data.text)}</li>`).join("") || "<li>No clue fragments recovered yet.</li>";
+}
+
+function unlockDeeperArchive(){
+  const input = $("#deeperPhrase");
+  const out = $("#deeperOut");
+  const panel = $("#deeperArchivePanel");
+  if(!input || !out || !panel) return;
+  if(input.value.trim().toLowerCase() === questPhrase){
+    panel.classList.add("unlocked");
+    out.textContent = "DEEPER ARCHIVE OPEN: phrase accepted.";
+    addInventoryItem("VDO Spark",2);
+    addCurrency("Static Coins",25);
+    unlockAchievement("deeperArchive");
+    playSound("secret");
+  }else{
+    out.textContent = "Phrase rejected. The archive coughs up static.";
+    playSound("buzz");
+  }
+}
+
+function latestEvent(text){
+  localStorage.setItem("oddLatestEvent",text);
+  setStatusText("[data-latest-event]",text);
+  updateArchiveDashboard();
+}
+
+function signalBanner(text){
+  const banner = document.createElement("div");
+  banner.className = "signal-banner";
+  banner.textContent = text;
+  document.body.appendChild(banner);
+  setTimeout(()=>banner.remove(),5200);
+}
+
+function spawnFallingCoupon(){
+  const coupon = document.createElement("div");
+  coupon.className = "falling-coupon";
+  coupon.textContent = "0% OFF";
+  coupon.style.left = Math.random()*90 + "vw";
+  document.body.appendChild(coupon);
+  setTimeout(()=>coupon.remove(),5200);
+}
+
+function triggerRandomEvent(){
+  const events = [
+    ()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1800);latestEvent("Static burst rattled the archive.");},
+    ()=>{document.body.classList.add("page-shake");setTimeout(()=>document.body.classList.remove("page-shake"),900);latestEvent("Page shake from unstable table layout.");},
+    ()=>{openFakeWindow("Random System Alert","The archive noticed a suspicious amount of normal behavior.");latestEvent("Fake system alert appeared.");},
+    ()=>{const msg = "Mystery bolt speaks: turn left at the coupon."; latestEvent(msg); signalBanner(msg); addInventoryItem("Mystery Bolt",1);},
+    ()=>{latestEvent("Aquarium leak warning issued."); signalBanner("AQUARIUM LEAK WARNING: water is mostly CSS."); addInventoryItem("Aquarium Bubble",1);},
+    ()=>{document.body.classList.toggle("nightmare");setTimeout(()=>document.body.classList.toggle("nightmare"),3200);latestEvent("Background hue shifted without paperwork.");},
+    ()=>{spawnSticker();latestEvent("One weird sticker entered the evidence room.");},
+    ()=>{spawnAd(false);latestEvent("Random popup specimen escaped.");},
+    ()=>{signalBanner("SIGNAL INTERRUPTION: PLEASE CLAP FOR THE LOADING BAR");latestEvent("Signal interruption banner broadcast.");},
+    ()=>{spawnDesktopPet();latestEvent("Desktop pet crossed the page.");},
+    ()=>{spawnFallingCoupon();latestEvent("Fake coupon fell from the browser ceiling.");addInventoryItem("Cursed Coupon",1);}
+  ];
+  events[Math.floor(Math.random()*events.length)]();
+  const n = incrementStat("oddRandomEvents",1);
+  addCurrency("Static Coins",1);
+  awardRandomJunk("event");
+  if(n >= 5) unlockAchievement("staticEnjoyer");
+}
+
+function startRandomEventEngine(){
+  const delay = Math.max(9000,80000 - getChaosLevel()*15000) + Math.random() * Math.max(12000,30000 - getChaosLevel()*4000);
+  setTimeout(()=>{
+    triggerRandomEvent();
+    startRandomEventEngine();
+  },delay);
+}
+
+function spawnDesktopPet(type){
+  const types = {
+    crab:{label:"(V)V",item:"Desktop Crab Shell",msg:"pixel crab clicks in square brackets"},
+    modem:{label:"56K",item:"Tiny Modem",msg:"tiny modem whispers carrier tone"},
+    cursor:{label:"PTR",item:"Loose Pixel",msg:"loose cursor points at nothing"},
+    vdo:{label:"vdo",item:"VDO Spark",msg:"mini VDO baby bounces badly"},
+    coupon:{label:"BUG",item:"Cursed Coupon",msg:"coupon bug requests a discount"},
+    toolbar:{label:"TB",item:"Fake Toolbar",msg:"toolbar worm adds a useless button"}
+  };
+  const keys = Object.keys(types);
+  const pet = types[type] || types[keys[Math.floor(Math.random()*keys.length)]];
+  const el = document.createElement("button");
+  el.className = "desktop-pet";
+  el.textContent = pet.label;
+  el.style.left = "-60px";
+  el.style.top = 80 + Math.random() * Math.max(120,innerHeight - 180) + "px";
+  el.onclick = () => {
+    addInventoryItem(pet.item,1);
+    latestEvent(pet.msg);
+    playSound("blip");
+    el.remove();
+  };
+  document.body.appendChild(el);
+  incrementStat("oddPetsSpawned",1);
+  setTimeout(()=>{if(el.isConnected)el.remove()},12000);
+  return el;
+}
+
+function enhanceSiteControls(){
+  $$(".box").forEach((box)=>{
+    const heading = box.querySelector("h3");
+    if(!heading || heading.textContent.trim().toLowerCase() !== "site controls") return;
+    if(!box.querySelector("[data-panic-button]")){
+      const panic = document.createElement("button");
+      panic.type = "button";
+      panic.dataset.panicButton = "true";
+      panic.dataset.sound = "alarm";
+      panic.textContent = "PANIC BUTTON";
+      panic.onclick = panicButton;
+      box.appendChild(panic);
+    }
+    if(!box.querySelector("[data-pet-button]")){
+      const pet = document.createElement("button");
+      pet.type = "button";
+      pet.dataset.petButton = "true";
+      pet.textContent = "spawn desktop pet";
+      pet.onclick = () => spawnDesktopPet();
+      box.appendChild(pet);
+    }
+    if(!box.querySelector(".chaos-control")){
+      const wrap = document.createElement("div");
+      wrap.className = "chaos-control";
+      wrap.innerHTML = `<label>chaos level <input class="chaos-slider" type="range" min="0" max="4" step="1"></label><p data-chaos-status></p><p class="mini-status">Inventory: <span data-dashboard-inventory>0</span> | Achievements: <span data-dashboard-achievements>0</span></p>`;
+      box.appendChild(wrap);
+      wrap.querySelector(".chaos-slider").oninput = (e)=>setChaosLevel(e.target.value);
+    }
+  });
+  updateChaosControls();
+}
+
+function ensureExpandedNav(){
+  $$(".nav").forEach((nav)=>{
+    const isRoot = location.pathname.endsWith("/") || location.pathname.endsWith("index.html") || !location.pathname.includes("/pages/");
+    const prefix = isRoot ? "pages/" : "";
+    const homeHref = isRoot ? "index.html" : "../index.html";
+    const links = [
+      ["Home",homeHref],["Signal Archive",prefix+"about.html"],["Tiny Games",prefix+"games.html"],["Random Junk",prefix+"random.html"],["Impossible Garage",prefix+"cars.html"],["Chaos Lab",prefix+"lab.html"],["Fake Desktop",prefix+"desktop.html"],["Pixel Aquarium",prefix+"aquarium.html"],["Web Ring",prefix+"webring.html"],["Guestbook",prefix+"guestbook.html"],["???",prefix+"secrets.html"],["Loading Void",prefix+"void.html"],["Fake Ad Museum",prefix+"ads.html"],["Mystery Bolt Oracle",prefix+"oracle.html"],["Object Shrine",prefix+"objects.html"],["Broken CRT",prefix+"tv.html"],["Useless Buttons",prefix+"buttons.html"],["Tiny Link Maze",prefix+"maze.html"],["Inventory",prefix+"inventory.html"],["Achievements",prefix+"achievements.html"],["Cursed File Explorer",prefix+"files.html"],["Cursed Search",prefix+"search.html"],["Lost Pages",prefix+"lost.html"],["ArchiveBot 98",prefix+"bot.html"],["Radio",prefix+"radio.html"],["Fake Weather",prefix+"weather.html"],["Fake Update",prefix+"update.html"],["Shop",prefix+"shop.html"]
+    ];
+    if(!nav.querySelector("[data-expanded-nav]")){
+      const marker = document.createElement("small");
+      marker.dataset.expandedNav = "true";
+      marker.textContent = "toybox systems";
+      nav.appendChild(marker);
+    }
+    links.forEach(([label,path])=>{
+      const href = prefix + path;
+      if(!nav.querySelector(`a[href="${href}"]`) && !Array.from(nav.querySelectorAll("a")).some((a)=>a.textContent.trim() === label)){
+        const a = document.createElement("a");
+        a.href = href;
+        a.textContent = label;
+        nav.appendChild(a);
+      }
+    });
+  });
+}
+
 function clickPuff(x,y){
-  const count = 7;
+  const count = 4 + getChaosLevel() * 2;
   for(let i=0;i<count;i++){
     const bit = document.createElement("span");
     bit.className = "click-puff";
@@ -187,7 +563,14 @@ function attachGlobalClickEffects(){
     const target = e.target;
     if(target.closest(".ad-title,.win-title") && !target.closest("button")) return;
     clickPuff(e.clientX,e.clientY);
+    if(Math.random() < getChaosLevel() * .04) spawnSticker();
+    if(getChaosLevel() >= 3 && Math.random() < .012) spawnDesktopPet();
+    if(target.closest("button")){
+      const clicks = incrementStat("oddButtonClicks",1);
+      if(clicks >= 100) unlockAchievement("buttonGremlin");
+    }
     if(target.closest("button,a,input,select,textarea,.mini-game,.fake-desktop")) playSound(resolveSoundType(target));
+    if(Math.random() < getChaosLevel() * .025) playSound("blip");
   },true);
 }
 
@@ -326,7 +709,10 @@ function spawnAd(manual=false){
   ad.style.top = Math.max(5,Math.random() * Math.max(20,innerHeight - 255)) + "px";
   ad.innerHTML = adMarkup(template);
   document.body.appendChild(ad);
-  ad.querySelector(".x").onclick = () => ad.remove();
+  ad.querySelector(".x").onclick = () => {
+    awardAdClose();
+    ad.remove();
+  };
   ad.querySelectorAll(".ad-body button").forEach((button)=>{
     button.onclick = () => {
       spawnSticker();
@@ -340,7 +726,8 @@ function spawnAd(manual=false){
 
 function scheduleNextRandomAd(initial=false){
   clearTimeout(randomAdTimer);
-  const delay = initial ? 4000 + Math.random() * 6000 : 12000 + Math.random() * 13000;
+  const chaos = getChaosLevel();
+  const delay = initial ? Math.max(2500,4000 + Math.random() * 6000 - chaos * 650) : Math.max(4500,12000 + Math.random() * 13000 - chaos * 2200);
   randomAdTimer = setTimeout(()=>{
     if(!adStorm && document.querySelectorAll(".popup-ad").length < MAX_POPUPS) spawnAd(false);
     scheduleNextRandomAd(false);
@@ -374,7 +761,11 @@ function runAdStorm(){
 function toggleAdStorm(){
   adStorm = !adStorm;
   updateAdStormButton();
-  if(adStorm) runAdStorm();
+  if(adStorm){
+    unlockAchievement("adStormSurvivor");
+    addCurrency("Popup Bucks",3);
+    runAdStorm();
+  }
   else clearTimeout(adStormTimer);
 }
 
@@ -424,8 +815,10 @@ function bouncingLogo(){
   function step(){
     const w = logo.offsetWidth;
     const h = logo.offsetHeight;
-    x += vx;
-    y += vy;
+    const speedBoost = getPurchases()["Slightly Faster VDO"] ? .35 : 0;
+    const speed = getChaosMultiplier() + speedBoost;
+    x += vx * speed;
+    y += vy * speed;
     let hit = false;
     if(x < 0 || x + w > innerWidth){vx *= -1;x = Math.max(0,Math.min(x,innerWidth - w));hit = true}
     if(y < 0 || y + h > innerHeight){vy *= -1;y = Math.max(0,Math.min(y,innerHeight - h));hit = true}
@@ -615,7 +1008,11 @@ function startMemoryGame(){
         matches++;
         first = null;
         out.textContent = matches === 4 ? "Memory cabinet cleared. The archive reluctantly applauds." : "Match logged.";
-        if(matches === 4) spawnConfetti();
+        if(matches === 4){
+          addInventoryItem("Static Coin",1);
+          addCurrency("Static Coins",5);
+          spawnConfetti();
+        }
       }else{
         const old = first;
         first = null;
@@ -657,6 +1054,8 @@ function hidePixel(){
   p.onclick = () => {
     p.remove();
     out.textContent = "Hidden pixel found. It was pretending to be dust.";
+    addInventoryItem("Loose Pixel",1);
+    unlockAchievement("pixelHunter");
     spawnSticker();
   };
   area.appendChild(p);
@@ -927,6 +1326,7 @@ function addFish(){
   f.onclick = () => {
     const out = $("#fishOut");
     if(out) out.textContent = `The ${creature.type.replace("-"," ")} filed a tiny incident report.`;
+    addInventoryItem(creature.type === "crab" ? "Desktop Crab Shell" : "Aquarium Bubble",1);
     makeBubble(tank,parseFloat(f.style.top) || 120);
   };
   tank.appendChild(f);
@@ -947,6 +1347,10 @@ function makeBubble(tank,y=260){
 function feedFish(){
   const out = $("#fishOut");
   if(out) out.textContent = "The aquarium accepts the browser crumbs and becomes slightly weirder.";
+  addInventoryItem("Aquarium Bubble",1);
+  addCurrency("Coupon Dust",1);
+  unlockAchievement("aquariumGoblin");
+  addQuestClue("aquarium","bubble points toward coupon");
   for(let i=0;i<4;i++) addFish();
 }
 
@@ -985,6 +1389,9 @@ function unlockSecret(){
   if(input.value.trim().toLowerCase() === "signal404"){
     panel.classList.add("unlocked");
     out.textContent = "ACCESS GRANTED: deep archive door unstuck.";
+    unlockAchievement("secretDoor");
+    addQuestClue("secret","bolt waits beside coupon and vhs");
+    addInventoryItem("404 Shard",1);
     playSound("secret");
     spawnConfetti();
   }else{
@@ -1004,7 +1411,11 @@ function secretRitual(){
     "Ritual complete: the archive emits one respectful beep."
   ];
   if(out) out.textContent = steps[Math.min(secretRitualCount - 1, steps.length - 1)];
-  if(secretRitualCount % 4 === 0) spawnConfetti();
+  addCurrency("Static Coins",1);
+  if(secretRitualCount % 4 === 0){
+    addInventoryItem("VDO Spark",1);
+    spawnConfetti();
+  }
 }
 
 function makeNoiseText(btn){
@@ -1049,6 +1460,271 @@ function mazeChoice(id){
   if(id === "d") spawnAd(true);
 }
 
+function renderInventory(){
+  const grid = $("#inventoryGrid");
+  if(!grid) return;
+  const inv = getInventory();
+  grid.innerHTML = Object.entries(inventoryCatalog).map(([name,meta])=>{
+    const count = Number(inv[name] || 0);
+    return `<div class="inventory-card ${count ? "owned" : ""}"><h3>${clean(name)}</h3><p>${clean(meta.desc)}</p><b>Rarity: ${clean(meta.rarity)}</b><p>Count: ${count}</p></div>`;
+  }).join("");
+}
+
+function renderAchievements(){
+  const grid = $("#achievementGrid");
+  if(!grid) return;
+  const achievements = getAchievements();
+  grid.innerHTML = Object.entries(achievementCatalog).map(([id,a])=>{
+    const unlocked = achievements[id];
+    return `<div class="achievement-card ${unlocked ? "unlocked" : ""}"><h3>${clean(a.name)}</h3><p>${clean(a.desc)}</p><b>${unlocked ? "Unlocked" : "Locked"}</b>${unlocked ? `<p>${clean(unlocked.date)}</p>` : ""}</div>`;
+  }).join("");
+}
+
+const fileFolders = {
+  "/DO_NOT_OPEN":["panic_receipt.txt","green_fish_warning.txt","bolt_coupon_vhs.clue"],
+  "/old_buttons":["beep_button.btn","button_confidence.ini","under_construction.gif.txt"],
+  "/coupons":["zero_percent.cpn","coupon_ash.dat","laminator_receipt.fake"],
+  "/secret_static":["signal404_note.txt","ch404_recording.wav.txt","static_sample.jar"],
+  "/images_that_loaded_wrong":["vdo_corner.bmp","fish_but_sideways.png.txt","banner_fossil.jpg.txt"],
+  "/system32_but_fake":["do_not_delete_fake.dll","toolbar_worm.sys.txt","nothing_driver.ini"],
+  "/desktop_pet_records":["crab_shell.log","tiny_modem_sighting.txt","coupon_bug_tracks.dat"],
+  "/radio_logs":["fm404_transcript.txt","aquarium_weather.log","banner_jazz.playlist"]
+};
+
+function renderFileExplorer(){
+  const folders = $("#fileFolders");
+  if(!folders) return;
+  folders.innerHTML = Object.keys(fileFolders).map((folder)=>`<button onclick="showFakeFolder('${folder}')">${folder}</button>`).join("");
+  showFakeFolder("/DO_NOT_OPEN");
+}
+
+function showFakeFolder(folder){
+  const files = $("#fileList");
+  const title = $("#folderTitle");
+  if(title) title.textContent = folder;
+  if(!files) return;
+  files.innerHTML = (fileFolders[folder] || []).map((file)=>`<button onclick="openFakeFile('${folder}','${file}')">${file}</button>`).join("");
+}
+
+function openFakeFile(folder,file){
+  const text = {
+    "bolt_coupon_vhs.clue":"ARG clue fragment: bolt-coupon-vhs. This is theatrical, not authentication.",
+    "green_fish_warning.txt":"Do not click the green fish unless the bubble asks nicely.",
+    "signal404_note.txt":"The first door answers to signal404. The second door likes bolt, coupon, and vhs.",
+    "fm404_transcript.txt":"CH 404 repeats: static is a place, not a problem."
+  }[file] || `Opened ${file} from ${folder}. Contents: corrupted but charming.`;
+  openFakeWindow(file,text);
+  addInventoryItem(file.includes("coupon") ? "Cursed Coupon" : file.includes("static") ? "Radio Static Sample" : "Fake Patch Note",1);
+  const opened = incrementStat("oddFilesOpened",1);
+  if(opened >= 10) unlockAchievement("fileGoblin");
+  if(file.includes("clue")) addQuestClue("files","bolt-coupon-vhs");
+}
+
+const searchFragments = [
+  "was last seen inside a banner ad","is legally distinct from a real toolbar","requires three coupons and a patient modem","fell into the loading void","became a desktop shortcut with regrets","is stored next to the 404 shard","won an award for excessive borders","smells like warm CRT plastic","was rejected by the fake update installer","contains one heroic table cell",
+  "opened a popup and apologized","made the aquarium slightly suspicious","is classified as premium dust","has a weather advisory","was laminated for safety","lost a fight with a progress bar","was indexed by a tired web ring","contains 12 new bugs","became a patch note","is available in Static City",
+  "was translated into modem beeps","knows the panic button personally","filed a complaint with ArchiveBot 98","is hidden in /DO_NOT_OPEN","tuned itself to FM 40.4","was eaten by a coupon bug","caused a fake system alert","is mostly decorative","requires localStorage to remember anything","appears during dial-up apocalypse",
+  "was printed on newspaper coupon paper","has a tiny VDO spark inside","was last cached in 2004","cannot be downloaded because it is fictional","belongs in the object shrine","is now a shop upgrade","was found under a fake taskbar","contains the phrase bolt-coupon-vhs","was foggy with mild popups","is waiting in the Tiny Link Maze",
+  "was certified by Table Layout Council","contains 0% real malware","is parody-only and proud","fell from the top of the browser","was counted by a fake visitor counter","opened a draggable window","made a button more confident","has suspicious toolbar humidity","is a browser-game fossil","started blinking in self defense"
+];
+
+function cursedSearch(){
+  const input = $("#searchInput");
+  const results = $("#searchResults");
+  if(!input || !results) return;
+  const q = input.value.trim() || "blank query";
+  const lower = q.toLowerCase();
+  const eggs = {
+    bolt:"The bolt result whispers: coupon comes before vhs.",
+    coupon:"Coupon result: save 0% and collect Coupon Dust.",
+    vdo:"VDO result: keep watching the corner bounce.",
+    aquarium:"Aquarium result: bubbles are evidence.",
+    signal404:"signal404 opens the first harmless secret gate.",
+    panic:"Panic result: one emergency popup always remains.",
+    popup:"Popup result: close enough ads and the archive pays you.",
+    static:"Static result: tune CH 404 for the second clue.",
+    archive:"Archive result: the toybox has no bottom."
+  };
+  if(eggs[lower]){
+    addQuestClue("search",eggs[lower]);
+    addInventoryItem("404 Shard",1);
+  }
+  const rows = Array.from({length:7},(_,i)=>{
+    const fragment = searchFragments[Math.floor(Math.random()*searchFragments.length)];
+    return `<div class="search-result"><h3>${clean(q)} result ${i+1}</h3><p>${clean(q)} ${clean(fragment)}.</p><a onclick="spawnAd(true)">cached copy</a></div>`;
+  });
+  if(eggs[lower]) rows.unshift(`<div class="search-result special"><h3>Special result</h3><p>${clean(eggs[lower])}</p></div>`);
+  results.innerHTML = rows.join("");
+}
+
+function generateLostPage(){
+  const out = $("#lostOutput");
+  if(!out) return;
+  const titles = ["Coupon Cathedral","Static Arcade Wing","Lost Toolbar Chapel","VDO Bounce Shrine","Aquarium Afterhours","Popup Museum Basement","Button Orchard"];
+  const warnings = ["do not trust the third button","page may contain theatrical dust","loading bar is decorative","coupon winds increasing","normal layout not found"];
+  const lore = ["A banner ad learned to dream in tables.","The fake visitor counter counted backward once.","A folder named maybe opened itself.","Someone replaced calm mode with suspicious calm mode.","The aquarium left a wet CSS footprint."];
+  const urls = ["/void?signal=73","/lost/page/CRT-404","/archive/cache/coupon-void","/popup/museum/wing-7","/radio/ch404/static-loop"];
+  const item = Math.random() > .55 ? awardRandomJunk("event") : "";
+  if(Math.random() > .65) addQuestClue("lost","vhs follows coupon in the deeper phrase");
+  out.innerHTML = `<div class="lost-panel" style="background:hsl(${Math.random()*360},70%,16%)"><p class="fake-url">${urls[Math.floor(Math.random()*urls.length)]}</p><h2>${titles[Math.floor(Math.random()*titles.length)]}</h2><p><b>Warning:</b> ${warnings[Math.floor(Math.random()*warnings.length)]}</p><p>${lore[Math.floor(Math.random()*lore.length)]}</p><button onclick="spawnAd(true)">lost fake ad</button><button onclick="buttonRoulette()">page button</button>${item ? `<p>Collected: ${clean(item)}</p>` : ""}</div>`;
+}
+
+function askArchiveBot(topic){
+  const out = $("#botOutput");
+  if(!out) return;
+  const replies = {
+    bolt:["The bolt is not missing. Reality is missing the hole.","Ask again after collecting coupon dust."],
+    ads:["Ads exist because buttons became lonely.","Every popup is fake, but the border is sincere."],
+    link:["Forbidden link points to /DO_NOT_OPEN, obviously.","Try the search engine with signal404."],
+    aquarium:["The aquarium is mostly CSS and suspicious bubbles.","Do not negotiate with the boot."],
+    prophecy:["A loading bar will betray you at 99%.","The second phrase contains bolt, coupon, and vhs."],
+    vdo:["The VDO signal is legally distinct and spiritually round.","Watch long enough and it leaves sparks."],
+    panic:["Panic is a button, not a plan.","The emergency popup is required by archive law."]
+  };
+  const list = replies[topic] || replies.prophecy;
+  out.innerHTML += `<p><b>ArchiveBot 98:</b> ${clean(list[Math.floor(Math.random()*list.length)])}</p>`;
+}
+
+const radioStations = {
+  "FM 40.4":{name:"Banner Ad Jazz",now:"saxophone over a blinking coupon",item:"Radio Static Sample"},
+  "FM 98.6":{name:"Aquarium Weather",now:"humid bubbles over soft modem rain",item:"Weather Pixel"},
+  "AM 666":{name:"Loading Bar Sermons",now:"99 percent forever and amen",item:"Broken Loading Bar"},
+  "FM 13.7":{name:"Coupon Emergency Broadcast",now:"urgent savings with no value",item:"Coupon Dust"},
+  "CH 404":{name:"Lost Signal",now:"static clue: bolt-coupon-vhs",item:"Radio Static Sample"},
+  "FM 88.8":{name:"VDO Corner Bounce Watch",now:"live commentary on a near miss",item:"VDO Spark"}
+};
+
+function tuneRadio(station){
+  const data = radioStations[station];
+  if(!data) return;
+  const out = $("#radioOutput");
+  if(out) out.innerHTML = `<h2>${station} - ${clean(data.name)}</h2><p>Now playing: ${clean(data.now)}</p>`;
+  document.body.dataset.radioVibe = station.replace(/\W/g,"");
+  addInventoryItem(data.item,1);
+  addCurrency("Static Coins",2);
+  const n = incrementStat("oddRadioTunes",1);
+  if(station === "CH 404") addQuestClue("radio","CH 404 repeats bolt-coupon-vhs");
+  if(n >= 5) unlockAchievement("radioDrifter");
+  playSound("blip");
+}
+
+const weatherPlaces = ["Static City","Toolbar Swamp","Loading Void","Coupon Desert","Aquarium District","Desktop Plains","Popup Valley","VDO Ridge"];
+const weatherForecasts = ["raining pixels","40% chance of coupon","foggy with mild popups","high static pressure","banner winds from the east","suspiciously humid toolbar conditions","loading void advisory","warm with scattered fake alerts"];
+
+function refreshWeather(){
+  const place = $("#weatherPlace");
+  const out = $("#weatherOutput");
+  const location = place ? place.value : weatherPlaces[Math.floor(Math.random()*weatherPlaces.length)];
+  const forecast = weatherForecasts[Math.floor(Math.random()*weatherForecasts.length)];
+  if(out) out.innerHTML = `<h2>${clean(location)}</h2><p>${clean(forecast)}</p><p>Pressure: ${Math.floor(404+Math.random()*300)} static units.</p>`;
+  addInventoryItem("Weather Pixel",1);
+  addCurrency("Coupon Dust",1);
+  const n = incrementStat("oddWeatherRefreshes",1);
+  if(n >= 5) unlockAchievement("weatherLiar");
+}
+
+const patchNotes = ["Added 12 new bugs","Removed stability","Improved button confidence","Increased popup humidity","Fixed one issue by creating three smaller issues","Replaced calm mode with suspicious calm mode","Added premium dust support"];
+
+function viewPatchNotes(){
+  const out = $("#updateOutput");
+  if(out) out.innerHTML = `<ul>${patchNotes.map((note)=>`<li>${clean(note)}</li>`).join("")}</ul>`;
+}
+
+function installFakeUpdate(){
+  const bar = $("#updateBar span");
+  const out = $("#updateOutput");
+  if(!bar || !out) return;
+  let n = 0;
+  clearInterval(window.fakeUpdateTimer);
+  window.fakeUpdateTimer = setInterval(()=>{
+    n += 8 + Math.random()*16;
+    if(n >= 99){
+      n = 99;
+      bar.style.width = "99%";
+      out.textContent = "Update failed at 99%. This is considered a feature.";
+      addInventoryItem("Fake Patch Note",1);
+      addCurrency("Static Coins",10);
+      unlockAchievement("patchSurvivor");
+      clearInterval(window.fakeUpdateTimer);
+      return;
+    }
+    bar.style.width = n + "%";
+    out.textContent = "Installing suspicious calm mode: " + Math.floor(n) + "%";
+  },240);
+}
+
+function rollbackFakeUpdate(){
+  const out = $("#updateOutput");
+  if(out) out.textContent = "Rollback complete. Version is worse but more honest.";
+  addInventoryItem("Broken Loading Bar",1);
+}
+
+const shopItems = {
+  "Louder Beep License":{cost:["Static Coins",8],desc:"Beep confidence officially increased."},
+  "Slightly Faster VDO":{cost:["Popup Bucks",10],desc:"The bouncing logo gets a tiny safe speed bump."},
+  "Premium Dust":{cost:["Coupon Dust",6],desc:"Dust, but it knows HTML."},
+  "Ad Storm Insurance":{cost:["Popup Bucks",12],desc:"No coverage, only a badge of poor judgment."},
+  "Mystery Bolt Polish":{cost:["Static Coins",5],desc:"Makes one bolt slightly shinier."},
+  "Aquarium Breadcrumbs":{cost:["Coupon Dust",5],desc:"Fish-like symbols appreciate this."},
+  "Invisible Cursor Coupon":{cost:["Popup Bucks",7],desc:"Cannot be seen, cannot be redeemed."},
+  "Coupon Laminator":{cost:["Coupon Dust",12],desc:"Preserves fake savings forever."},
+  "Emergency Popup Helmet":{cost:["Static Coins",14],desc:"The helmet is also a popup."}
+};
+
+function renderShop(){
+  const grid = $("#shopGrid");
+  if(!grid) return;
+  const purchases = getPurchases();
+  grid.innerHTML = Object.entries(shopItems).map(([name,item])=>{
+    const [type,cost] = item.cost;
+    return `<div class="shop-card ${purchases[name] ? "owned" : ""}"><h3>${clean(name)}</h3><p>${clean(item.desc)}</p><p>Cost: ${cost} ${clean(type)}</p><button onclick="buyShopItem('${name}')">${purchases[name] ? "owned" : "buy fake item"}</button></div>`;
+  }).join("");
+  setStatusText("[data-shop-currency]",currencySummary());
+}
+
+function buyShopItem(name){
+  const item = shopItems[name];
+  if(!item) return;
+  const purchases = getPurchases();
+  if(purchases[name]) return;
+  const [type,cost] = item.cost;
+  const currency = getCurrency();
+  if(Number(currency[type] || 0) < cost){
+    const out = $("#shopOut");
+    if(out) out.textContent = "Not enough fake money. Go bother the archive more.";
+    playSound("buzz");
+    return;
+  }
+  currency[type] -= cost;
+  writeJSON("oddCurrency",currency);
+  purchases[name] = {date:new Date().toLocaleString()};
+  writeJSON("oddShopPurchases",purchases);
+  addInventoryItem(name,1);
+  unlockAchievement("shopVictim");
+  renderShop();
+  updateArchiveDashboard();
+}
+
+const spiritEntries = [
+  "Visitor from 2004: this site broke my toolbar, 10/10",
+  "Unknown: do not click the green fish",
+  "Guest_404: I left my cursor here in 2007",
+  "DialupKid: page loaded after only 7 minutes, impressive",
+  "BannerFan: the coupon is lying again",
+  "StaticPal: CH 404 said something about vhs"
+];
+
+function summonSpiritEntry(){
+  const list = $("#spiritEntries");
+  if(!list) return;
+  const entry = spiritEntries[Math.floor(Math.random()*spiritEntries.length)];
+  const div = document.createElement("div");
+  div.className = "box spirit-entry";
+  div.textContent = entry;
+  list.prepend(div);
+  addInventoryItem("Haunted Floppy",1);
+}
+
 addEventListener("DOMContentLoaded",()=>{
   visitorCounter();
   randomQuote();
@@ -1059,12 +1735,31 @@ addEventListener("DOMContentLoaded",()=>{
   desktopClock();
   aquarium();
   bouncingLogo();
+  ensureExpandedNav();
+  enhanceSiteControls();
   addSoundToggle();
   attachGlobalClickEffects();
   updateAdStormButton();
   updateSpinButtons();
+  updateChaosControls();
+  updateArchiveDashboard();
+  renderInventory();
+  renderAchievements();
+  renderFileExplorer();
+  renderQuestClues();
+  renderShop();
   startRandomAdScheduler();
+  startRandomEventEngine();
+  setTimeout(()=>unlockAchievement("vdoWitness"),45000);
 
+  window.addInventoryItem = addInventoryItem;
+  window.unlockAchievement = unlockAchievement;
+  window.addCurrency = addCurrency;
+  window.setChaosLevel = setChaosLevel;
+  window.triggerRandomEvent = triggerRandomEvent;
+  window.panicButton = panicButton;
+  window.spawnDesktopPet = spawnDesktopPet;
+  window.unlockDeeperArchive = unlockDeeperArchive;
   window.spawnConfetti = spawnConfetti;
   window.clickPuff = clickPuff;
   window.playSound = playSound;
@@ -1113,4 +1808,18 @@ addEventListener("DOMContentLoaded",()=>{
   window.toggleContainment = toggleContainment;
   window.recalibrateBeacon = recalibrateBeacon;
   window.flipPanel = flipPanel;
+  window.renderInventory = renderInventory;
+  window.renderAchievements = renderAchievements;
+  window.showFakeFolder = showFakeFolder;
+  window.openFakeFile = openFakeFile;
+  window.cursedSearch = cursedSearch;
+  window.generateLostPage = generateLostPage;
+  window.askArchiveBot = askArchiveBot;
+  window.tuneRadio = tuneRadio;
+  window.refreshWeather = refreshWeather;
+  window.installFakeUpdate = installFakeUpdate;
+  window.viewPatchNotes = viewPatchNotes;
+  window.rollbackFakeUpdate = rollbackFakeUpdate;
+  window.buyShopItem = buyShopItem;
+  window.summonSpiritEntry = summonSpiritEntry;
 });

@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Odd Frequency Archive - Cursed Radio</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar"><div class="logo small-logo">Cursed Radio</div><div class="blink">turn the dial until the coupons scream</div></div>
+    <div class="marquee"><span>CURSED RADIO - FM 40.4 - FM 98.6 - AM 666 - FM 13.7 - CH 404 - FM 88.8 -</span></div>
+    <div class="grid">
+      <aside><div class="box nav"><h3>navigation</h3><a href="../index.html">Home</a><a href="tv.html">Broken CRT</a><a href="weather.html">Fake Weather</a><a href="search.html">Cursed Search</a></div><div class="box"><h3>site controls</h3><button onclick="spawnAd(true)">summon fake ad</button><button data-ad-storm onclick="toggleAdStorm()">start ad storm</button><button onclick="spawnSticker()">random sticker</button><p data-ad-storm-status>Ad storm: paused.</p></div></aside>
+      <main><div class="box"><h2>Station Dial</h2><div class="button-wall"><button onclick="tuneRadio('FM 40.4')">FM 40.4</button><button onclick="tuneRadio('FM 98.6')">FM 98.6</button><button onclick="tuneRadio('AM 666')">AM 666</button><button onclick="tuneRadio('FM 13.7')">FM 13.7</button><button onclick="tuneRadio('CH 404')">CH 404</button><button onclick="tuneRadio('FM 88.8')">FM 88.8</button></div></div><div id="radioOutput" class="box"><h2>No Station</h2><p>Static waiting for a click.</p></div></main>
+      <aside><div class="box"><h3>radio prizes</h3><p>Stations can drop static samples, weather pixels, and clue fragments.</p></div></aside>
+    </div>
+    <div class="footer">Odd Frequency Archive - cursed radio station.</div>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
+</html>
+

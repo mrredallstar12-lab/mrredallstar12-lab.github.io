@@ -5,6 +5,7 @@ let adStorm = false;
 let adStormTimer = 0;
 let randomAdTimer = 0;
 let randomEventTimer = 0;
+let couponTimer = 0;
 let reactionReady = false;
 let reactionStart = 0;
 let reactionTimer = 0;
@@ -245,42 +246,225 @@ function writeJSON(key,value){
   localStorage.setItem(key,JSON.stringify(value));
 }
 
+const rarityTiers = {
+  junk:{label:"Junk",weight:320,color:"#c8c8c8"},
+  common:{label:"Common",weight:240,color:"#ffffff"},
+  uncommon:{label:"Uncommon",weight:150,color:"#8aff8a"},
+  odd:{label:"Odd",weight:110,color:"#00ffff"},
+  strange:{label:"Strange",weight:85,color:"#66ccff"},
+  rare:{label:"Rare",weight:55,color:"#4d6bff"},
+  veryRare:{label:"Very Rare",weight:32,color:"#9b5cff"},
+  haunted:{label:"Haunted",weight:22,color:"#d86cff"},
+  cursed:{label:"Cursed",weight:16,color:"#ff4fd8"},
+  forbidden:{label:"Forbidden",weight:10,color:"#ff3434"},
+  ancient:{label:"Ancient",weight:7,color:"#ffb347"},
+  relic:{label:"Relic",weight:5,color:"#ffe066"},
+  mythic:{label:"Mythic",weight:3,color:"#fff000"},
+  glitched:{label:"Glitched",weight:2,color:"#00ffea"},
+  cosmic:{label:"Cosmic",weight:1.2,color:"#b388ff"},
+  canary:{label:"Canary",weight:.8,color:"#fff86b"},
+  impossible:{label:"Impossible",weight:.35,color:"#ff00cc"},
+  oneOfOne:{label:"One-of-One",weight:.1,color:"#ffffff"}
+};
+
 const inventoryCatalog = {
-  "Mystery Bolt":{rarity:"odd",desc:"A spare bolt with no known source and too much confidence."},
-  "Expired Banner Ad":{rarity:"stale",desc:"Still blinking after the offer ended."},
-  "CRT Dust":{rarity:"common",desc:"Fine glowing powder from the scanline shelf."},
-  "404 Shard":{rarity:"sharp",desc:"A tiny broken piece of not-found."},
-  "Tiny Modem":{rarity:"rare",desc:"Screams quietly when placed near a coupon."},
-  "Cursed Coupon":{rarity:"cursed",desc:"Worth zero percent off something imaginary."},
-  "Loose Pixel":{rarity:"common",desc:"Keeps escaping the monitor border."},
-  "Broken Loading Bar":{rarity:"unreliable",desc:"Never reaches 100 unless nobody is watching."},
-  "Aquarium Bubble":{rarity:"wet",desc:"A bubble from the pixel tank."},
-  "Fake Toolbar":{rarity:"sticky",desc:"Adds no features and three feelings."},
-  "Haunted Floppy":{rarity:"vintage",desc:"Labeled FINAL_REAL_USE_THIS."},
-  "Static Coin":{rarity:"currency",desc:"A coin with radio fuzz stamped on it."},
-  "Popup Buck":{rarity:"currency",desc:"Legal tender inside no real economy."},
-  "Coupon Dust":{rarity:"currency",desc:"Powdered savings, do not inhale."},
-  "VDO Spark":{rarity:"bright",desc:"Fell off the bouncing signal blob."},
-  "Emergency Panic Receipt":{rarity:"official",desc:"Proof that panic failed successfully."},
-  "Desktop Crab Shell":{rarity:"desktop",desc:"A tiny shell from a taskbar incident."},
-  "Radio Static Sample":{rarity:"audio",desc:"Stored in a jar labeled CH 404."},
-  "Weather Pixel":{rarity:"forecast",desc:"Partly cloudy with a chance of blinking."},
-  "Fake Patch Note":{rarity:"update",desc:"Claims to fix one issue by creating three."},
-  "Bent Antenna":{rarity:"crooked",desc:"Points toward whichever secret is currently pretending not to exist."},
-  "Canary Feather":{rarity:"canary",desc:"Proof that the original signal left a tiny breadcrumb."},
-  "VDO Splinter":{rarity:"signal",desc:"A noisy chip from the bouncing logo's emotional shell."},
-  "Illegal Coupon Crumb":{rarity:"discounted",desc:"Zero percent off, broken into smaller zeroes."},
-  "Haunted Cursor":{rarity:"pointer",desc:"Still points at the thing you almost clicked."},
-  "Static Receipt":{rarity:"paper",desc:"A receipt printed by a radio station with no printer."},
-  "Tiny Door":{rarity:"small",desc:"Opens into a corridor made of CSS comments."},
-  "Mirror Dust":{rarity:"reflective",desc:"Collected from an unofficial copy after the static settled."},
-  "Emergency Exit Sign":{rarity:"exit",desc:"Glows toward the official signal when the archive feels copied."},
-  "CRT Moth":{rarity:"flutter",desc:"Lives in the warm glow between two scanlines."},
-  "Forgotten Webring Token":{rarity:"ring",desc:"A small coin from a neighbor site that never loaded."},
-  "Archive Tooth":{rarity:"bite",desc:"The archive says it was loose already."},
-  "Dial-up Fossil":{rarity:"ancient",desc:"A preserved modem scream with excellent bone structure."},
-  "Basement Ad Ticket":{rarity:"museum",desc:"Admits one visitor to the fake ad museum basement."},
-  "VHS Moon Coupon":{rarity:"lunar",desc:"Redeemable only during imaginary late fees."}
+  "Mystery Bolt":{rarity:"odd",flavor:"bolt",desc:"A spare bolt with no known source and too much confidence."},
+  "Expired Banner Ad":{rarity:"junk",flavor:"stale",desc:"Still blinking after the offer ended."},
+  "CRT Dust":{rarity:"common",flavor:"scanline",desc:"Fine glowing powder from the scanline shelf."},
+  "404 Shard":{rarity:"uncommon",flavor:"sharp",desc:"A tiny broken piece of not-found."},
+  "Tiny Modem":{rarity:"rare",flavor:"audio",desc:"Screams quietly when placed near a coupon."},
+  "Cursed Coupon":{rarity:"cursed",flavor:"discounted",desc:"Worth zero percent off something imaginary."},
+  "Loose Pixel":{rarity:"common",flavor:"pixel",desc:"Keeps escaping the monitor border."},
+  "Broken Loading Bar":{rarity:"uncommon",flavor:"unreliable",desc:"Never reaches 100 unless nobody is watching."},
+  "Aquarium Bubble":{rarity:"common",flavor:"wet",desc:"A bubble from the pixel tank."},
+  "Fake Toolbar":{rarity:"uncommon",flavor:"sticky",desc:"Adds no features and three feelings."},
+  "Haunted Floppy":{rarity:"haunted",flavor:"vintage",desc:"Labeled FINAL_REAL_USE_THIS."},
+  "Static Coin":{rarity:"junk",flavor:"currency",desc:"A coin with radio fuzz stamped on it."},
+  "Popup Buck":{rarity:"junk",flavor:"currency",desc:"Legal tender inside no real economy."},
+  "Coupon Dust":{rarity:"junk",flavor:"currency",desc:"Powdered savings, do not inhale."},
+  "VDO Spark":{rarity:"odd",flavor:"bright",desc:"Fell off the bouncing signal blob."},
+  "Emergency Panic Receipt":{rarity:"rare",flavor:"official",desc:"Proof that panic failed successfully."},
+  "Desktop Crab Shell":{rarity:"uncommon",flavor:"desktop",desc:"A tiny shell from a taskbar incident."},
+  "Radio Static Sample":{rarity:"uncommon",flavor:"audio",desc:"Stored in a jar labeled CH 404."},
+  "Weather Pixel":{rarity:"common",flavor:"forecast",desc:"Partly cloudy with a chance of blinking."},
+  "Fake Patch Note":{rarity:"common",flavor:"update",desc:"Claims to fix one issue by creating three."},
+  "Bent Antenna":{rarity:"strange",flavor:"crooked",desc:"Points toward whichever secret is currently pretending not to exist."},
+  "Canary Feather":{rarity:"canary",flavor:"canary",desc:"Proof that the original signal left a tiny breadcrumb."},
+  "VDO Splinter":{rarity:"rare",flavor:"signal",desc:"A noisy chip from the bouncing logo's emotional shell."},
+  "Illegal Coupon Crumb":{rarity:"strange",flavor:"discounted",desc:"Zero percent off, broken into smaller zeroes."},
+  "Haunted Cursor":{rarity:"haunted",flavor:"pointer",desc:"Still points at the thing you almost clicked."},
+  "Static Receipt":{rarity:"uncommon",flavor:"paper",desc:"A receipt printed by a radio station with no printer."},
+  "Tiny Door":{rarity:"veryRare",flavor:"small",desc:"Opens into a corridor made of CSS comments."},
+  "Mirror Dust":{rarity:"forbidden",flavor:"reflective",desc:"Collected from an unofficial copy after the static settled."},
+  "Emergency Exit Sign":{rarity:"rare",flavor:"exit",desc:"Glows toward the official signal when the archive feels copied."},
+  "CRT Moth":{rarity:"strange",flavor:"flutter",desc:"Lives in the warm glow between two scanlines."},
+  "Forgotten Webring Token":{rarity:"veryRare",flavor:"ring",desc:"A small coin from a neighbor site that never loaded."},
+  "Archive Tooth":{rarity:"mythic",flavor:"bite",desc:"The archive says it was loose already."},
+  "Dial-up Fossil":{rarity:"ancient",flavor:"modem",desc:"A preserved modem scream with excellent bone structure."},
+  "Basement Ad Ticket":{rarity:"rare",flavor:"museum",desc:"Admits one visitor to the fake ad museum basement."},
+  "VHS Moon Coupon":{rarity:"relic",flavor:"lunar",desc:"Redeemable only during imaginary late fees."},
+  "Louder Beep License":{rarity:"uncommon",flavor:"shop",desc:"A local permit to beep with slightly more confidence."},
+  "Slightly Faster VDO":{rarity:"rare",flavor:"shop",desc:"A tiny safe speed blessing for the bouncing signal."},
+  "Premium Dust":{rarity:"odd",flavor:"shop",desc:"Dust that insists it has a feature list."},
+  "Ad Storm Insurance":{rarity:"strange",flavor:"shop",desc:"A policy that covers nothing but looks official."},
+  "Mystery Bolt Polish":{rarity:"common",flavor:"shop",desc:"Makes a mystery bolt shine just enough to deny it."},
+  "Aquarium Breadcrumbs":{rarity:"common",flavor:"shop",desc:"Fish-like symbols appreciate the crumbs emotionally."},
+  "Invisible Cursor Coupon":{rarity:"strange",flavor:"shop",desc:"A coupon you cannot see and cannot redeem."},
+  "Coupon Laminator":{rarity:"rare",flavor:"shop",desc:"Preserves fake savings until the heat death of the browser."},
+  "Emergency Popup Helmet":{rarity:"veryRare",flavor:"helmet",desc:"The helmet is also a popup, unfortunately."},
+  "Dusty Table Cell":{rarity:"junk",flavor:"layout",desc:"A lonely cell from a table-based layout."},
+  "Broken Marquee Bulb":{rarity:"junk",flavor:"blink",desc:"Still scrolls in one direction when nobody asked."},
+  "Expired GIF Wrapper":{rarity:"junk",flavor:"image",desc:"The animation escaped, but the wrapper stayed."},
+  "Bent Close Button":{rarity:"junk",flavor:"button",desc:"A close button bent from years of dramatic exits."},
+  "Popup Staple":{rarity:"junk",flavor:"office",desc:"Keeps rectangle paperwork barely attached."},
+  "Coupon Lint":{rarity:"junk",flavor:"coupon",desc:"Savings residue found in the pocket of a fake toolbar."},
+  "Suspicious Pixel Screw":{rarity:"junk",flavor:"hardware",desc:"Too small for any real screwdriver."},
+  "Fake Download Wrapper":{rarity:"junk",flavor:"download",desc:"The file was never inside it."},
+  "Toolbar Gum":{rarity:"junk",flavor:"sticky",desc:"Chewed by a browser extension that never existed."},
+  "Browser Crumb":{rarity:"junk",flavor:"snack",desc:"Probably left by a hungry hyperlink."},
+  "Dial-up Pebble":{rarity:"junk",flavor:"modem",desc:"A tiny rock that sounds like 56k if shaken."},
+  "Static Flea":{rarity:"junk",flavor:"noise",desc:"Jumps between scanlines without a permit."},
+  "Under Construction Nail":{rarity:"junk",flavor:"construction",desc:"Held up a yellow sign for twenty years."},
+  "Guestbook Smudge":{rarity:"junk",flavor:"guestbook",desc:"A name was here once, probably."},
+  "Webring Dust Bunny":{rarity:"junk",flavor:"ring",desc:"Rolled here from a previous site."},
+  "Loading Spinner Cork":{rarity:"junk",flavor:"loading",desc:"Keeps the loading void bottled up."},
+  "Popup Confetti Wrapper":{rarity:"junk",flavor:"party",desc:"A celebration for closing nothing."},
+  "Gray Button Paint Chip":{rarity:"junk",flavor:"ui",desc:"Fell off a button labeled submit-ish."},
+  "Misaligned Spacer GIF":{rarity:"common",flavor:"layout",desc:"One transparent pixel doing too much work."},
+  "Banner Tape Residue":{rarity:"common",flavor:"banner",desc:"Sticky proof that a banner lived here."},
+  "Soft 404 Pebble":{rarity:"common",flavor:"not-found",desc:"A not-found error worn smooth by repeat visitors."},
+  "Fish Tank Pixel Food":{rarity:"common",flavor:"aquarium",desc:"Crunchy squares for symbols that pretend to swim."},
+  "Old Link Blue Crayon":{rarity:"common",flavor:"link",desc:"Used to color hyperlinks before they knew better."},
+  "Marquee Track Grease":{rarity:"common",flavor:"scroll",desc:"Keeps scrolling text from squeaking too loudly."},
+  "Fake Alert Paperclip":{rarity:"common",flavor:"alert",desc:"Organizes urgent messages from no real system."},
+  "Desktop Pet Biscuit":{rarity:"common",flavor:"pet",desc:"Small snack for things crawling around the page."},
+  "Visitor Counter Spring":{rarity:"common",flavor:"counter",desc:"Adds dramatic tension to fake numbers."},
+  "Patch Note Staple":{rarity:"common",flavor:"update",desc:"Holds three smaller issues to one larger issue."},
+  "Coupon Ash":{rarity:"common",flavor:"coupon",desc:"What remains after zero percent burns down."},
+  "VHS Label Curl":{rarity:"common",flavor:"vhs",desc:"Curled off a tape called FINAL_FINAL_STATIC."},
+  "Scrollbar Dust Track":{rarity:"common",flavor:"scrollbar",desc:"The groove left behind by a haunted scrollbar."},
+  "CRT Warm Plastic":{rarity:"common",flavor:"crt",desc:"Smells like a room loading slowly."},
+  "Fake Desktop Shortcut Crumb":{rarity:"common",flavor:"desktop",desc:"A shortcut broke into edible pieces."},
+  "Radio Dial Smudge":{rarity:"common",flavor:"radio",desc:"Fingerprints from tuning to forbidden weather."},
+  "Weather Pixel Umbrella":{rarity:"common",flavor:"forecast",desc:"Too small to stop coupon rain."},
+  "Guestbook Pencil Stub":{rarity:"common",flavor:"guestbook",desc:"Signed three names and one static hiss."},
+  "Misprinted Banner Permit":{rarity:"uncommon",flavor:"banner",desc:"Allows one banner to blink too confidently."},
+  "Aquarium Breadcrumb":{rarity:"uncommon",flavor:"aquarium",desc:"A crumb with tiny bubble marks."},
+  "Cursor Footprint":{rarity:"uncommon",flavor:"pointer",desc:"Proof that the pointer walked away."},
+  "Modem Toothpick":{rarity:"uncommon",flavor:"modem",desc:"Useful for cleaning beeps out of the handshake."},
+  "CRT Warmth Sample":{rarity:"uncommon",flavor:"crt",desc:"Filed in a little jar labeled do not cool."},
+  "Loading Bar Splinter":{rarity:"uncommon",flavor:"loading",desc:"Snapped off at ninety-nine percent."},
+  "Panic Button Washer":{rarity:"uncommon",flavor:"panic",desc:"Keeps the panic button from wobbling emotionally."},
+  "Tiny Fake Certificate":{rarity:"uncommon",flavor:"official",desc:"Certifies that something nearly happened."},
+  "Shop Clerk Static":{rarity:"uncommon",flavor:"shop",desc:"The clerk insists this was exact change."},
+  "Weather Goblin Forecast":{rarity:"uncommon",flavor:"forecast",desc:"Mostly false with scattered tiny umbrellas."},
+  "Archive Moth Wing":{rarity:"uncommon",flavor:"crt",desc:"A soft wing dusted with phosphor."},
+  "Coupon Barcode Fragment":{rarity:"uncommon",flavor:"coupon",desc:"Scans as a quiet apology."},
+  "Fake Window Hinge":{rarity:"uncommon",flavor:"popup",desc:"Lets a rectangle open with theatrical creaking."},
+  "Guestbook Spirit Stamp":{rarity:"uncommon",flavor:"guestbook",desc:"Postmarked from a year the site invented."},
+  "Button Confidence Washer":{rarity:"uncommon",flavor:"button",desc:"Raises button confidence by one questionable unit."},
+  "Broken CAPTCHA Grain":{rarity:"uncommon",flavor:"captcha",desc:"Part of a tile that was never a crosswalk."},
+  "Aquarium Leak Sticker":{rarity:"uncommon",flavor:"aquarium",desc:"Warns that the water is mostly CSS."},
+  "Popup Storm Cork":{rarity:"uncommon",flavor:"storm",desc:"Do not pull unless the archive is bored."},
+  "Old Browser Compass":{rarity:"odd",flavor:"browser",desc:"Points toward the nearest suspicious frame."},
+  "Signal Grease Pencil":{rarity:"odd",flavor:"signal",desc:"Marks the wall where the broadcast bent."},
+  "Zero Percent Coupon Clipper":{rarity:"odd",flavor:"coupon",desc:"Cuts discounts into smaller zeros."},
+  "Dancing Banner Shoelace":{rarity:"odd",flavor:"banner",desc:"Keeps a banner dancing after midnight."},
+  "Modem Prayer Bead":{rarity:"odd",flavor:"modem",desc:"Counts beeps during a doomed connection."},
+  "Archive Shelf Splinter":{rarity:"odd",flavor:"archive",desc:"Smells like dust and accidental lore."},
+  "Fake Survey Pencil":{rarity:"odd",flavor:"survey",desc:"Only writes multiple-choice wrong answers."},
+  "VDO Bounce Chalk":{rarity:"odd",flavor:"vdo",desc:"Used to mark a corner that almost happened."},
+  "Object Shrine Ribbon":{rarity:"odd",flavor:"shrine",desc:"Tied around an object with no practical purpose."},
+  "Popup Union Lunch Ticket":{rarity:"odd",flavor:"popup",desc:"Good for one imaginary cafeteria rectangle."},
+  "Toolbar Worm Bookmark":{rarity:"odd",flavor:"toolbar",desc:"The worm saved a page it cannot read."},
+  "Link Maze Breadcrumb":{rarity:"odd",flavor:"maze",desc:"Leads back to the same room, confidently."},
+  "Static Aquarium Filter":{rarity:"odd",flavor:"aquarium",desc:"Filters noise into smaller bubbles."},
+  "ArchiveBot 98 Teacup":{rarity:"odd",flavor:"bot",desc:"The bot refuses to explain the leaves."},
+  "Broken CRT Tuning Fork":{rarity:"odd",flavor:"crt",desc:"Hums when pointed at channel 404."},
+  "Haunted Table Border":{rarity:"strange",flavor:"layout",desc:"Ridges itself when the mouse looks away."},
+  "Misfiled Popup Summons":{rarity:"strange",flavor:"popup",desc:"The form says summon one rectangle, maybe two."},
+  "Aquarium Bubble Ledger":{rarity:"strange",flavor:"aquarium",desc:"Every bubble is accounted for except the loud one."},
+  "Cursed Search Breadcrumb":{rarity:"strange",flavor:"search",desc:"Search results follow it home."},
+  "Fake Update Fuse":{rarity:"strange",flavor:"update",desc:"Blows at ninety-nine percent as tradition demands."},
+  "Radio Tower Thumbtack":{rarity:"strange",flavor:"radio",desc:"Pins the signal to a corkboard full of static."},
+  "Panic Receipt Carbon Smear":{rarity:"strange",flavor:"panic",desc:"A duplicate of a panic that already failed."},
+  "Desktop Pet Collar Tag":{rarity:"strange",flavor:"pet",desc:"Engraved with a name made of cursor clicks."},
+  "Weather Radar Coupon Echo":{rarity:"strange",flavor:"forecast",desc:"Bounces discounts across a fake storm front."},
+  "Secret Pixel Compass Needle":{rarity:"strange",flavor:"pixel",desc:"Spins when a hidden pixel gets nervous."},
+  "Guestbook Time Smear":{rarity:"strange",flavor:"guestbook",desc:"Signed tomorrow, erased yesterday."},
+  "Ad Museum Basement Dust":{rarity:"strange",flavor:"museum",desc:"Dust from beneath the exhibits that deny it."},
+  "Button Roulette Marble":{rarity:"strange",flavor:"game",desc:"Rolls toward the button least prepared for it."},
+  "VDO Corner Spark":{rarity:"rare",flavor:"vdo",desc:"A tiny flash from a corner bounce rumor."},
+  "Popup Union Badge":{rarity:"rare",flavor:"popup",desc:"Issued to rectangles with seniority."},
+  "Broken Visitor Counter Gear":{rarity:"rare",flavor:"counter",desc:"Adds one digit then immediately regrets it."},
+  "Haunted Scrollbar":{rarity:"rare",flavor:"scrollbar",desc:"Scrolls one pixel farther than instructed."},
+  "Secret Pixel Compass":{rarity:"rare",flavor:"pixel",desc:"Points toward places too small to click easily."},
+  "Fake Antivirus License":{rarity:"rare",flavor:"scan",desc:"Expires whenever the fake scan finds confidence."},
+  "Lost Page Map Fragment":{rarity:"rare",flavor:"lost",desc:"A map of pages the archive forgot on purpose."},
+  "Oracle Bolt Washer":{rarity:"rare",flavor:"bolt",desc:"The oracle keeps asking for it back."},
+  "Radio Tower Paperclip":{rarity:"rare",flavor:"radio",desc:"Holds together three stations and one prophecy."},
+  "Static Aquarium Key":{rarity:"rare",flavor:"aquarium",desc:"Unlocks a tank that has no lock."},
+  "Desktop Pet Collar":{rarity:"rare",flavor:"pet",desc:"Tiny, jingling, and legally distinct from responsibility."},
+  "Forbidden Cache Label":{rarity:"rare",flavor:"cache",desc:"Says do not cache in five different fonts."},
+  "Screaming Modem Pearl":{rarity:"veryRare",flavor:"modem",desc:"Formed inside a long handshake."},
+  "Possessed Toolbar Screwdriver":{rarity:"veryRare",flavor:"toolbar",desc:"Tightens buttons until they develop opinions."},
+  "Coupon Cult Token":{rarity:"veryRare",flavor:"coupon",desc:"Stamped zero percent in ritual ink."},
+  "Mirror Lockdown Shard":{rarity:"veryRare",flavor:"mirror",desc:"A bright chip from unauthorized static."},
+  "Fake Malware Fossil":{rarity:"veryRare",flavor:"parody",desc:"Old, harmless, and labeled theatrical."},
+  "Ad Museum Basement Map":{rarity:"veryRare",flavor:"museum",desc:"Shows one staircase, three warnings, and a snack machine."},
+  "Haunted CAPTCHA Tile":{rarity:"veryRare",flavor:"captcha",desc:"Contains every bicycle except the correct one."},
+  "Panic Receipt Carbon Copy":{rarity:"veryRare",flavor:"panic",desc:"A copy of a receipt for a panic that survived."},
+  "Rare Popup Aquarium Fossil":{rarity:"veryRare",flavor:"aquarium",desc:"A fish-shaped rectangle from an older layout."},
+  "Cursed Webring Seal":{rarity:"haunted",flavor:"ring",desc:"Marks a web ring that loops through itself."},
+  "VDO Eye Fragment":{rarity:"haunted",flavor:"vdo",desc:"It saw the corner before the corner saw it."},
+  "CRT Phantom Burn-In":{rarity:"haunted",flavor:"crt",desc:"A ghost image of a button that was never clicked."},
+  "Guestbook Spirit Ribbon":{rarity:"haunted",flavor:"guestbook",desc:"Tied around an entry from a visitor who loaded slowly."},
+  "Archive Hallway Whisper":{rarity:"haunted",flavor:"archive",desc:"Sounds like a mouseover from another room."},
+  "Desktop Shadow Pawprint":{rarity:"haunted",flavor:"desktop",desc:"A tiny mark from something that crossed the taskbar."},
+  "Static Seance Candle":{rarity:"haunted",flavor:"static",desc:"Flickers only during bad reception."},
+  "Haunted Coupon Punchcard":{rarity:"haunted",flavor:"coupon",desc:"Every hole is worth nothing twice."},
+  "Coupon Hex Nut":{rarity:"cursed",flavor:"coupon",desc:"Fastens bad savings to worse ideas."},
+  "Popup Curse Splint":{rarity:"cursed",flavor:"popup",desc:"Keeps a broken rectangle theatrically upright."},
+  "Loading Void Fang":{rarity:"cursed",flavor:"loading",desc:"Bit a progress bar and kept the percent."},
+  "Fake Toolbar Idol":{rarity:"cursed",flavor:"toolbar",desc:"Tiny, sticky, and worshiped by old extensions."},
+  "Archive Error Rosary":{rarity:"cursed",flavor:"error",desc:"Counts 404s until the beads rearrange."},
+  "VHS Late Fee Rune":{rarity:"cursed",flavor:"vhs",desc:"Owes money to a store that never existed."},
+  "Cursed Cursor Bone":{rarity:"cursed",flavor:"pointer",desc:"Points toward the button you should probably press."},
+  "Zero Percent Relic Coupon":{rarity:"cursed",flavor:"coupon",desc:"So worthless it became ceremonial."},
+  "Unauthorized Mirror Scale":{rarity:"forbidden",flavor:"mirror",desc:"Flaked off the static warning."},
+  "Do Not Click Wax Seal":{rarity:"forbidden",flavor:"warning",desc:"Immediately makes the button more tempting."},
+  "Forbidden Link Blueprints":{rarity:"forbidden",flavor:"link",desc:"Plans for a link that only points inward."},
+  "System32 But Fake Badge":{rarity:"forbidden",flavor:"file",desc:"Officially not official."},
+  "Basement Popup Ledger":{rarity:"forbidden",flavor:"museum",desc:"Lists every rectangle that tried to retire."},
+  "Blacklisted Marquee Gear":{rarity:"forbidden",flavor:"marquee",desc:"Removed for scrolling too powerfully."},
+  "First Popup Fossil":{rarity:"ancient",flavor:"popup",desc:"Pressed into browser sediment."},
+  "Original Under Construction Cone":{rarity:"ancient",flavor:"construction",desc:"Warned the old web before it was old."},
+  "Dial-up Saint Medallion":{rarity:"ancient",flavor:"modem",desc:"Patron object of patient loading."},
+  "Ancient Webring Passport":{rarity:"ancient",flavor:"ring",desc:"Stamped by sites that are now folklore."},
+  "Geocities Floor Tile":{rarity:"ancient",flavor:"old-web",desc:"Still sparkles under heavy nostalgia."},
+  "Channel 404 Relic":{rarity:"relic",flavor:"radio",desc:"A relic from the station that only tunes sideways."},
+  "Archive Jawbone":{rarity:"relic",flavor:"archive",desc:"The archive says it grew another one."},
+  "Dial-up Handshake Relic":{rarity:"relic",flavor:"modem",desc:"Two tones agreed to disagree forever."},
+  "Lost Page Reliquary":{rarity:"relic",flavor:"lost",desc:"Holds crumbs from procedural pages."},
+  "Visitor Counter Crown Gear":{rarity:"relic",flavor:"counter",desc:"The gear that made fake numbers feel royal."},
+  "One True Close Button":{rarity:"mythic",flavor:"button",desc:"Said to close any fake window with one tiny X."},
+  "Glorious Popup Union Charter":{rarity:"mythic",flavor:"popup",desc:"The charter all rectangles cite in disputes."},
+  "Lost GeoCities Crown":{rarity:"mythic",flavor:"old-web",desc:"Bright, chunky, and absolutely too much."},
+  "Impossible Loading Percent":{rarity:"mythic",flavor:"loading",desc:"A number beyond 100, rounded down for safety."},
+  "Glitched VDO Halo":{rarity:"glitched",flavor:"vdo",desc:"A flickering ring that refuses to align."},
+  "Broken CSS Oracle":{rarity:"glitched",flavor:"css",desc:"Predicts layout shifts before they happen."},
+  "Pixel Sorting Error":{rarity:"glitched",flavor:"pixel",desc:"A pixel filed under the wrong color."},
+  "CH404 Signal Knot":{rarity:"glitched",flavor:"radio",desc:"A signal tied around itself."},
+  "Cosmic Coupon Moon Rock":{rarity:"cosmic",flavor:"coupon",desc:"Zero percent off the lunar void."},
+  "VDO Orbit Shard":{rarity:"cosmic",flavor:"vdo",desc:"Chipped from a bounce path that left the page."},
+  "Static Nebula Button":{rarity:"cosmic",flavor:"button",desc:"A button-shaped galaxy that clicks back."},
+  "Original Signal Canary":{rarity:"canary",flavor:"signal",desc:"A bright little proof of the original broadcast."},
+  "Canary Signal Core":{rarity:"canary",flavor:"signal",desc:"Hums the official domain in a tiny voice."},
+  "Canary Source Breadcrumb":{rarity:"canary",flavor:"source",desc:"A breadcrumb only mirrors forget to hide correctly."},
+  "Impossible Popup Receipt":{rarity:"impossible",flavor:"popup",desc:"A receipt for a popup that never spawned."},
+  "Mirrorless Reflection":{rarity:"impossible",flavor:"mirror",desc:"Reflects only the parts of the archive that escaped."},
+  "One-of-One Archive Heart":{rarity:"oneOfOne",flavor:"heart",desc:"The archive insists this is both inventory and organ."},
+  "Final Close Button Halo":{rarity:"oneOfOne",flavor:"button",desc:"A white ring from the last fake rectangle at the end of time."}
 };
 
 const achievementCatalog = {
@@ -374,6 +558,80 @@ function getPopupCap(){
   return HARD_MAX_POPUPS;
 }
 
+function getInventoryMeta(itemName){
+  const meta = inventoryCatalog[itemName] || {};
+  const rarity = rarityTiers[meta.rarity] ? meta.rarity : "common";
+  return {
+    rarity,
+    flavor:meta.flavor || "",
+    desc:meta.desc || "Uncataloged archive junk from an older localStorage timeline."
+  };
+}
+
+function rarityRank(rarity){
+  const safe = rarityTiers[rarity] ? rarity : "common";
+  const index = Object.keys(rarityTiers).indexOf(safe);
+  return index < 0 ? Object.keys(rarityTiers).indexOf("common") : index;
+}
+
+function rollRarity(){
+  const entries = Object.entries(rarityTiers);
+  const total = entries.reduce((sum,[,tier])=>sum + Number(tier.weight || 0),0);
+  let roll = Math.random() * total;
+  for(const [key,tier] of entries){
+    roll -= Number(tier.weight || 0);
+    if(roll <= 0) return key;
+  }
+  return "common";
+}
+
+function randomInventoryItemByRarity(){
+  let rarity = rollRarity();
+  let pool = Object.entries(inventoryCatalog)
+    .filter(([,meta])=>getInventoryMetaFromMeta(meta).rarity === rarity)
+    .map(([name])=>name);
+
+  if(!pool.length){
+    pool = Object.keys(inventoryCatalog);
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function getInventoryMetaFromMeta(meta){
+  const rarity = rarityTiers[meta && meta.rarity] ? meta.rarity : "common";
+  return {...(meta || {}),rarity};
+}
+
+function inventoryRarityClass(rarity){
+  return `rarity-${rarityTiers[rarity] ? rarity : "common"}`;
+}
+
+function rarityDropVibe(rarity){
+  const rank = rarityRank(rarity);
+  if(rank <= rarityRank("common")) return "falls constantly";
+  if(rank <= rarityRank("odd")) return "shows up";
+  if(rank <= rarityRank("rare")) return "unusual";
+  if(rank <= rarityRank("cursed")) return "scarce";
+  if(rank <= rarityRank("relic")) return "deep shelf";
+  if(rank <= rarityRank("glitched")) return "nearly mythical";
+  if(rank <= rarityRank("canary")) return "signal lottery";
+  return "absurdly unlikely";
+}
+
+function rareDropFeedback(itemName,reason="interaction"){
+  if(archiveIsMirrorLocked()) return;
+  const meta = getInventoryMeta(itemName);
+  const rank = rarityRank(meta.rarity);
+  const rareRank = rarityRank("rare");
+  if(rank < rareRank) return;
+  const tier = rarityTiers[meta.rarity];
+  const prefix = rank >= rarityRank("mythic") ? "MYTHIC-ISH DROP" : "RARE DROP";
+  signalBanner(`${prefix}: ${itemName}`);
+  if(rank >= rarityRank("mythic")) secretToast(`${tier.label} ${itemName} fell out of the ${reason} chute.`);
+  playSound(rank >= rarityRank("mythic") ? "confetti" : "secret");
+}
+
 function setStatusText(selector,text){
   $$(selector).forEach((el)=>el.textContent = text);
 }
@@ -392,6 +650,17 @@ function addCurrency(type,amount=1){
   currency[type] = (Number(currency[type]) || 0) + amount;
   writeJSON("oddCurrency",currency);
   updateArchiveDashboard();
+}
+
+function awardCouponDust(amount=1,source="coupon"){
+  const safeAmount = Math.max(0,Number(amount) || 0);
+  if(!safeAmount) return Number(localStorage.getItem("oddCouponDustEarned") || 0);
+  addCurrency("Coupon Dust",safeAmount);
+  localStorage.setItem("oddLatestEvent",`Coupon Dust +${safeAmount} from ${source}.`);
+  const earned = incrementStat("oddCouponDustEarned",safeAmount);
+  if(earned >= 25) unlockAchievement("couponCultist");
+  updateArchiveDashboard();
+  return earned;
 }
 
 function incrementStat(key,amount=1){
@@ -427,6 +696,7 @@ function setChaosLevel(level){
   if(next === 4) unlockAchievement("chaosTechnician");
   updateChaosControls();
   updateArchiveDashboard();
+  if(document.body && !archiveIsMirrorLocked()) scheduleNextCouponDrop(true);
 }
 
 function updateChaosControls(){
@@ -485,13 +755,13 @@ function archiveMood(){
 }
 
 function awardRandomJunk(reason="interaction"){
-  const items = Object.keys(inventoryCatalog);
-  const item = items[Math.floor(Math.random()*items.length)];
+  const item = randomInventoryItemByRarity();
   addInventoryItem(item,1);
   if(reason === "ad") addCurrency("Popup Bucks",1);
   else if(reason === "event") addCurrency("Static Coins",1);
-  else if(reason === "coupon") addCurrency("Coupon Dust",1);
+  else if(reason === "coupon") awardCouponDust(1,"random coupon junk");
   else addCurrency(currencyNames[Math.floor(Math.random()*currencyNames.length)],1);
+  rareDropFeedback(item,reason);
   return item;
 }
 
@@ -676,6 +946,10 @@ function stopMirrorDynamicSystems(){
   if(randomEventTimer){
     clearTimeout(randomEventTimer);
     randomEventTimer = 0;
+  }
+  if(couponTimer){
+    clearTimeout(couponTimer);
+    couponTimer = 0;
   }
   closeAllPopupAds();
   removeMirrorDynamicEffects();
@@ -868,13 +1142,68 @@ function checkArchiveHost(){
 }
 
 function spawnFallingCoupon(){
-  if(archiveIsMirrorLocked()) return;
-  const coupon = document.createElement("div");
+  if(archiveIsMirrorLocked()) return null;
+  const maxCoupons = 5;
+  if(document.querySelectorAll(".falling-coupon").length >= maxCoupons) return null;
+  const coupon = document.createElement("button");
+  coupon.type = "button";
   coupon.className = "falling-coupon";
+  coupon.dataset.claimed = "false";
+  coupon.dataset.sound = "coin";
   coupon.textContent = "0% OFF";
   coupon.style.left = Math.random()*90 + "vw";
+  coupon.style.animationDuration = 7 + Math.random()*5 + "s";
+  coupon.onclick = () => {
+    if(coupon.dataset.claimed === "true") return;
+    coupon.dataset.claimed = "true";
+    awardCouponDust(2,"clipped 0% coupon");
+    if(Math.random() < .15) addInventoryItem("Illegal Coupon Crumb",1);
+    signalBanner("0% coupon clipped: +2 Coupon Dust");
+    coupon.remove();
+  };
   document.body.appendChild(coupon);
-  setTimeout(()=>coupon.remove(),5200);
+  setTimeout(()=>{
+    if(coupon.isConnected) coupon.remove();
+  },12000);
+  return coupon;
+}
+
+function scheduleNextCouponDrop(initial=false){
+  clearTimeout(couponTimer);
+
+  if(archiveIsMirrorLocked()){
+    couponTimer = 0;
+    return;
+  }
+
+  const chaos = getChaosLevel();
+  const ranges = [
+    [28000,45000],
+    [22000,36000],
+    [16000,28000],
+    [10000,20000],
+    [7000,14000]
+  ];
+  const initialRanges = [
+    [6000,14000],
+    [5000,12000],
+    [4000,10000],
+    [3000,8000],
+    [2000,6000]
+  ];
+  const [min,max] = initial ? initialRanges[chaos] ?? [6000,14000] : ranges[chaos] ?? [28000,45000];
+  const delay = min + Math.random() * (max - min);
+
+  couponTimer = setTimeout(()=>{
+    couponTimer = 0;
+    if(!archiveIsMirrorLocked()){
+      spawnFallingCoupon();
+      if(Math.random() < .08 + chaos * .03){
+        setTimeout(()=>spawnFallingCoupon(),500 + Math.random() * 1400);
+      }
+    }
+    scheduleNextCouponDrop(false);
+  },delay);
 }
 
 function triggerRandomEvent(){
@@ -927,7 +1256,8 @@ function spawnDesktopPet(type){
     toolbar:{label:"TB",item:"Fake Toolbar",msg:"toolbar worm adds a useless button"}
   };
   const keys = Object.keys(types);
-  const pet = types[type] || types[keys[Math.floor(Math.random()*keys.length)]];
+  const petType = types[type] ? type : keys[Math.floor(Math.random()*keys.length)];
+  const pet = types[petType];
   const el = document.createElement("button");
   el.className = "desktop-pet";
   el.textContent = pet.label;
@@ -935,6 +1265,7 @@ function spawnDesktopPet(type){
   el.style.top = 80 + Math.random() * Math.max(120,innerHeight - 180) + "px";
   el.onclick = () => {
     addInventoryItem(pet.item,1);
+    if(petType === "coupon") awardCouponDust(2,"coupon bug");
     latestEvent(pet.msg);
     playSound("blip");
     el.remove();
@@ -1207,7 +1538,7 @@ function performSecretCode(code){
   const actions = {
     vdo:()=>{vdoSecretBoostUntil = Date.now() + 6500; discoverSecret("typed:vdo","VDO heard its name and sped up.","VDO Splinter",{achievement:"signalWhisperer"});},
     signal404:()=>{addQuestClue("typed-signal404","signal404 still opens the first door"); discoverSecret("typed:signal404","signal404 echoed through the secret gate.","404 Shard",{achievement:"signalWhisperer"});},
-    coupon:()=>{discoverSecret("typed:coupon","A coupon crumb fell out of the keyboard.","Illegal Coupon Crumb",{achievement:"signalWhisperer",currency:["Coupon Dust",3]}); spawnSecretPopup("coupon-crumb","KEYBOARD COUPON DETECTED","The archive found savings dust under one key.","Illegal Coupon Crumb");},
+    coupon:()=>{const unlocked = discoverSecret("typed:coupon","A coupon crumb fell out of the keyboard.","Illegal Coupon Crumb",{achievement:"signalWhisperer"}); if(unlocked) awardCouponDust(3,"typed coupon secret"); spawnSecretPopup("coupon-crumb","KEYBOARD COUPON DETECTED","The archive found savings dust under one key.","Illegal Coupon Crumb");},
     static:()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1500); discoverSecret("typed:static","Static answered in all caps.","Static Receipt",{achievement:"signalWhisperer"});},
     biggie:()=>{document.body.classList.add("biggie-mode");setTimeout(()=>document.body.classList.remove("biggie-mode"),2400); discoverSecret("typed:biggie","Biggie mode briefly inflated the archive ego.","Archive Tooth",{achievement:"signalWhisperer"});},
     lm:()=>{discoverSecret("typed:lm","LM initials found a canary feather in the source.","Canary Feather",{achievement:"signalWhisperer"});},
@@ -1527,8 +1858,8 @@ function positionPopupSafely(element,className=element.className){
 
 function awardAdTemplateReward(template){
   const rewards = {
-    "ad-coupon":["Cursed Coupon","Coupon Dust"],
-    "ad-goblin":["Cursed Coupon","Coupon Dust"],
+    "ad-coupon":["Cursed Coupon","Illegal Coupon Crumb"],
+    "ad-goblin":["Cursed Coupon","Coupon Lint"],
     "ad-antivirus":["Fake Toolbar","CRT Dust"],
     "ad-optimizer":["Fake Toolbar","CRT Dust"],
     "ad-weather-alert":["Weather Pixel"],
@@ -1544,7 +1875,7 @@ function awardAdTemplateReward(template){
   };
   const pool = rewards[template.className] || ["Popup Buck","CRT Dust","Expired Banner Ad"];
   const reward = pool[Math.floor(Math.random()*pool.length)];
-  if(reward === "Coupon Dust") addCurrency("Coupon Dust",1);
+  if(reward === "Coupon Dust") awardCouponDust(1,"coupon popup reward");
   else if(reward === "Popup Buck") addCurrency("Popup Bucks",1);
   else addInventoryItem(reward,1);
 }
@@ -1588,6 +1919,11 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
     button.onclick = () => {
       spawnSticker();
       awardAdTemplateReward(template);
+      if(/coupon|goblin|vhs|cookie/i.test(`${template.className} ${template.title}`) && ad.dataset.couponDustClaimed !== "true"){
+        ad.dataset.couponDustClaimed = "true";
+        awardCouponDust(1,"coupon popup interaction");
+        if(Math.random() < .12) addInventoryItem("Coupon Dust",1);
+      }
       if(template.className === "ad-aquarium") aquariumEvent();
       if(Math.random() > .72) spawnAd(true,"manual");
     };
@@ -2472,13 +2808,55 @@ function mazeChoice(id){
   if(id === "d") spawnAd(true);
 }
 
+function renderRarityGuide(){
+  const grid = $("#inventoryGrid");
+  if(!grid) return;
+  let panel = $("#rarityGuidePanel");
+  if(!panel){
+    panel = document.createElement("div");
+    panel.id = "rarityGuidePanel";
+    panel.className = "box rarity-guide-panel";
+    grid.parentNode.insertBefore(panel,grid);
+  }
+  panel.innerHTML = `
+    <h2>Rarity Guide</h2>
+    <p>The archive now pretends probability is a science. Lower tiers fall out often; the last tiers are deeply unreasonable.</p>
+    <div class="rarity-guide-list">
+      ${Object.entries(rarityTiers).map(([key,tier])=>`
+        <span class="rarity-pill ${inventoryRarityClass(key)}" style="--rarity-color:${clean(tier.color)}" title="Drop weight ${clean(tier.weight)}">
+          ${clean(tier.label)} <small>${clean(rarityDropVibe(key))}</small>
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderCouponDustHint(){
+  const host = $("#shopGrid") || $("#inventoryGrid");
+  if(!host) return;
+  let panel = $("#couponDustHintPanel");
+  if(!panel){
+    panel = document.createElement("div");
+    panel.id = "couponDustHintPanel";
+    panel.className = "box coupon-dust-hint";
+    host.parentNode.insertBefore(panel,host);
+  }
+  panel.innerHTML = `<h2>How to earn Coupon Dust</h2><p>Catch drifting 0% coupons, poke coupon popups, inspect coupon files, and bother coupon bugs. Typing coupon only works once because the archive is not that stupid.</p>`;
+}
+
 function renderInventory(){
   const grid = $("#inventoryGrid");
   if(!grid) return;
+  renderRarityGuide();
+  renderCouponDustHint();
   const inv = getInventory();
-  grid.innerHTML = Object.entries(inventoryCatalog).map(([name,meta])=>{
+  const names = Object.keys(inventoryCatalog);
+  Object.keys(inv).forEach((name)=>{if(!inventoryCatalog[name]) names.push(name)});
+  grid.innerHTML = names.map((name)=>{
+    const meta = getInventoryMeta(name);
+    const tier = rarityTiers[meta.rarity] || rarityTiers.common;
     const count = Number(inv[name] || 0);
-    return `<div class="inventory-card ${count ? "owned" : ""}"><h3>${clean(name)}</h3><p>${clean(meta.desc)}</p><b>Rarity: ${clean(meta.rarity)}</b><p>Count: ${count}</p></div>`;
+    return `<div class="inventory-card inventory-rarity-card ${inventoryRarityClass(meta.rarity)} ${count ? "owned" : ""}" style="--rarity-color:${clean(tier.color)}"><h3>${clean(name)}</h3><p>${clean(meta.desc)}</p><b>Rarity: <span class="rarity-name">${clean(tier.label)}</span></b>${meta.flavor ? `<p class="inventory-flavor">Flavor: ${clean(meta.flavor)}</p>` : ""}<p>Count: ${count}</p></div>`;
   }).join("");
 }
 
@@ -2533,7 +2911,11 @@ function openFakeFile(folder,file){
   if(file === "panic_receipt.txt") discoverSecret("files:panic-receipt","A panic receipt was misfiled under DO_NOT_OPEN.","Emergency Panic Receipt");
   if(file === "crab_shell.log") discoverSecret("files:crab-shell","Desktop pet records included one shell-shaped confession.","Desktop Crab Shell");
   if(file === "fm404_transcript.txt") discoverSecret("files:fm404","FM 404 transcript had static in the margins.","Radio Static Sample");
-  if(file === "zero_percent.cpn") discoverSecret("files:zero-coupon","A zero percent coupon tried to become legal tender.","Illegal Coupon Crumb");
+  if(/coupon|\.cpn/i.test(file)){
+    const couponId = file === "zero_percent.cpn" ? "files:zero-coupon" : `files:coupon-${file.replace(/[^a-z0-9]+/gi,"-").toLowerCase()}`;
+    const unlocked = discoverSecret(couponId,`${file} leaked a little Coupon Dust from the cabinet.`,"Illegal Coupon Crumb");
+    if(unlocked) awardCouponDust(2,"coupon file");
+  }
 }
 
 const searchFragments = [
@@ -2773,6 +3155,7 @@ const shopItems = {
 function renderShop(){
   const grid = $("#shopGrid");
   if(!grid) return;
+  renderCouponDustHint();
   const purchases = getPurchases();
   grid.innerHTML = Object.entries(shopItems).map(([name,item])=>{
     const [type,cost] = item.cost;
@@ -2782,7 +3165,8 @@ function renderShop(){
 }
 
 function buySecretShopItem(){
-  discoverSecret("shop:clearance-static","The shop's under-counter static sold you nothing beautifully.","Emergency Exit Sign",{achievement:"shopVictim",currency:["Static Coins",3]});
+  const unlocked = discoverSecret("shop:clearance-static","The shop's under-counter static sold you nothing beautifully.","Emergency Exit Sign",{achievement:"shopVictim",currency:["Static Coins",3]});
+  if(unlocked) awardCouponDust(2,"under-counter static");
 }
 
 function buyShopItem(name){
@@ -2804,7 +3188,12 @@ function buyShopItem(name){
   writeJSON("oddShopPurchases",purchases);
   addInventoryItem(name,1);
   unlockAchievement("shopVictim");
-  if(name === "Coupon Laminator") discoverSecret("shop:coupon-laminator","The coupon laminator preserved one illegal crumb.","Illegal Coupon Crumb");
+  if(name === "Coupon Laminator"){
+    const unlocked = discoverSecret("shop:coupon-laminator","The coupon laminator preserved one illegal crumb.","Illegal Coupon Crumb");
+    if(unlocked) awardCouponDust(3,"coupon laminator rebate");
+  }
+  if(name === "Invisible Cursor Coupon") awardCouponDust(2,"invisible cursor coupon");
+  if(name === "Aquarium Breadcrumbs") awardCouponDust(1,"aquarium breadcrumbs");
   if(name === "Emergency Popup Helmet") discoverSecret("shop:popup-helmet","Emergency popup helmet came with an exit sign.","Emergency Exit Sign");
   renderShop();
   updateArchiveDashboard();
@@ -2862,6 +3251,7 @@ addEventListener("DOMContentLoaded",()=>{
   renderCloseMilestoneMenu();
   startRandomAdScheduler();
   startRandomEventEngine();
+  scheduleNextCouponDrop(true);
   if(!archiveIsMirrorLocked()){
     setTimeout(()=>{
       if(!archiveIsMirrorLocked()) unlockAchievement("vdoWitness");
@@ -2869,12 +3259,19 @@ addEventListener("DOMContentLoaded",()=>{
   }
 
   window.addInventoryItem = addInventoryItem;
+  window.awardRandomJunk = awardRandomJunk;
+  window.awardCouponDust = awardCouponDust;
   window.unlockAchievement = unlockAchievement;
   window.addCurrency = addCurrency;
   window.discoverSecret = discoverSecret;
   window.getDiscoveredSecrets = getDiscoveredSecrets;
   window.countDiscoveredSecrets = countDiscoveredSecrets;
   window.renderSecretCount = renderSecretCount;
+  window.renderRarityGuide = renderRarityGuide;
+  window.renderCouponDustHint = renderCouponDustHint;
+  window.rollRarity = rollRarity;
+  window.randomInventoryItemByRarity = randomInventoryItemByRarity;
+  window.getInventoryMeta = getInventoryMeta;
   window.getUnlockedCloseMilestones = getUnlockedCloseMilestones;
   window.renderCloseMilestoneMenu = renderCloseMilestoneMenu;
   window.spawnCloseMilestonePopup = spawnCloseMilestonePopup;
@@ -2900,6 +3297,8 @@ addEventListener("DOMContentLoaded",()=>{
   window.archiveIsMirrorLocked = archiveIsMirrorLocked;
   window.toggleSpinMode = toggleSpinMode;
   window.spawnSticker = spawnSticker;
+  window.spawnFallingCoupon = spawnFallingCoupon;
+  window.scheduleNextCouponDrop = scheduleNextCouponDrop;
   window.fakeDownload = fakeDownload;
   window.randomThing = randomThing;
   window.fakeFact = fakeFact;

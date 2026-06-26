@@ -122,7 +122,7 @@ body:before{
 
 .hero h1{font-size:42px;margin:0;color:#fff;text-shadow:0 0 8px #fff,0 0 22px var(--cyan)}
 .hero p{max-width:720px}
-.floaty{position:absolute;right:16px;bottom:10px;font-size:72px;animation:bob 2s ease-in-out infinite}
+.floaty{position:absolute;right:16px;bottom:96px;font-size:72px;animation:bob 2s ease-in-out infinite;pointer-events:none;line-height:1}
 @keyframes bob{50%{transform:translateY(-18px) rotate(8deg)}}
 
 .button{
@@ -565,5 +565,5 @@ meter{width:100%}
   .hero h1{font-size:30px}
   .columns{columns:1}
   .bounce-logo{width:94px;height:52px;font-size:21px}
-  .floaty{position:static;font-size:48px;margin-top:8px}
+  .floaty{position:static;display:inline-block;font-size:48px;margin-top:52px}
 }

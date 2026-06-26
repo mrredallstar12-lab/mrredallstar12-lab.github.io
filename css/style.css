@@ -259,10 +259,13 @@ meter{width:100%}
 
 .popup-ad{
   position:fixed;
-  width:min(340px,86vw);
+  display:block;
+  width:min(360px,90vw);
+  min-height:170px;
   max-height:min(82vh,560px);
-  overflow-x:hidden;
   overflow-y:auto;
+  overflow-x:hidden;
+  background:#f7f1ff;
   color:#000;
   border:4px outset #fff;
   box-shadow:8px 8px 0 rgba(0,0,0,.45),0 0 22px #ff00cc;
@@ -271,8 +274,9 @@ meter{width:100%}
   animation:adPop .18s ease-out;
 }
 
-.popup-ad .ad-title{position:sticky;top:0;z-index:1;padding:5px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:move}
-.popup-ad .ad-body{padding:10px}
+.popup-ad .ad-title{position:sticky;top:0;z-index:2;display:flex;min-height:28px;padding:5px 7px;line-height:1.2;font-weight:bold;justify-content:space-between;align-items:center;gap:8px;overflow:visible;cursor:move}
+.popup-ad .ad-body{display:block;min-height:90px;max-height:calc(min(82vh,560px) - 34px);overflow-y:auto;overflow-x:hidden;padding:10px;background:inherit}
+.popup-ad .ad-body:empty::before{content:"AD BODY FAILED TO LOAD";display:block;padding:10px;background:#000;color:#0f0;border:2px dashed #ff0}
 .popup-ad button{font-size:12px}
 .popup-ad .x{background:#c00;color:#fff;border:2px outset #fff;padding:1px 7px;min-width:28px}
 .ad-fine{font-size:10px;color:#333}
@@ -301,7 +305,7 @@ meter{width:100%}
 
 .ad-banner{width:min(540px,92vw);background:repeating-linear-gradient(45deg,#ff0 0 12px,#0ff 12px 24px);border:4px dashed #f0c;animation:adPop .18s ease-out,bannerBlink .55s steps(1) infinite}
 .ad-banner .ad-title{background:#000;color:#fff}
-.ad-banner .ad-body{display:flex;align-items:center;gap:10px;min-height:82px}
+.ad-banner .ad-body{display:flex;align-items:center;gap:10px;min-height:90px}
 .dance-line{font:bold 18px Impact;color:#f00;text-shadow:2px 2px #fff}
 @keyframes bannerBlink{50%{border-color:#0ff;filter:hue-rotate(90deg)}}
 
@@ -325,7 +329,7 @@ meter{width:100%}
 .system-alert{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:start}
 .alert-icon{width:44px;height:44px;border-radius:50%;background:#ff0;border:3px solid #000;display:grid;place-items:center;font:bold 32px Arial}
 
-.ad-aquarium{background:linear-gradient(#d7ffff,#54c7ff);border-color:#8df;overflow:hidden}
+.ad-aquarium{background:linear-gradient(#d7ffff,#54c7ff);border-color:#8df}
 .ad-aquarium .ad-title{background:#006fc9;color:#fff}
 .ad-water{font-size:22px;color:#004f7c;animation:bob 1.2s ease-in-out infinite}
 
@@ -333,6 +337,46 @@ meter{width:100%}
 .ad-coupon .ad-title{background:#fff;color:#000;border-bottom:3px dashed #111}
 .coupon-body{background:repeating-linear-gradient(0deg,#fff 0 14px,#ffe0f3 14px 28px)}
 .barcode{font:22px "Courier New";letter-spacing:2px;background:#fff;color:#000;border:2px solid #000;padding:4px;text-align:center}
+
+.ad-antivirus{background:#e8f7e8;border-color:#3a8b3a}
+.ad-antivirus .ad-title{background:#075807;color:#fff}
+.scan-list{background:#001b00;color:#8cff8c;border:2px inset #777;padding:8px 8px 8px 26px}
+.ad-psychic{background:radial-gradient(circle,#5b1b76,#160018);color:#fff;border-color:#ff9cff}
+.ad-psychic .ad-title{background:#2a0038;color:#fff000}
+.crystal-ball{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin:4px auto 8px;background:radial-gradient(circle,#fff,#c2f,#306);box-shadow:0 0 20px #ff9cff}
+.fortune-slip{background:#fff;color:#000;border:2px dashed #b06;padding:6px}
+.ad-cursor{background:#fff8df;border-color:#111}
+.ad-cursor .ad-title{background:#111;color:#fff}
+.missing-poster{border:4px double #000;text-align:center;background:#fff;padding:8px;margin-bottom:8px}
+.missing-poster span{display:block;font:32px Impact;color:#000}
+.ad-dust{background:#f0f0f0;border-color:#aaa}
+.ad-dust .ad-title{background:#6b6b6b;color:#fff}
+.tier-card{display:grid;gap:5px;margin:8px 0}.tier-card span{border:2px outset #fff;background:#ddd;padding:5px}
+.ad-bolt-insurance{background:#fffbe8;border-color:#6b4b00}
+.ad-bolt-insurance .ad-title{background:#6b4b00;color:#fff000}.insurance-doc{font-family:Georgia,serif}
+.ad-dialup{background:#dde7ff;border-color:#0047b3}
+.ad-dialup .ad-title{background:#00347a;color:#fff}
+.speed-meter{display:flex;justify-content:space-between;background:#000;color:#0f0;border:3px inset #777;padding:6px;margin:8px 0}
+.ad-screensaver{background:#000;color:#0f0;border-color:#0f0}
+.ad-screensaver .ad-title{background:#002400;color:#0f0}
+.screensaver-box{height:60px;border:2px inset #0f0;display:grid;place-items:center;font-size:28px;animation:bob 1s infinite}
+.ad-chainmail{background:#fff;color:#000;border-color:#b8b8b8}
+.ad-chainmail .ad-title{background:#dcdcdc;color:#000}.email-forward blockquote{border-left:4px solid #999;margin:8px;padding-left:8px}
+.ad-pet{background:#e9fff9;border-color:#00a67a}
+.ad-pet .ad-title{background:#00805e;color:#fff}.pet-display{text-align:center;font:bold 22px "Courier New";background:#001b13;color:#8aff8a;border:2px inset #777;padding:8px}
+.ad-loading-upgrade{background:#f2f2ff;border-color:#7777ff}
+.ad-loading-upgrade .ad-title{background:#3030a0;color:#fff}
+.multi-bars div{height:12px;background:repeating-linear-gradient(90deg,#0f0 0 8px,#080 8px 16px);border:2px inset #777;margin:5px 0}
+.ad-weather-alert{background:#e4f4ff;border-color:#0077aa}
+.ad-weather-alert .ad-title{background:#005d91;color:#fff}.weather-alert-card{background:linear-gradient(#e4f4ff,#fff)}
+.ad-vhs{background:#171717;color:#eee;border-color:#bbb}
+.ad-vhs .ad-title{background:#5a005a;color:#fff}.vhs-card{background:#000;border:3px solid #999;padding:8px;margin:6px 0;font:bold 18px "Courier New";text-align:center}
+.ad-optimizer{background:#e8fff4;border-color:#00a66a}
+.ad-optimizer .ad-title{background:#006b39;color:#fff}.optimizer-list{background:#fff;border:2px inset #aaa;padding:8px 8px 8px 26px;color:#002}
+.ad-goblin{background:#f7ffe0;border:4px ridge #6da300}
+.ad-goblin .ad-title{background:#315000;color:#fff000}.goblin-stamp .stamp{display:inline-block;transform:rotate(-5deg);border:4px double #315000;color:#315000;padding:8px;margin:8px;background:#fff}
+.ad-cookie{background:#fff7da;border-color:#b87a00}
+.ad-cookie .ad-title{background:#8a4f00;color:#fff}.cookie-slip{background:repeating-linear-gradient(0deg,#fff7da 0 18px,#ffe7a6 18px 36px)}
 
 .bounce-logo{
   position:fixed;

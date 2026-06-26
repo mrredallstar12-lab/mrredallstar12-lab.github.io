@@ -260,6 +260,9 @@ meter{width:100%}
 .popup-ad{
   position:fixed;
   width:min(340px,86vw);
+  max-height:min(82vh,560px);
+  overflow-x:hidden;
+  overflow-y:auto;
   color:#000;
   border:4px outset #fff;
   box-shadow:8px 8px 0 rgba(0,0,0,.45),0 0 22px #ff00cc;
@@ -268,7 +271,7 @@ meter{width:100%}
   animation:adPop .18s ease-out;
 }
 
-.popup-ad .ad-title{padding:5px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:move}
+.popup-ad .ad-title{position:sticky;top:0;z-index:1;padding:5px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:move}
 .popup-ad .ad-body{padding:10px}
 .popup-ad button{font-size:12px}
 .popup-ad .x{background:#c00;color:#fff;border:2px outset #fff;padding:1px 7px;min-width:28px}

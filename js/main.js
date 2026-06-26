@@ -279,10 +279,9 @@ function closeAllPopupAds(){
 function spawnPanicAd(count){
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert panic-ad";
-  ad.style.left = Math.max(8,Math.random() * Math.max(20,innerWidth - 360)) + "px";
-  ad.style.top = Math.max(8,Math.random() * Math.max(20,innerHeight - 240)) + "px";
   ad.innerHTML = `<div class="ad-title"><span>! PANIC SYSTEM</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>panic acknowledged, one emergency popup remains.</b><p>${count} popup(s) removed. Panic mode failed successfully.</p><p><button>accept receipt</button><button>panic again later</button></p><p class="ad-fine">This is a fake theatrical system notice.</p></div></div>`;
   document.body.appendChild(ad);
+  positionPopupSafely(ad);
   ad.querySelector(".x").onclick = () => {
     awardAdClose();
     ad.remove();
@@ -700,15 +699,27 @@ function adMarkup(template){
   return `${title}<div class="ad-body"><b>${body}</b><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
 }
 
+function positionPopupSafely(element){
+  const pad = 8;
+  element.style.left = "0px";
+  element.style.top = "0px";
+  const rect = element.getBoundingClientRect();
+  const maxLeft = Math.max(pad,window.innerWidth - rect.width - pad);
+  const maxTop = Math.max(pad,window.innerHeight - rect.height - pad);
+  const left = pad + Math.random() * Math.max(0,maxLeft - pad);
+  const top = pad + Math.random() * Math.max(0,maxTop - pad);
+  element.style.left = Math.round(Math.min(maxLeft,Math.max(pad,left))) + "px";
+  element.style.top = Math.round(Math.min(maxTop,Math.max(pad,top))) + "px";
+}
+
 function spawnAd(manual=false){
   if(document.querySelectorAll(".popup-ad").length >= MAX_POPUPS) return;
   const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
   const ad = document.createElement("div");
   ad.className = `popup-ad ${template.className}`;
-  ad.style.left = Math.max(5,Math.random() * Math.max(20,innerWidth - 540)) + "px";
-  ad.style.top = Math.max(5,Math.random() * Math.max(20,innerHeight - 255)) + "px";
   ad.innerHTML = adMarkup(template);
   document.body.appendChild(ad);
+  positionPopupSafely(ad);
   ad.querySelector(".x").onclick = () => {
     awardAdClose();
     ad.remove();

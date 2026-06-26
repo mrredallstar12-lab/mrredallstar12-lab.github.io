@@ -357,7 +357,7 @@ function setChaosLevel(level){
 function updateChaosControls(){
   const level = getChaosLevel();
   $$(".chaos-slider").forEach((input)=>input.value = String(level));
-  setStatusText("[data-chaos-status]",`Chaos level ${level}: ${chaosLabels[level]} | popup cap ${getPopupCap()}`);
+  setStatusText("[data-chaos-status]",`Chaos level ${level}: ${chaosLabels[level]}`);
 }
 
 function getChaosMultiplier(){
@@ -379,7 +379,7 @@ function currencySummary(){
 
 function updateArchiveDashboard(){
   const level = getChaosLevel();
-  setStatusText("[data-dashboard-chaos]",`${level} - ${chaosLabels[level]} | popup cap ${getPopupCap()}`);
+  setStatusText("[data-dashboard-chaos]",`${level} - ${chaosLabels[level]}`);
   setStatusText("[data-dashboard-event]",localStorage.getItem("oddLatestEvent") || "none yet");
   setStatusText("[data-dashboard-inventory]",String(countInventoryItems()));
   setStatusText("[data-dashboard-achievements]",`${countAchievements()} / ${Object.keys(achievementCatalog).length}`);
@@ -1222,14 +1222,14 @@ function scheduleNextRandomAd(initial=false){
   }
   const chaos = getChaosLevel();
   const ranges = [
-    [10000,18000],
+    [6000,12000],
     [5500,10500],
     [2500,5200],
     [1400,3200],
     [650,1500]
   ];
   const initialRanges = [
-    [3000,7000],
+    [2000,4500],
     [2200,5200],
     [1400,3600],
     [1200,2600],

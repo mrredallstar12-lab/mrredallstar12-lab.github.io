@@ -143,7 +143,17 @@ body:before{
 .columns{columns:2}
 .counter{font-family:"Courier New";font-size:22px;background:#000;color:#0f0;border:3px inset #555;padding:8px;text-align:center}
 .footer{text-align:center;font-size:13px;color:#ccc;margin:20px}
-.archive-canary{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.archive-canary{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
 .mirror-warning{position:fixed;right:14px;bottom:14px;z-index:9900;max-width:min(420px,calc(100vw - 28px));pointer-events:none;filter:drop-shadow(0 0 12px #f0c)}
 .mirror-warning-inner{pointer-events:auto;background:repeating-linear-gradient(0deg,rgba(255,255,0,.08) 0 2px,transparent 2px 5px),linear-gradient(135deg,#240000,#080008 55%,#001a22);border:4px ridge var(--yellow);box-shadow:inset 0 0 18px rgba(255,0,0,.55),0 0 18px rgba(0,255,255,.35);color:#fff;padding:12px 14px;font:bold 13px "Courier New",monospace;text-shadow:2px 2px #000,0 0 8px var(--hot)}
 .mirror-warning-title{display:inline-block;background:#000;color:var(--yellow);border:2px dashed var(--hot);padding:3px 6px;margin-bottom:6px;font-size:15px;letter-spacing:1px;box-shadow:0 0 10px rgba(255,240,0,.65)}

@@ -396,46 +396,56 @@ function closeAllPopupAds(){
   return ads.length;
 }
 
-function fallbackAdMarkup(label="FALLBACK FAKE AD"){
-  return `<div class="ad-title"><span>! ${clean(label)}</span><button class="x" title="close">X</button></div><div class="ad-body"><b>This ad template failed to render, so the archive deployed a backup rectangle with text.</b><p><button>acknowledge rectangle</button></p><p class="ad-fine">Fallback parody popup.</p></div>`;
+function fallbackAdMarkup(){
+  return `<div class="ad-title"><span>! FALLBACK FAKE AD</span><button class="x" title="close">X</button></div><div class="ad-body"><b>This ad template failed to render, so the archive deployed a backup rectangle with text.</b><p><button>acknowledge rectangle</button></p><p class="ad-fine">Fallback parody popup.</p></div>`;
 }
 
-function verifyPopupMarkup(ad,html,context){
+function verifyPopupMarkup(ad,html,className){
   const hasTitle = Boolean(ad.querySelector(".ad-title"));
   const hasBody = Boolean(ad.querySelector(".ad-body"));
-  console.debug("[Odd Frequency] popup markup", {context,htmlLength:html.length,hasTitle,hasBody});
+  console.debug("[Odd Frequency] ad html generated", {className,length:html.length,hasTitle,hasBody});
   if(hasTitle && hasBody){
     ad.classList.remove("debug-empty");
     return true;
   }
-  console.warn("[Odd Frequency] popup template failed; using fallback markup", {context,htmlLength:html.length,hasTitle,hasBody});
+  console.warn("[Odd Frequency] ad template failed, using fallback", {className});
   ad.classList.add("debug-empty");
-  ad.innerHTML = fallbackAdMarkup(context);
+  ad.innerHTML = fallbackAdMarkup();
   return false;
 }
 
-function forcePopupInternalsVisible(ad,context){
-  const title = ad.querySelector(".ad-title");
-  const body = ad.querySelector(".ad-body");
-  ad.style.visibility = "visible";
-  ad.style.opacity = "1";
+function forcePopupInternalsVisible(element,className){
+  if(!element) return;
+  element.style.visibility = "visible";
+  element.style.opacity = "1";
+  const title = element.querySelector(".ad-title");
+  const body = element.querySelector(".ad-body");
+  const close = element.querySelector(".x");
   if(title){
+    title.style.display = "flex";
     title.style.visibility = "visible";
     title.style.opacity = "1";
-    if(title.getBoundingClientRect().height < 16){
-      console.warn("[Odd Frequency] popup title measured too short; forcing title min-height", {context});
-      title.style.minHeight = "32px";
-      title.style.display = "flex";
-    }
+    title.style.minHeight = "32px";
   }
   if(body){
+    body.style.display = "block";
     body.style.visibility = "visible";
     body.style.opacity = "1";
-    if(body.getBoundingClientRect().height < 60){
-      console.warn("[Odd Frequency] popup body measured too short; forcing body min-height", {context});
-      body.style.minHeight = "130px";
-      body.style.display = "block";
-    }
+    body.style.minHeight = "130px";
+    body.style.overflowY = "auto";
+  }
+  if(close){
+    close.style.display = "inline-block";
+    close.style.visibility = "visible";
+    close.style.opacity = "1";
+  }
+  if(title && title.getBoundingClientRect().height < 20){
+    console.warn("[Odd Frequency] ad title too short", {className});
+    title.style.minHeight = "32px";
+  }
+  if(body && body.getBoundingClientRect().height < 60){
+    console.warn("[Odd Frequency] ad body too short", {className});
+    body.style.minHeight = "130px";
   }
 }
 

@@ -3028,6 +3028,9 @@ function askArchiveBot(topic){
 
 let archiveRadioAudio = null;
 let currentRadioStation = "";
+let radioSyntheticSession = null;
+const failedRadioSources = new Set();
+const radioMissingTrackMessage = "TRACK MISSING — put a file in assets/audio or enable synthetic cursed radio mode.";
 
 // Put owned or royalty-free MP3/OGG/WAV files in assets/audio, or replace src values with direct HTTPS stream URLs.
 const radioStationOrder = [
@@ -3091,13 +3094,35 @@ function getArchiveRadioAudio(){
     archiveRadioAudio.loop = true;
     archiveRadioAudio.volume = Number(localStorage.getItem("oddRadioVolume") || .65);
     archiveRadioAudio.addEventListener("error",()=>{
-      if(currentRadioStation){
-        appendRadioLog("TRACK MISSING - the archive ate the cassette.");
-        renderRadioOutput(currentRadioStation,"TRACK MISSING - the archive ate the cassette.");
-      }
+      if(currentRadioStation) handleRadioFileFailure(currentRadioStation,archiveRadioAudio.dataset.sourcePath);
     });
   }
   return archiveRadioAudio;
+}
+
+function radioSyntheticModeEnabled(){
+  return localStorage.getItem("oddRadioSyntheticMode") === "true";
+}
+
+function updateRadioSyntheticButtons(){
+  const enabled = radioSyntheticModeEnabled();
+  $$("[data-radio-synthetic-toggle]").forEach((button)=>{
+    button.textContent = `synthetic cursed radio mode: ${enabled ? "on" : "off"}`;
+    button.setAttribute("aria-pressed",String(enabled));
+    button.classList.toggle("active",enabled);
+  });
+  setStatusText("[data-radio-synthetic-status]",enabled ? "synthetic fallback armed" : "real cassettes only");
+}
+
+function radioResolvedSrc(data){
+  if(!data || !data.src) return "";
+  try{return new URL(data.src,window.location.href).href}
+  catch{return data.src}
+}
+
+function radioFileHasFailed(station){
+  const data = radioStations[station];
+  return !!(data && data.src && failedRadioSources.has(radioResolvedSrc(data)));
 }
 
 function radioStationKeys(){
@@ -3126,6 +3151,227 @@ function appendRadioLog(message){
   while(log.children.length > 9) log.lastElementChild.remove();
 }
 
+function radioSyntheticGainScale(station){
+  if(station === "One-of-One Silence") return .025;
+  if(station === "Fake Emergency Broadcast System") return .12;
+  if(/Jazz|Mall|FM 40\.4/.test(station)) return .09;
+  return .105;
+}
+
+function updateSyntheticRadioVolume(){
+  if(!radioSyntheticSession || !radioSyntheticSession.master) return;
+  const audio = getArchiveRadioAudio();
+  const volume = Math.max(0,Math.min(1,Number(audio.volume)));
+  const level = volume * (radioSyntheticSession.gainScale || .1);
+  try{
+    radioSyntheticSession.master.gain.setTargetAtTime(level,radioSyntheticSession.ctx.currentTime,.025);
+  }
+  catch{
+    radioSyntheticSession.master.gain.value = level;
+  }
+}
+
+function syntheticTone(session,freq,offset=0,duration=.12,type="sine",volume=.35){
+  const ctx = session.ctx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime + offset;
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq,start);
+  gain.gain.setValueAtTime(0,start);
+  gain.gain.linearRampToValueAtTime(volume,start + .01);
+  gain.gain.exponentialRampToValueAtTime(.0001,start + duration);
+  osc.connect(gain).connect(session.master);
+  osc.start(start);
+  osc.stop(start + duration + .03);
+  session.nodes.push(osc,gain);
+}
+
+function addSyntheticOscillator(session,freq,type="sine",volume=.18){
+  const ctx = session.ctx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = volume;
+  osc.connect(gain).connect(session.master);
+  osc.start();
+  session.nodes.push(osc,gain);
+  return {osc,gain};
+}
+
+function addSyntheticNoise(session,volume=.2,filterFreq=1800){
+  const ctx = session.ctx;
+  const seconds = 2;
+  const buffer = ctx.createBuffer(1,ctx.sampleRate * seconds,ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = Math.random() * 2 - 1;
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  source.buffer = buffer;
+  source.loop = true;
+  filter.type = "bandpass";
+  filter.frequency.value = filterFreq;
+  filter.Q.value = .8;
+  gain.gain.value = volume;
+  source.connect(filter).connect(gain).connect(session.master);
+  source.start();
+  session.nodes.push(source,filter,gain);
+}
+
+function radioPatternName(station){
+  const data = radioStations[station] || {};
+  const label = `${station} ${data.name || ""}`;
+  if(/Static 66\.6/.test(label)) return "static";
+  if(/Jazz|FM 40\.4|Mall Fountain/.test(label)) return "lounge";
+  if(/Aquarium|Weather Band|FM 98\.6/.test(label)) return "bubbles";
+  if(/Numbers|Basement|CH 404/.test(label)) return "basement";
+  if(/MIDI/.test(label)) return "midi";
+  if(/One-of-One|Silence/.test(label)) return "silence";
+  if(/Emergency/.test(label)) return "alert";
+  if(/Coupon|Popup Bucks/.test(label)) return "sponsor";
+  if(/VDO|Bounce/.test(label)) return "vdo";
+  if(/Loading|AM 666/.test(label)) return "hum";
+  return "static";
+}
+
+function setSyntheticInterval(session,fn,delay){
+  const id = setInterval(fn,delay);
+  session.cleanup.push(()=>clearInterval(id));
+  return id;
+}
+
+function buildSyntheticRadioPattern(session,station){
+  const pattern = radioPatternName(station);
+  if(pattern === "static"){
+    addSyntheticNoise(session,.42,2200);
+    setSyntheticInterval(session,()=>syntheticTone(session,220 + Math.random()*720,0,.035,"square",.18),360);
+    return;
+  }
+  if(pattern === "lounge"){
+    addSyntheticOscillator(session,196,"sine",.16);
+    addSyntheticOscillator(session,246.94,"triangle",.08);
+    const chords = [[392,493.88,587.33],[349.23,440,523.25],[329.63,415.3,493.88]];
+    let step = 0;
+    setSyntheticInterval(session,()=>{
+      const chord = chords[step++ % chords.length];
+      chord.forEach((freq,i)=>syntheticTone(session,freq,i*.04,.55,"triangle",.12));
+    },900);
+    return;
+  }
+  if(pattern === "bubbles"){
+    addSyntheticNoise(session,.07,900);
+    setSyntheticInterval(session,()=>{
+      const base = 520 + Math.random() * 700;
+      syntheticTone(session,base,0,.08,"sine",.18);
+      syntheticTone(session,base * 1.5,.08,.06,"triangle",.12);
+    },420);
+    return;
+  }
+  if(pattern === "basement"){
+    addSyntheticOscillator(session,55,"sine",.25);
+    addSyntheticNoise(session,.12,320);
+    setSyntheticInterval(session,()=>syntheticTone(session,[101,134,177,222][Math.floor(Math.random()*4)],0,.09,"square",.16),1200);
+    return;
+  }
+  if(pattern === "midi"){
+    const notes = [262,330,392,523,392,330,294,349];
+    let step = 0;
+    setSyntheticInterval(session,()=>{
+      syntheticTone(session,notes[step++ % notes.length],0,.12,"square",.2);
+    },190);
+    return;
+  }
+  if(pattern === "silence"){
+    addSyntheticNoise(session,.018,5000);
+    setSyntheticInterval(session,()=>syntheticTone(session,1200 + Math.random()*900,0,.018,"square",.08),2300);
+    return;
+  }
+  if(pattern === "alert"){
+    let high = false;
+    setSyntheticInterval(session,()=>{
+      high = !high;
+      syntheticTone(session,high ? 620 : 470,0,.12,"square",.18);
+      syntheticTone(session,high ? 780 : 360,.16,.1,"square",.12);
+    },720);
+    return;
+  }
+  if(pattern === "sponsor"){
+    addSyntheticOscillator(session,110,"triangle",.12);
+    setSyntheticInterval(session,()=>{
+      [440,660,880].forEach((freq,i)=>syntheticTone(session,freq,i*.08,.07,"square",.16));
+    },1150);
+    return;
+  }
+  if(pattern === "vdo"){
+    addSyntheticOscillator(session,164.81,"sine",.16);
+    setSyntheticInterval(session,()=>{
+      syntheticTone(session,330,0,.09,"triangle",.15);
+      syntheticTone(session,495,.12,.09,"triangle",.13);
+    },640);
+    return;
+  }
+  addSyntheticOscillator(session,73,"sawtooth",.16);
+  addSyntheticNoise(session,.09,700);
+}
+
+function stopSyntheticRadio(){
+  if(!radioSyntheticSession) return;
+  radioSyntheticSession.cleanup.forEach((fn)=>{try{fn()}catch(e){}});
+  radioSyntheticSession.nodes.forEach((node)=>{
+    try{if(typeof node.stop === "function") node.stop(0)}catch(e){}
+    try{node.disconnect()}catch(e){}
+  });
+  try{radioSyntheticSession.master.disconnect()}catch(e){}
+  radioSyntheticSession = null;
+}
+
+function startSyntheticRadio(station,status){
+  if(!radioSyntheticModeEnabled()) return false;
+  const data = radioStations[station];
+  if(!data) return false;
+  const ctx = getAudioContext();
+  if(!ctx){
+    renderRadioOutput(station,"Synthetic cursed radio mode needs browser Web Audio support.");
+    return false;
+  }
+  getArchiveRadioAudio().pause();
+  stopSyntheticRadio();
+  const session = {
+    station,
+    ctx,
+    nodes:[],
+    cleanup:[],
+    master:ctx.createGain(),
+    gainScale:radioSyntheticGainScale(station)
+  };
+  session.master.connect(ctx.destination);
+  radioSyntheticSession = session;
+  updateSyntheticRadioVolume();
+  buildSyntheticRadioPattern(session,station);
+  localStorage.setItem("oddRadioPaused","false");
+  appendRadioLog(`Synthetic cursed radio mode generating ${data.frequency || station}: ${data.name}.`);
+  renderRadioOutput(station,status || "Synthetic cursed radio mode is generating fake station audio.");
+  return true;
+}
+
+function handleRadioFileFailure(station,sourcePath){
+  const data = radioStations[station];
+  if(!data) return;
+  const failedPath = sourcePath || data.src || "(no source path)";
+  if(data.src) failedRadioSources.add(radioResolvedSrc(data));
+  appendRadioLog(`${radioMissingTrackMessage} Failed source: ${failedPath}`);
+  if(radioSyntheticModeEnabled()){
+    startSyntheticRadio(station,`${radioMissingTrackMessage} Synthetic fallback is playing.`);
+  }
+  else {
+    stopSyntheticRadio();
+    localStorage.setItem("oddRadioPaused","true");
+    renderRadioOutput(station,radioMissingTrackMessage);
+  }
+}
+
 function renderRadioStationList(){
   const list = $("#radioStationList");
   if(!list) return;
@@ -3142,12 +3388,19 @@ function renderRadioOutput(station,status){
   if(!out) return;
   if(!data){
     out.innerHTML = `<h2>No Station</h2><p>Static waiting for a click.</p><p class="mini-status">The dial is warm. The archive is pretending this is normal.</p>`;
+    updateRadioSyntheticButtons();
     return;
   }
   const volume = Math.round(getArchiveRadioAudio().volume * 100);
-  const sourceText = data.src ? "Ready for real archive audio." : "No real signal attached yet.";
+  const synthetic = radioSyntheticModeEnabled();
+  const syntheticLive = !!(radioSyntheticSession && radioSyntheticSession.station === station);
+  const sourceFailed = radioFileHasFailed(station);
+  const sourceText = data.src ? sourceFailed ? radioMissingTrackMessage : "Ready for real archive audio." : synthetic ? "No real cassette; synthetic cursed radio mode is available." : "No real signal attached yet.";
+  const sourceLine = data.src
+    ? `Signal source: ${clean(data.src)}${sourceFailed ? " (missing last time the archive checked)" : ""}`
+    : "No source path attached. Synthetic cursed radio mode can generate fake station audio.";
   out.innerHTML = `
-    <div class="radio-player">
+    <div class="radio-player ${syntheticLive ? "radio-synthetic-active" : ""}">
       <div class="radio-status-row"><span class="on-air">ON AIR</span><span class="radio-status">${clean(status || sourceText)}</span></div>
       <h2>${clean(data.frequency || station)} - ${clean(data.name)}</h2>
       ${renderRadioSignal(station)}
@@ -3162,27 +3415,35 @@ function renderRadioOutput(station,status){
         <button onclick="radioRandom()">random</button>
         <button onclick="radioNext()">next</button>
         <button onclick="requestBasementSong()">request song</button>
+        <button class="synthetic-radio-toggle" data-radio-synthetic-toggle aria-pressed="${synthetic}" onclick="toggleSyntheticRadioMode()">synthetic cursed radio mode: ${synthetic ? "on" : "off"}</button>
         <label>volume <input type="range" min="0" max="1" step="0.05" value="${getArchiveRadioAudio().volume}" oninput="setRadioVolume(this.value)"></label>
         <span data-radio-volume-value>${volume}%</span>
       </div>
-      <p class="mini-status ${data.src ? "" : "radio-source-missing"}">${data.src ? `Signal source: ${clean(data.src)}` : "Static-only station. Awaiting a real file, a direct HTTPS stream, or a miracle with a file extension."}</p>
+      <p class="radio-mode-status" data-radio-synthetic-status>${synthetic ? "synthetic fallback armed" : "real cassettes only"}</p>
+      <p class="mini-status ${data.src && !sourceFailed ? "" : "radio-source-missing"}">${sourceLine}</p>
     </div>`;
+  updateRadioSyntheticButtons();
 }
 
 function radioPlay(){
   const data = radioStations[currentRadioStation];
   if(!data) return;
   const audio = getArchiveRadioAudio();
+  if(radioSyntheticModeEnabled()) getAudioContext();
   if(!data.src){
-    appendRadioLog(`${data.name} has no real signal attached. The DJ is humming through a paper cup.`);
-    renderRadioOutput(currentRadioStation,"No real signal attached yet. Static-only lore mode is active.");
-    localStorage.setItem("oddRadioPaused","true");
+    if(!startSyntheticRadio(currentRadioStation,"Synthetic cursed radio mode is generating fake station audio.")){
+      appendRadioLog(`${data.name} has no real signal attached. Synthetic cursed radio mode is off.`);
+      renderRadioOutput(currentRadioStation,"No real signal attached yet. Enable synthetic cursed radio mode or add a cassette.");
+      localStorage.setItem("oddRadioPaused","true");
+    }
     return;
   }
   const nextSrc = new URL(data.src,window.location.href).href;
+  stopSyntheticRadio();
   if(audio.src !== nextSrc){
     audio.pause();
     audio.src = nextSrc;
+    audio.dataset.sourcePath = data.src;
     audio.load();
   }
   audio.dataset.type = data.type || "";
@@ -3192,15 +3453,13 @@ function radioPlay(){
       appendRadioLog(`${data.frequency || currentRadioStation} is playing: ${data.now}`);
       renderRadioOutput(currentRadioStation,"Playing real archive audio.");
     })
-    .catch(()=>{
-      appendRadioLog("TRACK MISSING - the archive ate the cassette.");
-      renderRadioOutput(currentRadioStation,"TRACK MISSING - the archive ate the cassette.");
-    });
+    .catch(()=>handleRadioFileFailure(currentRadioStation,data.src));
 }
 
 function radioPause(){
   const audio = getArchiveRadioAudio();
   audio.pause();
+  stopSyntheticRadio();
   localStorage.setItem("oddRadioPaused","true");
   appendRadioLog("Playback paused. The static is holding its breath.");
   if(currentRadioStation) renderRadioOutput(currentRadioStation,"Paused in the static.");
@@ -3209,6 +3468,7 @@ function radioPause(){
 function radioStop(){
   const audio = getArchiveRadioAudio();
   audio.pause();
+  stopSyntheticRadio();
   try{audio.currentTime = 0}catch(e){}
   localStorage.setItem("oddRadioPaused","true");
   appendRadioLog("Playback stopped. The antenna is sulking.");
@@ -3221,6 +3481,7 @@ function setRadioVolume(value){
   audio.volume = volume;
   localStorage.setItem("oddRadioVolume",String(volume));
   $$("[data-radio-volume-value]").forEach((el)=>el.textContent = `${Math.round(volume * 100)}%`);
+  updateSyntheticRadioVolume();
 }
 
 function tuneRadio(station){
@@ -3229,6 +3490,8 @@ function tuneRadio(station){
   currentRadioStation = station;
   localStorage.setItem("oddRadioLastStation",station);
   const audio = getArchiveRadioAudio();
+  stopSyntheticRadio();
+  if(radioSyntheticModeEnabled()) getAudioContext();
   renderRadioOutput(station,data.src ? "Waking real archive audio..." : "No real signal attached yet.");
   renderRadioStationList();
   appendRadioLog(radioIdMessages[Math.floor(Math.random()*radioIdMessages.length)]);
@@ -3244,22 +3507,45 @@ function tuneRadio(station){
   if(data.src){
     audio.pause();
     audio.src = new URL(data.src,window.location.href).href;
+    audio.dataset.sourcePath = data.src;
     audio.dataset.type = data.type || "";
     audio.load();
     localStorage.setItem("oddRadioPaused","false");
     audio.play()
       .then(()=>renderRadioOutput(station,"Playing real archive audio."))
-      .catch(()=>{
-        appendRadioLog("TRACK MISSING - the archive ate the cassette.");
-        renderRadioOutput(station,"TRACK MISSING - the archive ate the cassette.");
-      });
+      .catch(()=>handleRadioFileFailure(station,data.src));
   }
   else {
     audio.pause();
     audio.removeAttribute("src");
+    delete audio.dataset.sourcePath;
     audio.load();
-    localStorage.setItem("oddRadioPaused","true");
-    renderRadioOutput(station,"Static-only station. No real signal attached yet.");
+    if(!startSyntheticRadio(station,"Synthetic cursed radio mode is generating fake station audio.")){
+      localStorage.setItem("oddRadioPaused","true");
+      renderRadioOutput(station,"Static-only station. No real signal attached yet.");
+    }
+  }
+}
+
+function toggleSyntheticRadioMode(){
+  const next = !radioSyntheticModeEnabled();
+  localStorage.setItem("oddRadioSyntheticMode",String(next));
+  updateRadioSyntheticButtons();
+  if(!next){
+    stopSyntheticRadio();
+    if(currentRadioStation) renderRadioOutput(currentRadioStation,"Synthetic cursed radio mode disabled. Real cassettes only.");
+    appendRadioLog("Synthetic cursed radio mode switched off. The fake oscillator went back into its box.");
+    return;
+  }
+  appendRadioLog("Synthetic cursed radio mode switched on. The archive found a tiny synthesizer under the dial.");
+  if(currentRadioStation){
+    const data = radioStations[currentRadioStation];
+    if(data && (!data.src || radioFileHasFailed(currentRadioStation))){
+      startSyntheticRadio(currentRadioStation,"Synthetic cursed radio mode is generating fake station audio.");
+    }
+    else {
+      renderRadioOutput(currentRadioStation,"Synthetic fallback armed. Real audio still gets first chair.");
+    }
   }
 }
 
@@ -3302,6 +3588,7 @@ function requestBasementSong(){
 function initRadioPage(){
   if(!$("#radioOutput") && !$("#radioStationList")) return;
   renderRadioStationList();
+  updateRadioSyntheticButtons();
   const saved = localStorage.getItem("oddRadioLastStation");
   if(saved && radioStations[saved]){
     currentRadioStation = saved;
@@ -3751,6 +4038,9 @@ addEventListener("DOMContentLoaded",()=>{
   window.radioRandom = radioRandom;
   window.requestBasementSong = requestBasementSong;
   window.renderRadioStationList = renderRadioStationList;
+  window.toggleSyntheticRadioMode = toggleSyntheticRadioMode;
+  window.radioSyntheticModeEnabled = radioSyntheticModeEnabled;
+  window.stopSyntheticRadio = stopSyntheticRadio;
   window.refreshWeather = refreshWeather;
   window.installFakeUpdate = installFakeUpdate;
   window.viewPatchNotes = viewPatchNotes;

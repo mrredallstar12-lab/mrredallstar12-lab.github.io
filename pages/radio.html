@@ -21,11 +21,13 @@
         <div class="box radio-dial-box">
           <h2>Station Dial</h2>
           <p class="radio-note">Some stations play real audio. Streams may take a second to wake up, and placeholder cassettes may already be missing.</p>
+          <p class="radio-note">No cassette? No problem. Synthetic cursed radio mode generates fake station audio until real tracks are uploaded.</p>
           <div class="radio-dial-controls">
             <button onclick="radioPrevious()">previous station</button>
             <button onclick="radioRandom()">random station</button>
             <button onclick="radioNext()">next station</button>
             <button onclick="requestBasementSong()">request song from basement</button>
+            <button class="synthetic-radio-toggle" data-radio-synthetic-toggle aria-pressed="false" onclick="toggleSyntheticRadioMode()">synthetic cursed radio mode: off</button>
           </div>
           <div id="radioStationList" class="radio-station-list button-wall">
             <button onclick="tuneRadio('FM 40.4')">FM 40.4</button>

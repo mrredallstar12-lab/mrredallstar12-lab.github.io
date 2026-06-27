@@ -503,8 +503,56 @@ const achievementCatalog = {
   crtWhisperer:{name:"CRT Whisperer",desc:"Find Channel 404 on the broken CRT."},
   doNotKickTheCabinet:{name:"Do Not Kick The Cabinet",desc:"Smack the CRT cabinet several times."},
   publicAccessGoblin:{name:"Public Access Goblin",desc:"Use several weird CRT broadcasts."},
-  vdoOnGlass:{name:"VDO On Glass",desc:"Tune the VDO reflection channel."}
+  vdoOnGlass:{name:"VDO On Glass",desc:"Tune the VDO reflection channel."},
+  inboxGoblin:{name:"Inbox Goblin",desc:"Open several fake inbox messages."},
+  attachmentRiskTaker:{name:"Attachment Risk Taker",desc:"Open suspicious fake attachments."},
+  oddOSBooted:{name:"OddOS Booted",desc:"Launch the fake operating system wing."},
+  fakeInvestor:{name:"Fake Investor",desc:"Buy or sell fictional archive market shares."},
+  archiveTourist:{name:"Archive Tourist",desc:"Visit several cursed map locations."},
+  mapGoblin:{name:"Map Goblin",desc:"Explore the whole archive map."},
+  dailyStatic:{name:"Daily Static",desc:"Claim a daily weirdness reward."},
+  calendarGoblin:{name:"Calendar Goblin",desc:"Claim daily weirdness several times."},
+  scanGoblin:{name:"Scan Goblin",desc:"Complete a harmless fake scan."},
+  quarantinedVibes:{name:"Quarantined Vibes",desc:"Quarantine fake detections theatrically."},
+  auctionGremlin:{name:"Auction Gremlin",desc:"Place several cursed auction bids."},
+  wonTrash:{name:"Won Trash",desc:"Win a cursed auction lot."},
+  loreGoblin:{name:"Lore Goblin",desc:"Read several Odd Frequency wiki articles."},
+  loginDenied:{name:"Login Denied",desc:"Fail the fake login enough times to become folklore."},
+  questGoblin:{name:"Quest Goblin",desc:"Claim several cursed errands."},
+  errandChampion:{name:"Errand Champion",desc:"Claim a large pile of quest-board rewards."}
 };
+
+Object.assign(inventoryCatalog,{
+  "Suspicious Attachment":{rarity:"uncommon",flavor:"mail",desc:"A file attachment that blinks when the inbox looks away."},
+  "Toolbar Worm Receipt":{rarity:"odd",flavor:"mail",desc:"A receipt from a toolbar worm that promises it is friendly."},
+  "VDO Notice":{rarity:"odd",flavor:"vdo",desc:"A notification from the bouncing signal service, printed sideways."},
+  "Coupon Goblin Memo":{rarity:"uncommon",flavor:"coupon",desc:"Internal union memo about zero percent savings humidity."},
+  "Fake Mail Stamp":{rarity:"common",flavor:"mail",desc:"Postage for messages sent to nobody in particular."},
+  "Worthless Stock Certificate":{rarity:"rare",flavor:"market",desc:"One ornate share of a fictional ticker that just winked."},
+  "Stock Ticker Paper":{rarity:"common",flavor:"market",desc:"A strip of noisy numbers from the archive exchange."},
+  "Archive Map Stamp":{rarity:"uncommon",flavor:"map",desc:"A travel stamp from a place that might be a popup."},
+  "Daily Static Receipt":{rarity:"common",flavor:"daily",desc:"Proof that today emitted at least one weird little signal."},
+  "OddOS Boot Disk":{rarity:"rare",flavor:"desktop",desc:"A floppy that boots directly into decorative nonsense."},
+  "OddOS Wallpaper Scrap":{rarity:"common",flavor:"desktop",desc:"A torn square from a fake desktop background."},
+  "Fake Quarantine Receipt":{rarity:"uncommon",flavor:"scan",desc:"Confirms that nothing real was scanned and several vibes were contained."},
+  "Quarantine Confetti":{rarity:"common",flavor:"scan",desc:"Thrown after a fake antivirus finds theatrical trouble."},
+  "Fake Login Token":{rarity:"strange",flavor:"login",desc:"A token proving the login page refused you politely."},
+  "Fake Captcha Tile":{rarity:"uncommon",flavor:"login",desc:"Shows a crosswalk that never existed."},
+  "CRT Moth Egg":{rarity:"rare",flavor:"crt",desc:"Warm, speckled, and probably full of scanlines."},
+  "Original Popup Receipt":{rarity:"rare",flavor:"popup",desc:"An auction-grade receipt from the first dramatic rectangle."},
+  "VDO Reflection Shard":{rarity:"veryRare",flavor:"vdo",desc:"A sharp glint from the mirror side of a corner bounce."},
+  "Coupon Dust Jar":{rarity:"odd",flavor:"coupon",desc:"A jar of powdered zero percent savings."},
+  "The Button That Flinched":{rarity:"strange",flavor:"button",desc:"It moved first. Nobody can prove otherwise."},
+  "Mystery Bolt With Provenance":{rarity:"haunted",flavor:"bolt",desc:"A bolt with paperwork and no explanation."},
+  "Expired Banner Ad Lot":{rarity:"uncommon",flavor:"banner",desc:"A bundled crate of blinking expired promises."},
+  "Loading Bar Fossil":{rarity:"ancient",flavor:"loading",desc:"Preserved forever at ninety-nine percent."},
+  "Aquarium Boot Relic":{rarity:"relic",flavor:"aquarium",desc:"A boot from the pixel tank, blessed by bubbles."},
+  "Basement Numbers Tape":{rarity:"strange",flavor:"signal",desc:"Repeats numbers nobody should use as instructions."},
+  "Redacted Wiki Page":{rarity:"odd",flavor:"wiki",desc:"A lore page with the best sentence covered in static."},
+  "Fake File Crumb":{rarity:"common",flavor:"file",desc:"A crumb from a fake file that opened too enthusiastically."},
+  "Quest Receipt":{rarity:"uncommon",flavor:"quest",desc:"A receipt for doing errands nobody assigned responsibly."},
+  "Auction Paddle Splinter":{rarity:"common",flavor:"auction",desc:"A chip from a bidding paddle that got too excited."}
+});
 
 const closeMilestonePopups = [
   {
@@ -1177,6 +1225,7 @@ function spawnFallingCoupon(){
   coupon.onclick = () => {
     if(coupon.dataset.claimed === "true") return;
     coupon.dataset.claimed = "true";
+    incrementStat("oddFallingCouponsClicked",1);
     awardCouponDust(3,"clipped 0% coupon");
     if(Math.random() < .15) addInventoryItem("Illegal Coupon Crumb",1);
     signalBanner("0% coupon clipped: +3 Coupon Dust");
@@ -1352,10 +1401,13 @@ function enhanceSiteControls(){
 function ensureExpandedNav(){
   $$(".nav").forEach((nav)=>{
     const isRoot = location.pathname.endsWith("/") || location.pathname.endsWith("index.html") || !location.pathname.includes("/pages/");
-    const prefix = isRoot ? "pages/" : "";
     const homeHref = isRoot ? "index.html" : "../index.html";
+    const pageHref = (file)=> isRoot ? `pages/${file}` : file;
     const links = [
-      ["Home",homeHref],["Signal Archive",prefix+"about.html"],["Tiny Games",prefix+"games.html"],["Random Junk",prefix+"random.html"],["Impossible Garage",prefix+"cars.html"],["Chaos Lab",prefix+"lab.html"],["Fake Desktop",prefix+"desktop.html"],["Pixel Aquarium",prefix+"aquarium.html"],["Web Ring",prefix+"webring.html"],["Guestbook",prefix+"guestbook.html"],["???",prefix+"secrets.html"],["Loading Void",prefix+"void.html"],["Fake Ad Museum",prefix+"ads.html"],["Mystery Bolt Oracle",prefix+"oracle.html"],["Object Shrine",prefix+"objects.html"],["Broken CRT",prefix+"tv.html"],["Useless Buttons",prefix+"buttons.html"],["Tiny Link Maze",prefix+"maze.html"],["Inventory",prefix+"inventory.html"],["Achievements",prefix+"achievements.html"],["Cursed File Explorer",prefix+"files.html"],["Cursed Search",prefix+"search.html"],["Lost Pages",prefix+"lost.html"],["ArchiveBot 98",prefix+"bot.html"],["Radio",prefix+"radio.html"],["Fake Weather",prefix+"weather.html"],["Fake Update",prefix+"update.html"],["Shop",prefix+"shop.html"]
+      ["Home",homeHref],["Signal Archive",pageHref("about.html")],["Tiny Games",pageHref("games.html")],["Random Junk",pageHref("random.html")],["Impossible Garage",pageHref("cars.html")],["Chaos Lab",pageHref("lab.html")],["Fake Desktop",pageHref("desktop.html")],["Pixel Aquarium",pageHref("aquarium.html")],["Web Ring",pageHref("webring.html")],["Guestbook",pageHref("guestbook.html")],["???",pageHref("secrets.html")],["Loading Void",pageHref("void.html")],["Fake Ad Museum",pageHref("ads.html")],["Mystery Bolt Oracle",pageHref("oracle.html")],["Object Shrine",pageHref("objects.html")],["Broken CRT",pageHref("tv.html")],["Useless Buttons",pageHref("buttons.html")],["Tiny Link Maze",pageHref("maze.html")],["Inventory",pageHref("inventory.html")],["Achievements",pageHref("achievements.html")],["Cursed File Explorer",pageHref("files.html")],["Cursed Search",pageHref("search.html")],["Lost Pages",pageHref("lost.html")],["ArchiveBot 98",pageHref("bot.html")],["Radio",pageHref("radio.html")],["Fake Weather",pageHref("weather.html")],["Fake Update",pageHref("update.html")],["Shop",pageHref("shop.html")]
+    ];
+    const expansionLinks = [
+      ["Inbox",pageHref("inbox.html")],["OddOS 98",pageHref("oddos.html")],["Market",pageHref("market.html")],["Map",pageHref("map.html")],["Daily",pageHref("daily.html")],["Fake Antivirus",pageHref("antivirus.html")],["Auction",pageHref("auction.html")],["Wiki",pageHref("wiki.html")],["Login",pageHref("login.html")],["Quest Board",pageHref("quests.html")]
     ];
     if(!nav.querySelector("[data-expanded-nav]")){
       const marker = document.createElement("small");
@@ -1364,7 +1416,21 @@ function ensureExpandedNav(){
       nav.appendChild(marker);
     }
     links.forEach(([label,path])=>{
-      const href = prefix + path;
+      const href = path;
+      if(!nav.querySelector(`a[href="${href}"]`) && !Array.from(nav.querySelectorAll("a")).some((a)=>a.textContent.trim() === label)){
+        const a = document.createElement("a");
+        a.href = href;
+        a.textContent = label;
+        nav.appendChild(a);
+      }
+    });
+    if(!nav.querySelector("[data-expansion-nav]")){
+      const marker = document.createElement("small");
+      marker.dataset.expansionNav = "true";
+      marker.textContent = "EXPANSION WING";
+      nav.appendChild(marker);
+    }
+    expansionLinks.forEach(([label,href])=>{
       if(!nav.querySelector(`a[href="${href}"]`) && !Array.from(nav.querySelectorAll("a")).some((a)=>a.textContent.trim() === label)){
         const a = document.createElement("a");
         a.href = href;
@@ -3173,6 +3239,7 @@ function cursedSearch(){
   if(!input || !results) return;
   const q = input.value.trim() || "blank query";
   const lower = q.toLowerCase();
+  incrementStat("oddCursedSearches",1);
   const eggs = {
     bolt:"The bolt result whispers: coupon comes before vhs.",
     coupon:"Coupon result: save 0% and collect Coupon Dust.",
@@ -4082,6 +4149,642 @@ function buyShopItem(name){
   updateArchiveDashboard();
 }
 
+function expansionReward(reward={},message="The archive coughed up a tiny reward."){
+  if(reward.item) addInventoryItem(reward.item,reward.amount || 1);
+  if(reward.currency) addCurrency(reward.currency[0],reward.currency[1]);
+  if(reward.dust) awardCouponDust(reward.dust,reward.source || "expansion wing");
+  if(reward.achievement) unlockAchievement(reward.achievement);
+  if(message) signalBanner(message);
+  updateArchiveDashboard();
+}
+
+const inboxMessages = [
+  {id:"coupon-union",from:"Coupon Goblin Union",subject:"0% OFF bargaining update",date:"Mon 04:04",snippet:"The savings are organizing.",body:"Dear archive resident, the zero percent coupons demand better glitter and more dramatic falling animation.",attachment:{label:"union_memo.cpn",item:"Coupon Goblin Memo",dust:5,secret:"inbox:coupon-union"}},
+  {id:"vdo-service",from:"VDO Notification Service",subject:"corner almost witnessed",date:"Tue 08:08",snippet:"The bounce path is becoming self-aware.",body:"Your VDO signal nearly achieved a perfect corner bounce. Please remain near the glass.",attachment:{label:"vdo_notice.txt",item:"VDO Notice",currency:["Static Coins",3]}},
+  {id:"fake-av",from:"Fake Antivirus LLC",subject:"your vibes may be infected",date:"Wed 99:99",snippet:"This is not a real scan.",body:"We found several theatrical vibes in your browser toy. No system access occurred. Please quarantine dramatically.",attachment:{label:"quarantine_receipt.pdf.exe.txt",item:"Fake Quarantine Receipt",currency:["Popup Bucks",2]}},
+  {id:"loading-void",from:"The Loading Void",subject:"progress report: 99%",date:"Thu 00:99",snippet:"Completion remains decorative.",body:"The loading bar is nearly finished being nearly finished. Please clap for the remaining percent.",attachment:{label:"loading_bar_fossil.zip",item:"Loading Bar Fossil",currency:["Static Coins",2]}},
+  {id:"bolt-office",from:"Mystery Bolt Department",subject:"your bolt has paperwork",date:"Fri 13:37",snippet:"A washer has filed a complaint.",body:"The Mystery Bolt With Provenance insists you keep the coupon and VHS clues in the same drawer.",attachment:{label:"bolt_provenance.doc",item:"Mystery Bolt With Provenance",secret:"inbox:bolt-paperwork"}},
+  {id:"treasury",from:"Popup Bucks Treasury",subject:"rectangle rebate available",date:"Sat 12:12",snippet:"Fake funds enclosed.",body:"The treasury refunded two Popup Bucks after auditing a rectangle that was emotionally too tall.",attachment:{label:"popup_rebate.form",item:"Original Popup Receipt",currency:["Popup Bucks",4]}},
+  {id:"archivebot",from:"ArchiveBot 98",subject:"RE: forbidden link",date:"Sun 01:01",snippet:"The link points inward.",body:"I have reviewed your request and replaced it with a button that says maybe. Please do not thank the printer.",attachment:{label:"bot_teacup.log",item:"ArchiveBot 98 Teacup",currency:["Static Coins",1]}},
+  {id:"crt-moth",from:"CRT Moth Conservatory",subject:"warm glass adoption notice",date:"Yesterday",snippet:"A tiny egg is humming.",body:"A CRT moth egg has been relocated from channel snow to the archive shelf. It prefers dim neon.",attachment:{label:"moth_egg.bmp",item:"CRT Moth Egg",currency:["Static Coins",2]}},
+  {id:"not-mom",from:"mom but definitely not mom",subject:"please open this normal attachment",date:"2004",snippet:"Extremely normal. Too normal.",body:"Hi sweetie, it is me, not a toolbar in a wig. Please download family_coupon_memories.scr.txt.",attachment:{label:"family_coupon_memories.scr.txt",item:"Suspicious Attachment",dust:4,secret:"inbox:definitely-not-mom"}},
+  {id:"lost-page",from:"Lost Page Delivery Service",subject:"package left at /void?signal=73",date:"Soon",snippet:"A lost page arrived dented.",body:"Your procedural page fragment was delivered to the wrong decade. It is still warm from the cache.",attachment:{label:"lost_page_claim.ticket",item:"Lost Page Map Fragment",currency:["Static Coins",4]}}
+];
+
+function getInboxState(){
+  return readJSON("oddInboxState",{opened:{},attachments:{}});
+}
+
+function writeInboxState(state){
+  writeJSON("oddInboxState",state);
+}
+
+function renderInbox(){
+  const list = $("#inboxList");
+  const detail = $("#inboxDetail");
+  if(!list || !detail) return;
+  const state = getInboxState();
+  list.innerHTML = inboxMessages.map((mail)=>`<button class="inbox-row ${state.opened[mail.id] ? "read" : "unread"}" onclick="openInboxMessage('${mail.id}')"><b>${clean(mail.from)}</b><span>${clean(mail.subject)}</span><small>${clean(mail.date)} - ${clean(mail.snippet)}</small></button>`).join("");
+  const first = inboxMessages.find((mail)=>!state.opened[mail.id]) || inboxMessages[0];
+  openInboxMessage(first.id,false);
+}
+
+function openInboxMessage(id,countOpen=true){
+  const mail = inboxMessages.find((m)=>m.id === id);
+  const detail = $("#inboxDetail");
+  if(!mail || !detail) return;
+  const state = getInboxState();
+  if(countOpen && !state.opened[id]){
+    state.opened[id] = new Date().toLocaleString();
+    writeInboxState(state);
+    const opened = incrementStat("oddEmailsOpened",1);
+    if(opened >= 5) unlockAchievement("inboxGoblin");
+    addInventoryItem("Fake Mail Stamp",1);
+  }
+  detail.innerHTML = `
+    <h2>${clean(mail.subject)}</h2>
+    <p><b>From:</b> ${clean(mail.from)}<br><b>Date:</b> ${clean(mail.date)}</p>
+    <p>${clean(mail.body)}</p>
+    <div class="mail-attachment"><b>Attachment:</b> ${clean(mail.attachment.label)} <button onclick="inboxAttachment('${mail.id}')">open attachment</button></div>
+    <div class="exp-actions">
+      <button onclick="inboxAction('${mail.id}','suspicious')">mark suspicious</button>
+      <button onclick="inboxAction('${mail.id}','reply')">reply incorrectly</button>
+      <button onclick="inboxAction('${mail.id}','forward')">forward to nobody</button>
+      <button onclick="inboxAction('${mail.id}','delete')">delete emotionally</button>
+    </div>
+    <p id="inboxStatus" class="mini-status">No real email is sent. This is a fake local inbox.</p>
+  `;
+  renderInboxListOnly();
+}
+
+function renderInboxListOnly(){
+  const list = $("#inboxList");
+  if(!list) return;
+  const state = getInboxState();
+  list.innerHTML = inboxMessages.map((mail)=>`<button class="inbox-row ${state.opened[mail.id] ? "read" : "unread"}" onclick="openInboxMessage('${mail.id}')"><b>${clean(mail.from)}</b><span>${clean(mail.subject)}</span><small>${clean(mail.date)} - ${clean(mail.snippet)}</small></button>`).join("");
+}
+
+function inboxAttachment(id){
+  const mail = inboxMessages.find((m)=>m.id === id);
+  if(!mail) return;
+  const state = getInboxState();
+  if(!state.attachments[id]){
+    state.attachments[id] = new Date().toLocaleString();
+    writeInboxState(state);
+    const opened = incrementStat("oddInboxAttachments",1);
+    if(opened >= 3) unlockAchievement("attachmentRiskTaker");
+    const reward = mail.attachment || {};
+    expansionReward({item:reward.item,currency:reward.currency,dust:reward.dust},`Attachment opened: ${reward.label}. The archive survived.`);
+    if(reward.secret) discoverSecret(reward.secret,`Inbox attachment ${reward.label} contained a clue-shaped smudge.`,reward.item || "Suspicious Attachment");
+  }else{
+    signalBanner("Attachment already opened. It is still judging you.");
+  }
+  const status = $("#inboxStatus");
+  if(status) status.textContent = "Attachment handled locally. No real mail, no download, no problem.";
+  renderInboxListOnly();
+}
+
+function inboxAction(id,action){
+  const messages = {
+    suspicious:"Message marked suspicious. It became proud.",
+    reply:"Reply failed because nobody owns this inbox.",
+    forward:"Forwarded to nobody. Nobody marked it urgent.",
+    delete:"Deleted emotionally, restored theatrically."
+  };
+  if(action === "suspicious") addInventoryItem("Suspicious Attachment",1);
+  const status = $("#inboxStatus");
+  if(status) status.textContent = messages[action] || "The inbox blinked.";
+  playSound(action === "delete" ? "pop" : "blip");
+}
+
+const oddOSApps = {
+  recycle:{title:"Recycle Bin",body:"Contains three deleted coupons and a folder named restore_me_maybe.",item:"Broken Loading Bar",currency:["Static Coins",1]},
+  coupons:{title:"My Coupons",body:"Every coupon is zero percent off, laminated emotionally.",item:"Coupon Dust Jar",dust:4},
+  vdo:{title:"VDO Player",body:"Now playing: corner bounce rehearsal in a tiny window.",item:"VDO Spark",currency:["Static Coins",2]},
+  task:{title:"Task Manager",body:"CPU: theatrical. Memory: mostly buttons. Processes: popup.exe, coupon.exe, vdo.exe.",item:"OddOS Boot Disk",currency:["Static Coins",2]},
+  browser:{title:"Internet Exploder",body:"This fake browser opened an archive notice and immediately asked for a toolbar.",item:"Toolbar Worm Receipt",currency:["Popup Bucks",2]},
+  paint:{title:"Static Paint",body:"A canvas full of snow. The brush is a broken antenna.",item:"CRT Dust",currency:["Static Coins",1]},
+  panel:{title:"Control Panel-ish",body:"Settings include louder silence, suspicious calm, and coupon humidity.",item:"OddOS Wallpaper Scrap",currency:["Static Coins",2]}
+};
+
+function renderOddOS(){
+  const status = $("#oddosStatus");
+  if(!status) return;
+  status.textContent = "OddOS 98 ready. No files outside this page are touched.";
+  unlockAchievement("oddOSBooted");
+}
+
+function oddOSOpenApp(app){
+  const data = oddOSApps[app] || oddOSApps.task;
+  openFakeWindow(data.title,data.body);
+  expansionReward({item:data.item,currency:data.currency,dust:data.dust,achievement:"oddOSBooted"},`${data.title} opened inside OddOS 98.`);
+  incrementStat("oddOSAppsOpened",1);
+  const status = $("#oddosStatus");
+  if(status) status.textContent = `${data.title} launched as a harmless fake window.`;
+}
+
+function oddOSRun(){
+  const input = $("#oddosRunInput");
+  const out = $("#oddosRunOut");
+  if(!input || !out) return;
+  const raw = input.value.trim();
+  const cmd = raw.toLowerCase();
+  input.value = "";
+  incrementStat("oddOSCommandsRun",1);
+  if(!cmd){
+    out.textContent = "OddOS needs a command, or at least a dramatic shrug.";
+    return;
+  }
+  if(cmd === "format c:"){
+    out.textContent = "Refused. This is a harmless browser toy and will not touch your device.";
+    playSound("buzz");
+    return;
+  }
+  if(cmd === "vdo"){
+    addInventoryItem("VDO Spark",1);
+    out.textContent = "VDO command bounced once and left a spark.";
+  }else if(cmd === "coupon"){
+    spawnFallingCoupon();
+    awardCouponDust(3,"OddOS coupon command");
+    out.textContent = "Coupon command dropped a suspicious 0% savings rectangle.";
+  }else if(cmd === "static"){
+    addCurrency("Static Coins",3);
+    out.textContent = "Static command converted noise into 3 Static Coins.";
+  }else if(cmd === "popup"){
+    spawnAd(true);
+    out.textContent = "Popup command requested one theatrical fake ad.";
+  }else if(cmd === "win98"){
+    expansionReward({item:"OddOS Boot Disk",currency:["Static Coins",5],achievement:"oddOSBooted"},"OddOS accepted the old password-shaped joke.");
+    out.textContent = "WIN98 mode unlocked a tiny boot disk reward.";
+  }else{
+    out.textContent = `${raw}: bad command or cursed file name.`;
+    playSound("buzz");
+  }
+}
+
+function oddOSWallpaper(){
+  document.body.classList.toggle("nightmare");
+  addInventoryItem("OddOS Wallpaper Scrap",1);
+  const status = $("#oddosStatus");
+  if(status) status.textContent = "Wallpaper changed. The archive denies responsibility.";
+}
+
+function oddOSCrash(){
+  const out = $("#oddosStatus");
+  playSound("buzz");
+  if(out) out.textContent = "A harmless fake crash occurred. Refresh not required; dignity optional.";
+  openFakeWindow("ODDOS 98 FAKE CRASH","Blue screen unavailable. Please imagine one and press OK.");
+}
+
+const marketStocks = [
+  ["VDO","VDO Corp"],["DUST","Coupon Dust Futures"],["PBI","Popup Bucks Index"],["SCT","Static Coin Treasury"],["BANNER","Banner Ad Holdings"],["MOTH","CRT Moth Mutual Fund"],["VOID","Loading Void Logistics"],["FAKEAV","Fake Antivirus Group"],["BOLT","Mystery Bolt Industrials"]
+];
+
+const marketHeadlines = [
+  "VDO Corp up 404% after corner bounce rumor.",
+  "Coupon Dust Futures tumble after 0% OFF storm.",
+  "Popup Bucks Index unstable due to fake ad humidity.",
+  "CRT Moth Mutual Fund warms near suspicious glass.",
+  "Mystery Bolt Industrials refuses to explain its washer.",
+  "Loading Void Logistics delays completion until ninety-nine percent."
+];
+
+function getMarketPrices(){
+  const saved = readJSON("oddMarketPrices",{});
+  let changed = false;
+  marketStocks.forEach(([symbol],i)=>{
+    if(!saved[symbol]){
+      saved[symbol] = {price:20 + i * 7 + Math.floor(Math.random()*20),change:0};
+      changed = true;
+    }
+  });
+  if(changed) writeJSON("oddMarketPrices",saved);
+  return saved;
+}
+
+function getMarketPortfolio(){
+  return readJSON("oddMarketPortfolio",{});
+}
+
+function renderMarket(){
+  const table = $("#marketTable");
+  const portfolioBox = $("#marketPortfolio");
+  if(!table || !portfolioBox) return;
+  const prices = getMarketPrices();
+  const portfolio = getMarketPortfolio();
+  table.innerHTML = marketStocks.map(([symbol,name])=>{
+    const data = prices[symbol];
+    const change = Number(data.change || 0);
+    const cls = change >= 0 ? "market-up" : "market-down";
+    return `<tr><td><b>${symbol}</b><br><small>${clean(name)}</small></td><td>${Number(data.price).toFixed(2)}</td><td class="${cls}">${change >= 0 ? "+" : ""}${change.toFixed(2)}</td><td><button onclick="marketTrade('${symbol}','buy')">buy fake share</button> <button onclick="marketTrade('${symbol}','sell')">sell fake share</button></td></tr>`;
+  }).join("");
+  const shares = Object.entries(portfolio).filter(([,count])=>Number(count) > 0);
+  portfolioBox.innerHTML = shares.length ? shares.map(([symbol,count])=>`<p>${symbol}: ${count} paper shares</p>`).join("") : "<p>No paper shares yet. The archive exchange is fictional.</p>";
+  setStatusText("#marketHeadline",marketHeadlines[Math.floor(Math.random()*marketHeadlines.length)]);
+  setStatusText("#marketCurrency",currencySummary());
+}
+
+function marketTick(){
+  const prices = getMarketPrices();
+  Object.keys(prices).forEach((symbol)=>{
+    const delta = Math.round((Math.random() * 12 - 5.5) * 100) / 100;
+    prices[symbol].change = delta;
+    prices[symbol].price = Math.max(1,Number(prices[symbol].price || 10) + delta);
+  });
+  writeJSON("oddMarketPrices",prices);
+  addCurrency("Static Coins",1);
+  addInventoryItem("Stock Ticker Paper",1);
+  renderMarket();
+}
+
+function marketTrade(symbol,side){
+  const portfolio = getMarketPortfolio();
+  portfolio[symbol] = Number(portfolio[symbol] || 0);
+  if(side === "buy"){
+    portfolio[symbol] += 1;
+    addInventoryItem("Worthless Stock Certificate",1);
+    expansionReward({currency:["Static Coins",1],achievement:"fakeInvestor"},"Bought one fictional paper share. Not financial advice.");
+  }else{
+    if(portfolio[symbol] > 0){
+      portfolio[symbol] -= 1;
+      addCurrency("Popup Bucks",1);
+      unlockAchievement("fakeInvestor");
+      signalBanner("Sold one fake share for one Popup Buck.");
+    }else{
+      signalBanner("You cannot sell a fake share you do not fake-own.");
+      playSound("buzz");
+    }
+  }
+  writeJSON("oddMarketPortfolio",portfolio);
+  incrementStat("oddMarketTrades",1);
+  renderMarket();
+}
+
+const archiveLocations = [
+  {id:"static-city",name:"Static City",desc:"A skyline made of TV snow and nervous crosswalk signs.",event:"A payphone hissed tomorrow's weather.",item:"Radio Static Sample",currency:["Static Coins",2]},
+  {id:"toolbar-swamp",name:"Toolbar Swamp",desc:"Sticky browser chrome bubbles under green neon.",event:"A toolbar offered helpful mud.",item:"Fake Toolbar",currency:["Popup Bucks",1]},
+  {id:"coupon-desert",name:"Coupon Desert",desc:"Miles of paper savings, all zero percent.",event:"Coupon wind collected in your sleeves.",item:"Cursed Coupon",dust:5},
+  {id:"popup-valley",name:"Popup Valley",desc:"Rectangles nest in the cliffs and honk at sunset.",event:"A window shadow followed you home.",item:"Expired Banner Ad",currency:["Popup Bucks",3]},
+  {id:"vdo-ridge",name:"VDO Ridge",desc:"A bright ridge where bounce paths leave chalk marks.",event:"The ridge reflected a tiny VDO spark.",item:"VDO Spark",currency:["Static Coins",2],secret:"map:vdo-ridge"},
+  {id:"loading-void",name:"Loading Void",desc:"A quiet pit full of progress bars and excuses.",event:"A percent sign blinked then hid.",item:"Broken Loading Bar",currency:["Static Coins",2]},
+  {id:"aquarium-district",name:"Aquarium District",desc:"Every street sign is a bubble.",event:"A boot waved from the tank.",item:"Aquarium Bubble",currency:["Static Coins",1]},
+  {id:"basement",name:"The Basement",desc:"The stairs go down into old ad carpet.",event:"Something stamped your hand with static.",item:"Basement Ad Ticket",currency:["Popup Bucks",2]},
+  {id:"ad-museum",name:"Fake Ad Museum",desc:"Exhibits blink behind velvet ropes.",event:"A docent coughed up banner tape.",item:"Ad Museum Basement Dust",currency:["Popup Bucks",2]},
+  {id:"crt-moth",name:"CRT Moth Conservatory",desc:"Warm glass and tiny wings everywhere.",event:"A moth shed phosphor dust.",item:"CRT Moth Egg",currency:["Static Coins",2]},
+  {id:"bolt-yard",name:"Mystery Bolt Yard",desc:"Every bolt is loose except the important one.",event:"A washer pointed toward the archive.",item:"Mystery Bolt With Provenance",currency:["Static Coins",3]}
+];
+
+function renderArchiveMap(){
+  const grid = $("#archiveMapGrid");
+  const log = $("#mapLog");
+  if(!grid || !log) return;
+  const visited = readJSON("oddMapDiscoveries",{});
+  grid.innerHTML = archiveLocations.map((loc)=>`<button class="map-location ${visited[loc.id] ? "visited" : ""}" onclick="visitArchiveLocation('${loc.id}')"><b>${clean(loc.name)}</b><span>${clean(loc.desc)}</span></button>`).join("");
+  const names = archiveLocations.filter((loc)=>visited[loc.id]).map((loc)=>loc.name);
+  log.innerHTML = names.length ? names.map((name)=>`<p>Visited ${clean(name)}.</p>`).join("") : "<p>No locations stamped yet.</p>";
+}
+
+function visitArchiveLocation(id){
+  const loc = archiveLocations.find((place)=>place.id === id);
+  if(!loc) return;
+  const visited = readJSON("oddMapDiscoveries",{});
+  const firstVisit = !visited[id];
+  visited[id] = new Date().toLocaleString();
+  writeJSON("oddMapDiscoveries",visited);
+  if(firstVisit){
+    expansionReward({item:loc.item,currency:loc.currency,dust:loc.dust},"Map discovery stamped.");
+    addInventoryItem("Archive Map Stamp",1);
+  }else{
+    addCurrency("Static Coins",1);
+  }
+  if(loc.secret) discoverSecret(loc.secret,`${loc.name} left a ridge-shaped clue.`,loc.item);
+  const count = Object.keys(visited).length;
+  if(count >= 5) unlockAchievement("archiveTourist");
+  if(count >= archiveLocations.length) unlockAchievement("mapGoblin");
+  const out = $("#mapDetail");
+  if(out) out.innerHTML = `<h2>${clean(loc.name)}</h2><p>${clean(loc.desc)}</p><p><b>Local event:</b> ${clean(loc.event)}</p><p>${firstVisit ? "First visit reward stamped." : "Return visit: one Static Coin shaken loose."}</p>`;
+  renderArchiveMap();
+}
+
+const dailyMoods = ["suspicious calm","coupon thunder","CRT warmth","popup humidity","soft loading dread","VDO reverence","static optimism"];
+const dailyObjects = ["a bent close button","one wet pixel","a moth-sized receipt","a floppy labeled maybe","a jar of zero percent dust","a bolt wearing a hat"];
+const dailyForecasts = ["40% chance of coupon","banner winds from the east","foggy with mild popups","high static pressure","loading void advisory","VDO corner visibility poor"];
+const dailyBlessings = ["May your buttons remain clickable.","May your popups render with bodies.","May your static be decorative only.","May your localStorage remember the weird parts.","May your coupons fall gently."];
+
+function localDayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function dailyIndex(offset=0){
+  const key = localDayKey().replace(/-/g,"");
+  return (Number(key) + offset) % 9973;
+}
+
+function dailyPick(list,offset=0){
+  return list[dailyIndex(offset) % list.length];
+}
+
+function renderDailyWeirdness(){
+  const panel = $("#dailyPanel");
+  if(!panel) return;
+  const claimed = localStorage.getItem("oddDailyClaimDate") === localDayKey();
+  panel.innerHTML = `
+    <table>
+      <tr><th>Archive mood</th><td>${clean(dailyPick(dailyMoods,1))}</td></tr>
+      <tr><th>Cursed object</th><td>${clean(dailyPick(dailyObjects,2))}</td></tr>
+      <tr><th>Coupon forecast</th><td>${clean(dailyPick(dailyForecasts,3))}</td></tr>
+      <tr><th>Visitor number</th><td>${404 + dailyIndex(4)}</td></tr>
+      <tr><th>Static blessing</th><td>${clean(dailyPick(dailyBlessings,5))}</td></tr>
+    </table>
+    <button onclick="claimDailyWeirdness()" ${claimed ? "disabled" : ""}>${claimed ? "daily weirdness claimed" : "claim daily weirdness"}</button>
+    <p id="dailyOut">${claimed ? "Come back after local midnight for another tiny reward." : "One local daily claim is waiting."}</p>
+  `;
+}
+
+function claimDailyWeirdness(){
+  const today = localDayKey();
+  const out = $("#dailyOut");
+  if(localStorage.getItem("oddDailyClaimDate") === today){
+    if(out) out.textContent = "Already claimed today. The calendar is watching politely.";
+    playSound("buzz");
+    return;
+  }
+  localStorage.setItem("oddDailyClaimDate",today);
+  const count = incrementStat("oddDailyClaims",1);
+  const items = ["Daily Static Receipt","Weather Pixel","Coupon Dust Jar","Loose Pixel","Fake Patch Note"];
+  addInventoryItem(items[dailyIndex(7) % items.length],1);
+  addCurrency("Static Coins",2 + dailyIndex(8) % 4);
+  if(dailyIndex(9) % 4 === 0) awardCouponDust(4,"daily weirdness");
+  unlockAchievement("dailyStatic");
+  if(count >= 3) unlockAchievement("calendarGoblin");
+  if(dailyIndex(10) % 9 === 0) discoverSecret("daily:static-blessing","The daily calendar whispered bolt-coupon-vhs under the page fold.","Daily Static Receipt");
+  if(out) out.textContent = "Daily weirdness claimed. The calendar printed a harmless receipt.";
+  renderDailyWeirdness();
+}
+
+let fakeScanTimer = null;
+const fakeDetections = ["coupon_goblin.exe","vdo_bounce_memory_leak","popup_bucks_miner","static_in_your_cache","toolbar_worm_but_friendly","crt_moth_driver.sys","loading_bar_stuck_99.dll","mystery_bolt_registry_key"];
+
+function renderAntivirus(){
+  const out = $("#scanOutput");
+  if(!out) return;
+  out.innerHTML = "<p>Ready to scan vibes. This page never scans your real files or device.</p>";
+  setStatusText("#scanProgressText","0%");
+}
+
+function startFakeScan(){
+  const bar = $("#scanProgressBar");
+  const out = $("#scanOutput");
+  if(!bar || !out) return;
+  clearInterval(fakeScanTimer);
+  let progress = 0;
+  out.innerHTML = "<p>Scanning theatrical vibes only...</p>";
+  fakeScanTimer = setInterval(()=>{
+    progress += 4 + Math.floor(Math.random()*9);
+    if(progress >= 100){
+      progress = 100;
+      clearInterval(fakeScanTimer);
+      fakeScanTimer = null;
+      finishFakeScan();
+    }
+    bar.style.width = progress + "%";
+    setStatusText("#scanProgressText",progress + "%");
+  },120);
+}
+
+function finishFakeScan(){
+  const out = $("#scanOutput");
+  const picks = fakeDetections.slice().sort(()=>Math.random()-.5).slice(0,4);
+  if(out) out.innerHTML = `<h3>Fake detections found</h3><p>This was a parody scan inside the webpage only.</p><ul>${picks.map((d)=>`<li>${clean(d)}</li>`).join("")}</ul>`;
+  const scans = incrementStat("oddFakeScans",1);
+  expansionReward({item:"Fake Antivirus License",currency:["Popup Bucks",3],achievement:"scanGoblin"},"Fake scan completed. No real files were touched.");
+  if(scans >= 2) addInventoryItem("Quarantine Confetti",1);
+}
+
+function quarantineTheatrically(){
+  const n = incrementStat("oddFakeQuarantines",1);
+  expansionReward({item:"Fake Quarantine Receipt",currency:["Popup Bucks",2],achievement:"quarantinedVibes"},"Fake quarantine complete. The vibes are in a tiny box.");
+  const out = $("#scanOutput");
+  if(out) out.innerHTML += `<p>Quarantine receipt #${n}: completely theatrical.</p>`;
+}
+
+function updateFakeDefinitions(){
+  addCurrency("Static Coins",3);
+  addInventoryItem("Fake Patch Note",1);
+  setStatusText("#scanOutput","Definitions updated from 2003. Protection remains decorative.");
+}
+
+function defragCoupons(){
+  awardCouponDust(4,"fake antivirus coupon defrag");
+  addInventoryItem("Coupon Barcode Fragment",1);
+  setStatusText("#scanOutput","Coupons defragmented into smaller zeroes.");
+}
+
+const auctionLots = [
+  {id:"close-button",name:"Bent Close Button",cost:["Popup Bucks",2],item:"Bent Close Button"},
+  {id:"moth-egg",name:"CRT Moth Egg",cost:["Static Coins",5],item:"CRT Moth Egg"},
+  {id:"popup-receipt",name:"Original Popup Receipt",cost:["Popup Bucks",5],item:"Original Popup Receipt"},
+  {id:"vdo-shard",name:"VDO Reflection Shard",cost:["Static Coins",8],item:"VDO Reflection Shard"},
+  {id:"dust-jar",name:"Coupon Dust Jar",cost:["Coupon Dust",8],item:"Coupon Dust Jar"},
+  {id:"flinch",name:"The Button That Flinched",cost:["Popup Bucks",6],item:"The Button That Flinched"},
+  {id:"bolt-provenance",name:"Mystery Bolt With Provenance",cost:["Static Coins",10],item:"Mystery Bolt With Provenance"},
+  {id:"ad-lot",name:"Expired Banner Ad Lot",cost:["Popup Bucks",4],item:"Expired Banner Ad Lot"},
+  {id:"fossil",name:"Loading Bar Fossil",cost:["Static Coins",7],item:"Loading Bar Fossil"},
+  {id:"boot-relic",name:"Aquarium Boot Relic",cost:["Static Coins",9],item:"Aquarium Boot Relic"}
+];
+
+function renderAuction(){
+  const grid = $("#auctionLots");
+  const log = $("#auctionLog");
+  if(!grid || !log) return;
+  const wins = readJSON("oddAuctionWins",{});
+  grid.innerHTML = auctionLots.map((lot)=>{
+    const [type,cost] = lot.cost;
+    return `<div class="auction-lot ${wins[lot.id] ? "won" : ""}"><h3>${clean(lot.name)}</h3><p>Current nonsense bid: ${cost} ${clean(type)}</p><p>${wins[lot.id] ? "Won and archived locally." : "Auctioneer accepts only fake site currency."}</p><button onclick="auctionBid('${lot.id}')">${wins[lot.id] ? "bid again anyway" : "place fake bid"}</button></div>`;
+  }).join("");
+  const lines = readJSON("oddAuctionLog",[]);
+  log.innerHTML = lines.length ? lines.slice(-8).reverse().map((line)=>`<p>${clean(line)}</p>`).join("") : "<p>No bids yet. The auctioneer is whispering into a gavel.</p>";
+}
+
+function auctionBid(id){
+  const lot = auctionLots.find((entry)=>entry.id === id);
+  if(!lot) return;
+  const [type,cost] = lot.cost;
+  const currency = getCurrency();
+  const log = readJSON("oddAuctionLog",[]);
+  const bids = incrementStat("oddAuctionBids",1);
+  if(Number(currency[type] || 0) < cost){
+    log.push(`Bid on ${lot.name} rejected: not enough ${type}.`);
+    writeJSON("oddAuctionLog",log);
+    if(bids >= 5) unlockAchievement("auctionGremlin");
+    playSound("buzz");
+    renderAuction();
+    return;
+  }
+  currency[type] -= cost;
+  writeJSON("oddCurrency",currency);
+  addInventoryItem("Auction Paddle Splinter",1);
+  const win = Math.random() < .62;
+  if(win){
+    const wins = readJSON("oddAuctionWins",{});
+    wins[lot.id] = new Date().toLocaleString();
+    writeJSON("oddAuctionWins",wins);
+    addInventoryItem(lot.item,1);
+    incrementStat("oddAuctionWinCount",1);
+    unlockAchievement("wonTrash");
+    log.push(`Won ${lot.name}. The auctioneer sighed respectfully.`);
+  }else{
+    addCurrency("Popup Bucks",1);
+    log.push(`Lost ${lot.name}. The listing briefly ate itself and refunded 1 Popup Buck.`);
+  }
+  if(bids >= 5) unlockAchievement("auctionGremlin");
+  writeJSON("oddAuctionLog",log);
+  updateArchiveDashboard();
+  renderAuction();
+}
+
+const wikiArticles = [
+  {id:"vdo",title:"VDO",body:"VDO is the archive's bouncing signal blob, an old screensaver omen with corner ambitions.",reward:"VDO Spark"},
+  {id:"coupon-dust",title:"Coupon Dust",body:"Coupon Dust is powdered zero percent savings. It accumulates wherever impossible discounts rub together.",reward:"Coupon Dust Jar"},
+  {id:"static-coins",title:"Static Coins",body:"Static Coins condense from harmless browser noise and questionable table layouts.",reward:"Static Coin"},
+  {id:"popup-bucks",title:"Popup Bucks",body:"Popup Bucks are rectangle money. They are worth nothing outside this archive.",reward:"Popup Buck"},
+  {id:"deeper",title:"Deeper Archive",body:"The Deeper Archive opened after bolt-coupon-vhs rattled the second door.",reward:"Redacted Wiki Page",locked:()=>!getAchievements().deeperArchive},
+  {id:"ch404",title:"CH 404",body:"CH 404 is not a station so much as a place where missing broadcasts gather.",reward:"CH404 Signal Knot"},
+  {id:"crt-moths",title:"CRT Moths",body:"CRT moths live in the warm gap between scanlines and bad advice.",reward:"CRT Moth Egg"},
+  {id:"ad-museum",title:"Fake Ad Museum",body:"The Fake Ad Museum preserves popups as theatrical fossils with close buttons.",reward:"Expired Banner Ad Lot"},
+  {id:"bolt",title:"Mystery Bolt",body:"The Mystery Bolt is either load-bearing or completely decorative. Nobody agrees.",reward:"Mystery Bolt"},
+  {id:"void",title:"Loading Void",body:"The Loading Void is forever nearly complete and emotionally accurate.",reward:"Broken Loading Bar"},
+  {id:"coupon-union",title:"Coupon Goblin Union",body:"The union negotiates for better glitter, louder stamps, and safer zeroes.",reward:"Coupon Goblin Memo"},
+  {id:"oddos",title:"OddOS 98",body:"OddOS 98 is a fake operating system, mostly taskbar, entirely browser toy.",reward:"OddOS Boot Disk"},
+  {id:"radio",title:"Archive Radio",body:"Archive Radio plays real files when supplied and cursed synthetic tones when the cassette is missing.",reward:"Radio Static Sample"},
+  {id:"crt",title:"Broken CRT Broadcast",body:"The broken CRT is a public-access shrine to static, knobs, and questionable channels.",reward:"Broken CRT Tuning Fork"}
+];
+
+function renderWiki(){
+  const list = $("#wikiList");
+  const article = $("#wikiArticle");
+  if(!list || !article) return;
+  list.innerHTML = wikiArticles.map((entry)=>`<button onclick="openWikiArticle('${entry.id}')">${clean(entry.title)}${entry.locked && entry.locked() ? " [redacted]" : ""}</button>`).join("");
+  openWikiArticle(wikiArticles[0].id,false);
+}
+
+function openWikiArticle(id,countRead=true){
+  const entry = wikiArticles.find((article)=>article.id === id);
+  const out = $("#wikiArticle");
+  if(!entry || !out) return;
+  const locked = entry.locked && entry.locked();
+  if(locked){
+    out.innerHTML = `<h2>${clean(entry.title)}</h2><p class="redacted">REDACTED STATIC - unlock deeper archive lore to read this entry.</p>`;
+    playSound("buzz");
+    return;
+  }
+  out.innerHTML = `<h2>${clean(entry.title)}</h2><p>${clean(entry.body)}</p><p class="mini-status">Source: shelf rumor, blinking marginalia, and one overconfident hyperlink.</p>`;
+  if(countRead){
+    const reads = incrementStat("oddWikiReads",1);
+    if(entry.reward) addInventoryItem(entry.reward,1);
+    if(reads >= 5) unlockAchievement("loreGoblin");
+  }
+}
+
+function fakeLoginAttempt(){
+  const userInput = $("#fakeUsername");
+  const passInput = $("#fakePassword");
+  const out = $("#loginOutput");
+  const username = (userInput && userInput.value || "").trim().toLowerCase();
+  if(passInput) passInput.value = "";
+  const attempts = incrementStat("oddFakeLoginAttempts",1);
+  const responses = {
+    admin:"admin rejected: the archive says nice try and hands you a fake token.",
+    vdo:"vdo rejected: the logo is already logged into the walls.",
+    coupon:"coupon rejected: password discounted to zero characters.",
+    static:"static rejected: signal too noisy to authenticate.",
+    guest404:"guest404 rejected: visitor not found, reward found."
+  };
+  if(username && responses[username]){
+    discoverSecret(`login:${username}`,responses[username],"Fake Login Token");
+    addInventoryItem("Fake Captcha Tile",1);
+  }
+  if(attempts >= 3){
+    unlockAchievement("loginDenied");
+    addInventoryItem("Fake Login Token",1);
+    addCurrency("Popup Bucks",2);
+  }
+  if(out) out.textContent = responses[username] || "Login failed correctly. Nothing was sent. Password was immediately forgotten.";
+  playSound("buzz");
+  return false;
+}
+
+function fakeLoginAction(action){
+  const out = $("#loginOutput");
+  const messages = {
+    password:"Password hint: do not use this page for real credentials.",
+    username:"Username recovered: nobody@nowhere.local. This is not an account.",
+    reality:"Reality recovery failed. Please consult the loading void.",
+    account:"Fake account creation refused for safety and comedic reasons."
+  };
+  if(action === "account") addInventoryItem("Fake Login Token",1);
+  if(out) out.textContent = messages[action] || "The fake login blinked.";
+  playSound(action === "reality" ? "secret" : "blip");
+}
+
+function verifyHumanityWrong(){
+  const out = $("#loginOutput");
+  addInventoryItem("Fake Captcha Tile",1);
+  if(out) out.textContent = "Humanity verified incorrectly. The tile contained no bicycles, only coupons.";
+}
+
+const questBoard = [
+  {id:"coupon-clicks",title:"Clip 5 falling coupons",target:5,progress:()=>Number(localStorage.getItem("oddFallingCouponsClicked") || 0),reward:{dust:6,item:"Quest Receipt"}},
+  {id:"channel-404",title:"Tune Channel 404",target:1,progress:()=>getDiscoveredSecrets()["tv:channel-404"] || getDiscoveredSecrets()["radio:ch404"] || Number(localStorage.getItem("oddRadioTunes") || 0) >= 5 ? 1 : 0,reward:{currency:["Static Coins",5],item:"Channel 404 Relic"}},
+  {id:"vdo-ridge",title:"Visit VDO Ridge on the map",target:1,progress:()=>readJSON("oddMapDiscoveries",{})["vdo-ridge"] ? 1 : 0,reward:{currency:["Static Coins",4],item:"VDO Spark"}},
+  {id:"inbox-five",title:"Open 5 fake emails",target:5,progress:()=>Number(localStorage.getItem("oddEmailsOpened") || 0),reward:{currency:["Popup Bucks",5],item:"Suspicious Attachment"}},
+  {id:"fake-scan",title:"Complete a fake antivirus scan",target:1,progress:()=>Number(localStorage.getItem("oddFakeScans") || 0),reward:{currency:["Popup Bucks",4],item:"Fake Quarantine Receipt"}},
+  {id:"auction-win",title:"Win an auction",target:1,progress:()=>Number(localStorage.getItem("oddAuctionWinCount") || 0),reward:{currency:["Static Coins",5],item:"Auction Paddle Splinter"}},
+  {id:"files-five",title:"Open 5 fake files",target:5,progress:()=>Number(localStorage.getItem("oddFilesOpened") || 0),reward:{currency:["Static Coins",5],item:"Fake File Crumb"}},
+  {id:"shop-three",title:"Buy 3 shop items",target:3,progress:()=>countOwnedShopItems(),reward:{currency:["Popup Bucks",8],item:"Shop Clerk Static"}},
+  {id:"radio-five",title:"Tune 5 radio stations",target:5,progress:()=>Number(localStorage.getItem("oddRadioTunes") || 0),reward:{currency:["Static Coins",5],item:"Radio Static Sample"}},
+  {id:"crt-smack",title:"Smack CRT cabinet 3 times",target:3,progress:()=>Number(localStorage.getItem("oddCRTCabinetSmacks") || 0),reward:{currency:["Static Coins",4],item:"CRT Warm Plastic"}},
+  {id:"search-three",title:"Use cursed search 3 times",target:3,progress:()=>Number(localStorage.getItem("oddCursedSearches") || 0),reward:{currency:["Static Coins",4],item:"Cursed Search Breadcrumb"}},
+  {id:"pet-one",title:"Spawn a desktop pet",target:1,progress:()=>Number(localStorage.getItem("oddPetsSpawned") || 0),reward:{currency:["Popup Bucks",3],item:"Desktop Pet Biscuit"}},
+  {id:"pixel-one",title:"Find a hidden pixel",target:1,progress:()=>Object.keys(getDiscoveredSecrets()).some((id)=>id.startsWith("pixel:")) ? 1 : 0,reward:{currency:["Static Coins",5],item:"Secret Pixel Compass Needle"}},
+  {id:"deeper",title:"Open the deeper archive",target:1,progress:()=>getAchievements().deeperArchive ? 1 : 0,reward:{currency:["Static Coins",12],item:"Tiny Door"}}
+];
+
+function renderQuests(){
+  const board = $("#questBoard");
+  if(!board) return;
+  const claims = readJSON("oddQuestClaims",{});
+  board.innerHTML = questBoard.map((quest)=>{
+    const progress = Math.min(quest.target,Number(quest.progress() || 0));
+    const pct = Math.round((progress / quest.target) * 100);
+    const claimed = !!claims[quest.id];
+    return `<div class="quest-card ${claimed ? "claimed" : ""}"><h3>${clean(quest.title)}</h3><p>${progress} / ${quest.target}</p><div class="quest-meter"><span style="width:${pct}%"></span></div><button onclick="claimQuest('${quest.id}')" ${claimed || progress < quest.target ? "disabled" : ""}>${claimed ? "claimed" : progress >= quest.target ? "claim reward" : "in progress"}</button></div>`;
+  }).join("");
+  const count = Object.keys(claims).length;
+  setStatusText("#questStatus",`${count} quest rewards claimed. Progress reads localStorage only.`);
+}
+
+function claimQuest(id){
+  const quest = questBoard.find((entry)=>entry.id === id);
+  if(!quest) return;
+  const claims = readJSON("oddQuestClaims",{});
+  if(claims[id]) return;
+  const progress = Number(quest.progress() || 0);
+  if(progress < quest.target){
+    signalBanner("Quest not ready yet. The board tapped the cork.");
+    playSound("buzz");
+    return;
+  }
+  claims[id] = new Date().toLocaleString();
+  writeJSON("oddQuestClaims",claims);
+  expansionReward(quest.reward,"Quest reward claimed from the cork board.");
+  const count = Object.keys(claims).length;
+  if(count >= 3) unlockAchievement("questGoblin");
+  if(count >= 8) unlockAchievement("errandChampion");
+  renderQuests();
+}
+
 const spiritEntries = [
   "Visitor from 2004: this site broke my toolbar, 10/10",
   "Unknown: do not click the green fish",
@@ -4130,6 +4833,15 @@ addEventListener("DOMContentLoaded",()=>{
   renderFileExplorer();
   renderQuestClues();
   renderShop();
+  renderInbox();
+  renderOddOS();
+  renderMarket();
+  renderArchiveMap();
+  renderDailyWeirdness();
+  renderAntivirus();
+  renderAuction();
+  renderWiki();
+  renderQuests();
   initRadioPage();
   initCRTPage();
   renderSecretCount();
@@ -4261,5 +4973,35 @@ addEventListener("DOMContentLoaded",()=>{
   window.rollbackFakeUpdate = rollbackFakeUpdate;
   window.buyShopItem = buyShopItem;
   window.buySecretShopItem = buySecretShopItem;
+  window.renderInbox = renderInbox;
+  window.openInboxMessage = openInboxMessage;
+  window.inboxAttachment = inboxAttachment;
+  window.inboxAction = inboxAction;
+  window.renderOddOS = renderOddOS;
+  window.oddOSOpenApp = oddOSOpenApp;
+  window.oddOSRun = oddOSRun;
+  window.oddOSWallpaper = oddOSWallpaper;
+  window.oddOSCrash = oddOSCrash;
+  window.renderMarket = renderMarket;
+  window.marketTick = marketTick;
+  window.marketTrade = marketTrade;
+  window.renderArchiveMap = renderArchiveMap;
+  window.visitArchiveLocation = visitArchiveLocation;
+  window.renderDailyWeirdness = renderDailyWeirdness;
+  window.claimDailyWeirdness = claimDailyWeirdness;
+  window.renderAntivirus = renderAntivirus;
+  window.startFakeScan = startFakeScan;
+  window.quarantineTheatrically = quarantineTheatrically;
+  window.updateFakeDefinitions = updateFakeDefinitions;
+  window.defragCoupons = defragCoupons;
+  window.renderAuction = renderAuction;
+  window.auctionBid = auctionBid;
+  window.renderWiki = renderWiki;
+  window.openWikiArticle = openWikiArticle;
+  window.fakeLoginAttempt = fakeLoginAttempt;
+  window.fakeLoginAction = fakeLoginAction;
+  window.verifyHumanityWrong = verifyHumanityWrong;
+  window.renderQuests = renderQuests;
+  window.claimQuest = claimQuest;
   window.summonSpiritEntry = summonSpiritEntry;
 });

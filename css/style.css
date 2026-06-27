@@ -1340,11 +1340,197 @@ meter{width:100%}
   border-bottom:1px dotted rgba(182,255,0,.35);
   padding-bottom:5px;
 }
+.inbox-shell{
+  display:grid;
+  grid-template-columns:minmax(180px,280px) 1fr;
+  gap:10px;
+  background:linear-gradient(135deg,rgba(0,255,255,.12),rgba(255,0,204,.1)),#111;
+}
+.inbox-list,
+.wiki-list{
+  display:grid;
+  gap:6px;
+  max-height:520px;
+  overflow:auto;
+}
+.inbox-row,
+.wiki-list button{
+  text-align:left;
+  border:3px outset #fff;
+  background:#d8d8d8;
+  color:#000;
+  padding:7px;
+  font:bold 12px "Courier New",monospace;
+  box-shadow:3px 3px #000;
+}
+.inbox-row.unread{background:#fff000}
+.inbox-row.read{background:#a9f4ff}
+.inbox-row span,
+.inbox-row small{
+  display:block;
+  margin-top:3px;
+}
+.inbox-detail,
+.mail-attachment{
+  border:3px inset #777;
+  background:#f7f7d0;
+  color:#000;
+  padding:10px;
+  min-height:180px;
+}
+.exp-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+.oddos-shell{
+  border:8px ridge #aaa;
+  background:linear-gradient(135deg,#008080,#001b57);
+  min-height:390px;
+  display:grid;
+  grid-template-rows:1fr auto;
+  box-shadow:inset 0 0 25px rgba(0,0,0,.6),0 0 18px var(--cyan);
+}
+.oddos-desktop{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(100px,1fr));
+  align-content:start;
+  gap:14px;
+  padding:18px;
+}
+.oddos-desktop button{
+  min-height:74px;
+  background:#c0c0c0;
+  color:#000;
+  border:4px outset #fff;
+  font:bold 12px "Courier New",monospace;
+  box-shadow:4px 4px #001;
+}
+.oddos-taskbar{
+  display:flex;
+  gap:8px;
+  padding:7px;
+  border-top:4px ridge #fff;
+  background:#c0c0c0;
+}
+.oddos-taskbar button{color:#000}
+#oddosRunInput,
+#fakeUsername,
+#fakePassword{
+  width:min(100%,360px);
+  background:#000;
+  color:var(--lime);
+  border:3px inset #777;
+  padding:7px;
+  font:bold 14px "Courier New",monospace;
+}
+.market-panel table{font:13px "Courier New",monospace}
+.market-up{color:var(--lime);text-shadow:0 0 7px var(--lime)}
+.market-down{color:#ff4040;text-shadow:0 0 7px #ff4040}
+.market-headline{
+  border:3px dashed var(--yellow);
+  padding:8px;
+  background:#000;
+  color:var(--yellow);
+  font:bold 14px "Courier New",monospace;
+}
+.map-grid,
+.auction-grid,
+.quest-board{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+}
+.map-location,
+.auction-lot,
+.quest-card{
+  border:4px ridge var(--cyan);
+  background:radial-gradient(circle at 20% 0,rgba(255,240,0,.22),transparent 35%),rgba(0,0,0,.72);
+  color:#fff;
+  padding:10px;
+  text-align:left;
+  box-shadow:4px 4px #000,0 0 12px rgba(0,255,255,.3);
+}
+.map-location span{
+  display:block;
+  margin-top:6px;
+  color:#d7fff7;
+}
+.map-location.visited,
+.auction-lot.won,
+.quest-card.claimed{
+  border-color:var(--yellow);
+  background:repeating-linear-gradient(45deg,rgba(255,240,0,.15) 0 8px,rgba(255,0,204,.12) 8px 16px),#180018;
+}
+.daily-panel table{margin-bottom:10px}
+.antivirus-panel{
+  background:linear-gradient(180deg,#001d12,#050505);
+  border-color:var(--lime);
+}
+.scan-meter{
+  height:28px;
+  border:4px inset #777;
+  background:#000;
+  margin:8px 0;
+  overflow:hidden;
+}
+.scan-meter span{
+  display:block;
+  width:0;
+  height:100%;
+  background:repeating-linear-gradient(90deg,var(--lime) 0 12px,var(--cyan) 12px 22px);
+  box-shadow:0 0 14px var(--lime);
+  transition:width .12s linear;
+}
+.auction-log{
+  max-height:360px;
+  overflow:auto;
+  font:12px "Courier New",monospace;
+}
+.wiki-article{
+  min-height:260px;
+  background:linear-gradient(180deg,rgba(255,255,210,.95),rgba(200,255,255,.9));
+  color:#000;
+  border-color:#fff;
+}
+.redacted{
+  display:inline-block;
+  background:#000;
+  color:#000;
+  text-shadow:0 0 8px #fff;
+  padding:8px;
+  border:3px dashed #f00;
+}
+.login-box{
+  display:grid;
+  gap:10px;
+  max-width:520px;
+}
+.login-box label{
+  display:grid;
+  gap:4px;
+  font:bold 13px "Courier New",monospace;
+}
+.quest-meter{
+  height:18px;
+  border:3px inset #777;
+  background:#000;
+  overflow:hidden;
+  margin:7px 0;
+}
+.quest-meter span{
+  display:block;
+  height:100%;
+  background:linear-gradient(90deg,var(--lime),var(--yellow),var(--hot));
+  box-shadow:0 0 10px var(--yellow);
+}
 .secret-panel.unlocked{display:block;border:3px dashed #fff000;padding:10px;margin-top:8px}
 
 @media(max-width:850px){
   .file-pane{grid-template-columns:1fr}
   .radio-station-list{grid-template-columns:1fr}
+  .inbox-shell{grid-template-columns:1fr}
   .radio-station-button{min-height:auto}
   .radio-controls input{width:110px}
   .currency-guide-grid{grid-template-columns:1fr}

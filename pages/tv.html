@@ -44,33 +44,60 @@
         </div>
       </aside>
       <main>
-        <div class="box">
+        <div class="box crt-console">
           <h2>Broadcast Window</h2>
-          <div class="crt">
-            <p>ODD FREQUENCY ARCHIVE PUBLIC ACCESS SIGNAL</p>
-            <p id="tvOut">CHANNEL 00: waiting for static...</p>
+          <div class="crt-shell">
+            <div id="crtScreen" class="crt crt-screen crt-vibe-static">
+              <div class="crt-readout">
+                <span data-crt-channel>CH 00</span>
+                <span data-crt-status>TRACKING...</span>
+              </div>
+              <h2 data-crt-title>Waiting for Static</h2>
+              <p data-crt-description>Default boot channel. Mostly idle snow and an antenna pretending to work.</p>
+              <div id="crtLines" class="crt-lines">
+                <p>ODD FREQUENCY ARCHIVE PUBLIC ACCESS SIGNAL</p>
+                <p>snow in the cabinet</p>
+                <p>please stand by, sideways</p>
+              </div>
+              <p id="tvOut" class="hidden-note">CHANNEL 00: Waiting for Static</p>
+            </div>
           </div>
-          <button onclick="tvStatic()">change channel</button>
-          <button onclick="spawnAd(true)">air fake commercial</button>
+          <div class="crt-meter-panel">
+            <label>Reception <meter class="crt-reception-meter" min="0" max="100" value="41"></meter></label>
+            <b data-crt-reception>41% crooked</b>
+          </div>
+          <p class="signal-warning"><b>FAKE BROADCAST NOTICE</b>No real broadcasts. No real emergency alerts. The CRT is lying for entertainment.</p>
+        </div>
+        <div class="box crt-remote">
+          <h2>Fake Remote Control</h2>
+          <div class="button-wall">
+            <button onclick="tvChannelDown()">channel down</button>
+            <button onclick="tvChannelUp()">channel up</button>
+            <button onclick="tvRandomChannel()">random channel</button>
+            <button onclick="tvAdjustAntenna()">adjust antenna</button>
+            <button onclick="tvSmackCabinet()">smack cabinet</button>
+            <button onclick="tvColorBars()">color bars</button>
+            <button onclick="tvFakeCommercial()">air fake commercial</button>
+            <button onclick="tvFakeEmergencyTest()">fake emergency test</button>
+          </div>
         </div>
         <div class="box">
           <h2>Signal Schedule</h2>
-          <table>
-            <tr><th>Channel</th><th>Broadcast</th></tr>
-            <tr><td>03</td><td>Lost cooking show for cables.</td></tr>
-            <tr><td>17</td><td>Weather inside a floppy disk.</td></tr>
-            <tr><td>44</td><td>Silent auction for fake banners.</td></tr>
-            <tr><td>99</td><td>The loading void waves back.</td></tr>
-          </table>
+          <div id="crtChannelList" class="crt-channel-list">
+            <button onclick="tvTuneChannel('00')"><b>00</b><span>Waiting for Static</span></button>
+            <button onclick="tvTuneChannel('03')"><b>03</b><span>Cable Cooking for Wires</span></button>
+            <button onclick="tvTuneChannel('17')"><b>17</b><span>Floppy Disk Weather</span></button>
+            <button onclick="tvTuneChannel('44')"><b>44</b><span>Banner Auction Network</span></button>
+          </div>
         </div>
       </main>
       <aside>
-        <div class="box"><h3>antenna</h3><meter min="0" max="100" value="41"></meter><p>41% crooked.</p></div>
-        <div class="box"><h3>program guide</h3><p>Static<br>Coupons<br>Loading<br>Fish weather</p></div>
+        <div class="box crt-log-box"><h3>channel log</h3><div id="crtLog" class="crt-log"><p>[boot] CRT glass warming up.</p></div></div>
+        <div class="box"><h3>program guide</h3><p>Static<br>Coupons<br>Loading<br>Fish weather<br>VDO reflections<br>fake tests</p></div>
       </aside>
     </div>
     <div class="footer">Odd Frequency Archive - broken CRT broadcast.<br>&copy; Odd Frequency Archive - original signal at oddfrequencyarchive.com. Unauthorized mirrors will be haunted by static. <span class="archive-canary" aria-hidden="true">odd-frequency-canine-bolt-404-lm-original</span></div>
   </div>
-  <script src="../js/main.js?v=radio-synth-default-on-1"></script>
+  <script src="../js/main.js?v=crt-overhaul-1"></script>
 </body>
 </html>

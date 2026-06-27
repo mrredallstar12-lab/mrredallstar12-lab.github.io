@@ -498,7 +498,12 @@ const achievementCatalog = {
   archiveArchaeologist:{name:"Archive Archaeologist",desc:"Discover ten hidden secrets."},
   secretHoarder:{name:"Secret Hoarder",desc:"Discover twenty-five hidden secrets."},
   basementCurator:{name:"Basement Curator",desc:"Find the fake ad museum basement."},
-  dialupWhisperer:{name:"Dial-up Whisperer",desc:"Wake a fossilized modem secret."}
+  dialupWhisperer:{name:"Dial-up Whisperer",desc:"Wake a fossilized modem secret."},
+  channelSurfer:{name:"Channel Surfer",desc:"Tune 10 cursed CRT channels."},
+  crtWhisperer:{name:"CRT Whisperer",desc:"Find Channel 404 on the broken CRT."},
+  doNotKickTheCabinet:{name:"Do Not Kick The Cabinet",desc:"Smack the CRT cabinet several times."},
+  publicAccessGoblin:{name:"Public Access Goblin",desc:"Use several weird CRT broadcasts."},
+  vdoOnGlass:{name:"VDO On Glass",desc:"Tune the VDO reflection channel."}
 };
 
 const closeMilestonePopups = [
@@ -2807,14 +2812,209 @@ function randomObjectShrine(){
   if(out) out.textContent = objects[Math.floor(Math.random() * objects.length)];
 }
 
-function tvStatic(){
+const crtChannels = [
+  {number:"00",title:"Waiting for Static",vibe:"static",desc:"Default boot channel. Mostly idle snow and an antenna pretending to work.",lines:["ODD FREQUENCY ARCHIVE PUBLIC ACCESS SIGNAL","snow in the cabinet","please stand by, sideways"],items:["Radio Static Sample"],status:["TRACKING...","SIGNAL CROOKED","STATIC HOLDING PATTERN"]},
+  {number:"03",title:"Cable Cooking for Wires",vibe:"cooking",desc:"A lost cooking show for cables, bolts, and legally inedible coax.",lines:["Tonight: antenna soup with cold screws","Fold cable until tender","Chef says the mystery bolt is al dente"],items:["Mystery Bolt"],status:["KITCHEN SYNC LOST","RECIPE BUFFERING","TRACKING..."]},
+  {number:"17",title:"Floppy Disk Weather",vibe:"weather",desc:"Forecasts from inside a floppy disk where the clouds are write-protected.",lines:["Humidity: 98% plastic sleeve","Chance of sideways pixels after midnight","Do not store near magnets or prophecy"],items:["Weather Pixel"],status:["WEATHER HEAD MISALIGNED","SIGNAL CROOKED","FLOPPY CLOUD COVER"]},
+  {number:"44",title:"Banner Auction Network",vibe:"banner",desc:"A silent auction for expired fake banners with a very loud border.",lines:["Lot 44A: one dancing banner, slightly tired","Bids accepted in Popup Bucks and bad ideas","Auctioneer is blinking in table cells"],items:["Expired Banner Ad"],currency:["Popup Bucks",2],status:["BID STATIC RISING","PUBLIC ACCESS LEAK DETECTED","BANNER HAMMER JAMMED"]},
+  {number:"66",title:"Coupon Shopping Channel",vibe:"coupon",desc:"0% off products, powdered savings, and coupon math that cannot pass inspection.",lines:["Buy one nothing, get one nothing laminated","Operators are fake and locally stored","Savings dust may collect under the remote"],items:["Cursed Coupon"],currency:["Coupon Dust",2],status:["COUPON PRESSURE HIGH","SIGNAL CROOKED","TRACKING DISCOUNT"]},
+  {number:"88",title:"VDO Reflection Channel",vibe:"vdo",desc:"The VDO signal appears reflected in the CRT glass and denies everything.",lines:["Corner bounce replay at 8:88","A glowing oval was seen near the screen edge","The reflection is watching the watcher"],items:["VDO Spark"],achievement:"vdoOnGlass",secret:["tv:vdo-reflection","VDO reflected in the CRT glass and left a spark.","VDO Spark"],status:["VDO REFLECTION IN GLASS","BOUNCE ENERGY DETECTED","PHOSPHOR OVAL DRIFT"]},
+  {number:"99",title:"Loading Void Public Access",vibe:"loading",desc:"The loading void waves back from a progress bar that forgot the finish line.",lines:["Progress: 99% and emotionally looping","Void caller on line two","Please wait while waiting waits"],items:["Broken Loading Bar"],status:["LOADING LOOP DETECTED","TRACKING...","VOID BUFFER FULL"]},
+  {number:"101",title:"Aquarium Afterhours",vibe:"aquarium",desc:"Fish weather, bubble rumors, and damp public-access interviews.",lines:["Bubble rumor confirmed by three pixels","Tonight's guest: a boot with feelings","Aquarium district reports mild toolbar fog"],items:["Aquarium Bubble"],status:["FISH WEATHER LIVE","GLASS HUMIDITY RISING","BUBBLE SYNC OK"]},
+  {number:"404",title:"Official Static Knows Your Name",vibe:"secret",desc:"Secret channel. Harsh static, warm glass, and a moth-shaped burn-in.",lines:["404 404 404","the static has a filing cabinet","your name is probably STATIC, according to the TV"],items:["CRT Moth","Radio Static Sample"],achievement:"crtWhisperer",secret:["tv:channel-404","Secret channel 404 burned a moth shape into the glass.","CRT Moth"],status:["OFFICIAL STATIC WATCHING","SECRET CARRIER FOUND","CHANNEL NOT FOUND, LOUDLY"]},
+  {number:"666",title:"Definitely Fake Emergency Test",vibe:"emergency",desc:"Parody emergency text only. No real emergency alert audio. No real warning.",lines:["THIS IS A FAKE ARCHIVE TEST","If this were real, it would not be in a cursed web toy","Please remain theatrically calm"],items:["Emergency Exit Sign"],status:["FAKE TEST ONLY","PARODY ALERT MODE","NO REAL BROADCASTS"]}
+];
+
+function getCRTChannel(number){
+  return crtChannels.find((item)=>item.number === String(number)) || crtChannels[0];
+}
+
+function getCRTCurrentChannel(){
+  return getCRTChannel(localStorage.getItem("oddCRTChannel") || "00");
+}
+
+function getCRTReception(){
+  return Math.max(0,Math.min(100,Number(localStorage.getItem("oddCRTReception") || 41)));
+}
+
+function setCRTReception(value){
+  const next = Math.max(0,Math.min(100,Math.round(Number(value) || 0)));
+  localStorage.setItem("oddCRTReception",String(next));
+  return next;
+}
+
+function crtStatus(channel){
+  const statuses = channel.status || ["TRACKING...","SIGNAL CROOKED","PUBLIC ACCESS LEAK DETECTED","VDO REFLECTION IN GLASS"];
+  return statuses[Math.floor(Math.random() * statuses.length)];
+}
+
+function appendCRTLog(message){
+  const log = $("#crtLog");
+  if(!log) return;
+  const line = document.createElement("p");
+  const stamp = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  line.textContent = `[${stamp}] ${message}`;
+  log.prepend(line);
+  while(log.children.length > 10) log.lastElementChild.remove();
+}
+
+function renderCRTChannel(channelNumber=getCRTCurrentChannel().number,options={}){
+  const channel = getCRTChannel(channelNumber);
+  const reception = getCRTReception();
+  const screen = $("#crtScreen");
+  const vibe = `crt-vibe-${channel.vibe || "static"}`;
+  if(screen) screen.className = `crt crt-screen ${vibe} ${options.modeClass || ""}`.trim();
+  setStatusText("[data-crt-channel]",`CH ${channel.number}`);
+  setStatusText("[data-crt-title]",channel.title);
+  setStatusText("[data-crt-description]",channel.desc);
+  setStatusText("[data-crt-status]",options.status || crtStatus(channel));
+  setStatusText("[data-crt-reception]",`${reception}% ${reception > 72 ? "almost watchable" : reception > 38 ? "crooked" : "mostly snow"}`);
+  $$(".crt-reception-meter").forEach((meter)=>meter.value = reception);
+  const lines = $("#crtLines");
+  if(lines){
+    const screenLines = options.lines || channel.lines || [];
+    lines.innerHTML = screenLines.map((line)=>`<p>${clean(line)}</p>`).join("");
+  }
   const out = $("#tvOut");
-  const channels = ["CHANNEL 03: lost cooking show for cables","CHANNEL 17: weather inside a floppy disk","CHANNEL 44: silent auction for fake banners","CHANNEL 99: the loading void waves back","CHANNEL 404: official static knows your name"];
-  const chosen = channels[Math.floor(Math.random()*channels.length)];
-  if(out) out.textContent = chosen;
-  if(chosen.includes("404")) discoverSecret("tv:channel-404","Secret channel 404 burned a moth shape into the glass.","CRT Moth");
+  if(out) out.textContent = `CHANNEL ${channel.number}: ${channel.title}`;
+  renderCRTChannelList(channel.number);
+}
+
+function renderCRTChannelList(activeNumber=getCRTCurrentChannel().number){
+  const list = $("#crtChannelList");
+  if(!list) return;
+  list.innerHTML = crtChannels.map((channel)=>`<button class="${channel.number === activeNumber ? "active" : ""}" onclick="tvTuneChannel('${channel.number}')"><b>${clean(channel.number)}</b><span>${clean(channel.title)}</span></button>`).join("");
+}
+
+function crtMaybeReward(channel,source="tuning"){
+  if(Math.random() < .18) addCurrency("Static Coins",1);
+  if(channel.currency && Math.random() < .35){
+    if(channel.currency[0] === "Coupon Dust") awardCouponDust(channel.currency[1],`CRT channel ${channel.number}`);
+    else addCurrency(channel.currency[0],channel.currency[1]);
+  }
+  const items = channel.items || [];
+  if(items.length && Math.random() < .42) addInventoryItem(items[Math.floor(Math.random()*items.length)],1);
+  if(source === "smack" && Math.random() < .22) addInventoryItem("CRT Dust",1);
+}
+
+function tvTuneChannel(channelNumber,options={}){
+  if(archiveIsMirrorLocked()) return;
+  const channel = getCRTChannel(channelNumber);
+  localStorage.setItem("oddCRTChannel",channel.number);
+  if(options.receptionDelta) setCRTReception(getCRTReception() + options.receptionDelta);
+  renderCRTChannel(channel.number,options);
+  appendCRTLog(`Tuned CH ${channel.number}: ${channel.title}.`);
+  const tuned = incrementStat("oddCRTChannelChanges",1);
+  if(tuned >= 10) unlockAchievement("channelSurfer");
+  if(tuned >= 18) unlockAchievement("publicAccessGoblin");
+  if(channel.achievement) unlockAchievement(channel.achievement);
+  if(channel.secret) discoverSecret(channel.secret[0],channel.secret[1],channel.secret[2],{achievement:channel.achievement});
+  if(channel.number === "66" && Math.random() < .45) awardCouponDust(2,"CRT coupon channel");
+  if(channel.number === "44" && Math.random() < .45) addCurrency("Popup Bucks",2);
+  crtMaybeReward(channel,"tuning");
+  playSound(channel.number === "666" ? "alarm" : "nav");
+}
+
+function tvChannelUp(){
+  const current = getCRTCurrentChannel();
+  const index = crtChannels.findIndex((channel)=>channel.number === current.number);
+  const next = crtChannels[(index + 1) % crtChannels.length];
+  tvTuneChannel(next.number,{receptionDelta:Math.floor(Math.random()*9)-4});
+}
+
+function tvChannelDown(){
+  const current = getCRTCurrentChannel();
+  const index = crtChannels.findIndex((channel)=>channel.number === current.number);
+  const next = crtChannels[(index - 1 + crtChannels.length) % crtChannels.length];
+  tvTuneChannel(next.number,{receptionDelta:Math.floor(Math.random()*9)-4});
+}
+
+function tvRandomChannel(){
+  const current = getCRTCurrentChannel();
+  const choices = crtChannels.filter((channel)=>channel.number !== current.number);
+  const next = choices[Math.floor(Math.random()*choices.length)] || crtChannels[0];
+  tvTuneChannel(next.number,{receptionDelta:Math.floor(Math.random()*17)-8});
+}
+
+function tvStatic(){
+  tvRandomChannel();
   document.body.classList.add("static-burst");
   setTimeout(()=>document.body.classList.remove("static-burst"),1800);
+}
+
+function tvAdjustAntenna(){
+  if(archiveIsMirrorLocked()) return;
+  const delta = 8 + Math.floor(Math.random()*14);
+  const flip = Math.random() < .22 ? -1 : 1;
+  const reception = setCRTReception(getCRTReception() + delta * flip);
+  appendCRTLog(`Antenna adjusted. Reception now ${reception}%.`);
+  renderCRTChannel(getCRTCurrentChannel().number,{status:flip > 0 ? "TRACKING IMPROVED" : "ANTENNA MADE IT WEIRDER"});
+  addCurrency("Static Coins",1);
+  playSound("wobble");
+}
+
+function tvSmackCabinet(){
+  if(archiveIsMirrorLocked()) return;
+  const smacks = incrementStat("oddCRTCabinetSmacks",1);
+  const roll = Math.random();
+  let message = "Cabinet thunked. Something inside applauded.";
+  if(roll < .26){
+    setCRTReception(getCRTReception() + 18);
+    message = "Cabinet thunked. Reception improved for suspicious reasons.";
+  }
+  else if(roll < .52){
+    setCRTReception(getCRTReception() - 16);
+    message = "Cabinet thunked. The picture got emotionally worse.";
+  }
+  else if(roll < .72){
+    spawnAd(true);
+    message = "Cabinet thunked. A fake commercial escaped.";
+  }
+  else {
+    discoverSecret("tv:cabinet-thunk","The CRT cabinet had a note taped inside: CH 404 watches back.","Broken CRT Tuning Fork");
+    message = "Cabinet thunked. Hidden message: CH 404 watches back.";
+  }
+  if(smacks >= 5) unlockAchievement("doNotKickTheCabinet");
+  appendCRTLog(message);
+  renderCRTChannel(getCRTCurrentChannel().number,{status:"CABINET IMPACT LOGGED"});
+  crtMaybeReward(getCRTCurrentChannel(),"smack");
+  playSound("pop");
+}
+
+function tvColorBars(){
+  if(archiveIsMirrorLocked()) return;
+  const channel = getCRTCurrentChannel();
+  renderCRTChannel(channel.number,{
+    modeClass:"crt-color-bars-mode",
+    status:"COLOR BARS LYING POLITELY",
+    lines:["COLOR BAR TEST PATTERN","no real broadcasts detected","please adjust your nostalgia"]
+  });
+  appendCRTLog("Color bars displayed. The colors filed a complaint.");
+  playSound("beep");
+}
+
+function tvFakeCommercial(){
+  if(archiveIsMirrorLocked()) return;
+  spawnAd(true);
+  appendCRTLog("Fake commercial break aired. No sponsor survived the border.");
+  addCurrency("Popup Bucks",1);
+  playSound("blip");
+}
+
+function tvFakeEmergencyTest(){
+  if(archiveIsMirrorLocked()) return;
+  tvTuneChannel("666",{
+    status:"FAKE PARODY TEST - NOT A REAL ALERT",
+    lines:["DEFINITELY FAKE EMERGENCY TEST","browser toy only - no real broadcast","do not make plans based on this rectangle"]
+  });
+  appendCRTLog("Clearly fake emergency test aired without real alert audio.");
+  playSound("alarm");
+}
+
+function initCRTPage(){
+  if(!$("#crtScreen") && !$("#tvOut")) return;
+  renderCRTChannel(getCRTCurrentChannel().number,{status:"TRACKING..."});
+  appendCRTLog("CRT warmed up. The glass is already judging the antenna.");
 }
 
 function voidMessage(){
@@ -3931,6 +4131,7 @@ addEventListener("DOMContentLoaded",()=>{
   renderQuestClues();
   renderShop();
   initRadioPage();
+  initCRTPage();
   renderSecretCount();
   renderCloseMilestoneMenu();
   startRandomAdScheduler();
@@ -4014,6 +4215,17 @@ addEventListener("DOMContentLoaded",()=>{
   window.randomWebringJump = randomWebringJump;
   window.randomObjectShrine = randomObjectShrine;
   window.tvStatic = tvStatic;
+  window.tvChannelUp = tvChannelUp;
+  window.tvChannelDown = tvChannelDown;
+  window.tvRandomChannel = tvRandomChannel;
+  window.tvTuneChannel = tvTuneChannel;
+  window.tvAdjustAntenna = tvAdjustAntenna;
+  window.tvSmackCabinet = tvSmackCabinet;
+  window.tvColorBars = tvColorBars;
+  window.tvFakeCommercial = tvFakeCommercial;
+  window.tvFakeEmergencyTest = tvFakeEmergencyTest;
+  window.renderCRTChannel = renderCRTChannel;
+  window.appendCRTLog = appendCRTLog;
   window.voidMessage = voidMessage;
   window.mazeChoice = mazeChoice;
   window.scrambleMeters = scrambleMeters;

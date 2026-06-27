@@ -29,6 +29,202 @@ const OFFICIAL_ARCHIVE_HOSTS = [
 
 const stickerBits = ["*", "#", "@", "%", "!!", "??", "VHS", "404", "CRT", "ZAP"];
 const puffBits = ["*", "+", "x", "404", "CRT", "VHS", "ZAP", "!", "?", "pixel", "beep"];
+const orbitItems = [
+  "blinking cursor",
+  "cracked jewel case",
+  "tiny modem",
+  "cursed coupon",
+  "404 shard",
+  "loose pixel",
+  "fake toolbar",
+  "broken loading bar",
+  "mystery bolt",
+  "expired banner ad",
+  "floppy label",
+  "aquarium bubble",
+  "missing desktop icon",
+  "crooked progress bar",
+  "web ring receipt",
+  "static-flavored postcard",
+  "VDO but sideways",
+  "coupon with teeth",
+  "404 shard wearing a tie",
+  "expired banner ad screaming softly",
+  "tiny modem in witness protection",
+  "basement printer guilt",
+  "one pixel legally distinct from another pixel",
+  "popup buck lint",
+  "forbidden table border",
+  "CRT moth divorce papers",
+  "toolbar worm lease agreement",
+  "loading bar at 99.999999%",
+  "fake antivirus apology",
+  "archive tooth in a sandwich bag",
+  "mystery bolt with emotional damage",
+  "VHS tape labeled DO_NOT_REWIND",
+  "coupon dust sneeze cloud",
+  "haunted captcha tile",
+  "oddly warm close button",
+  "radio station ID fragment",
+  "aquarium bubble with tax forms",
+  "guestbook signature from tomorrow",
+  "market ticker receipt",
+  "auction gavel splinter",
+  "fake login token",
+  "maintainer dust",
+  "basement console key",
+  "patch note staple",
+  "VDO admin receipt",
+  "marquee hinge squeak",
+  "under construction nail",
+  "transparent spacer GIF fossil",
+  "dial-up handshake crumbs",
+  "neon guestbook ink",
+  "fake download wrapper",
+  "browser fortune cookie shell",
+  "wrong password confetti",
+  "radio static sample jar",
+  "coupon barcode fragment",
+  "archive map stamp",
+  "desktop shortcut crumb",
+  "OddOS wallpaper scrap",
+  "fake patch note folded wrong",
+  "market share shaped like a sigh",
+  "auction paddle splinter",
+  "toolbar humidity gauge",
+  "VDO bounce path chalk",
+  "static coin with no country",
+  "popup buck with rectangle smell",
+  "coupon dust under glass",
+  "secret door hinge",
+  "broken CSS oracle receipt",
+  "canary source breadcrumb",
+  "mirror dust sealed envelope",
+  "signal interruption ribbon",
+  "public access TV snowball",
+  "CRT tuning fork bent sideways",
+  "radio dial smudge",
+  "weather pixel umbrella",
+  "loading void cork",
+  "lost page ticket stub",
+  "cursed search breadcrumb",
+  "archive bot apology card",
+  "button confidence meter",
+  "gray button paint chip",
+  "submit-ish fossil",
+  "OK button with stage fright",
+  "close button union pamphlet",
+  "popup rectangle migration tag",
+  "ad storm insurance receipt",
+  "fake ad museum velvet rope",
+  "banner tape residue",
+  "misprinted banner permit",
+  "sponsored static pebble",
+  "coupon moon rock sample",
+  "VDO orbit shard",
+  "static nebula button",
+  "one-of-one archive heart beat",
+  "final close button halo reflection",
+  "glitched VDO halo wobble",
+  "pixel sorting error",
+  "CH404 signal knot",
+  "soft 404 pebble",
+  "fake alert paperclip",
+  "visitor counter spring",
+  "scrollbar dust track",
+  "marquee track grease",
+  "old link blue crayon",
+  "CRT warm plastic",
+  "fish tank pixel food",
+  "guestbook pencil stub",
+  "coupon ash",
+  "VHS label curl",
+  "dial-up pebble",
+  "browser crumb",
+  "toolbar gum",
+  "fake desktop shortcut crumb",
+  "suspicious pixel screw",
+  "under-counter static",
+  "premium dust invoice",
+  "emergency popup helmet visor",
+  "invisible cursor coupon",
+  "coupon laminator heat haze",
+  "mystery bolt polish rag",
+  "aquarium breadcrumb",
+  "louder beep license",
+  "slightly faster VDO receipt",
+  "archive mood thermometer",
+  "orbit item that refuses inventory",
+  "localStorage receipt with corners",
+  "cache-busting screw",
+  "canonical sidebar rivet",
+  "site controls button washer",
+  "quiet signal foam plug",
+  "chaos slider thumbprint",
+  "sound toggle click residue",
+  "PANIC BUTTON receipt ash",
+  "desktop pet snack wrapper",
+  "falling coupon parachute",
+  "0% off coupon parachute cord",
+  "signal warning highlighter",
+  "mirror warning escape arrow",
+  "unauthorized static label",
+  "maintenance screw washer",
+  "basement terminal lint",
+  "fake admin panel sticker",
+  "owner note paperclip",
+  "patch notes basement staple",
+  "VDO radio backup oscillator",
+  "numbers from the basement hum",
+  "archive jazz leak reed",
+  "aquarium weather droplet",
+  "broken MIDI memorial note",
+  "one-of-one silence click",
+  "fake emergency beep shard",
+  "CRT smack receipt",
+  "TV channel 404 moth wing",
+  "public access bumper tape",
+  "forbidden file explorer breadcrumb",
+  "DO_NOT_OPEN folder tab",
+  "secret static jar lid",
+  "coupon emergency broadcast crumb",
+  "lost signal shoebox",
+  "random event spark plug",
+  "static burst aftertaste",
+  "page shake bolt",
+  "nightmare hue shift sample",
+  "fake system alert corner",
+  "desktop icon that loaded wrong",
+  "loading bar tailbone",
+  "mysterious parking lot pixel",
+  "webtoy museum ticket",
+  "archive dashboard odometer",
+  "currency display lint",
+  "achievement toast spark",
+  "inventory card corner",
+  "quest board thumbtack",
+  "daily weirdness calendar crumb",
+  "fake antivirus quarantine ribbon",
+  "auction lot dust sheet",
+  "wiki citation that winks",
+  "fake login denial stamp",
+  "inbox spam envelope glue",
+  "attachment risk sticker",
+  "map location ridge pebble",
+  "market ticker paper curl",
+  "OddOS boot chime wrapper"
+];
+const MAINTAINER_PASSPHRASE = "vdo-coupon-static";
+const maintenanceLogEntries = [
+  ["v0.98.404","Added Fake Inbox. It immediately received spam."],
+  ["v0.99.13","OddOS 98 installed. The uninstall wizard escaped."],
+  ["v0.99.66","Archive Market opened. All tickers are fake and emotionally unstable."],
+  ["v0.99.88","VDO Radio learned backup oscillator noises."],
+  ["v1.00??","Broken CRT upgraded from \"please imagine TV\" to cursed public access."],
+  ["hotfix-sidebar-1","Sidebar stopped rearranging itself between rooms."],
+  ["hotfix-new-badges","Removed NEW stickers after complaints from no one."],
+  ["quest-board-polish","The corkboard now pays out suspicious errands."]
+];
 
 const adTemplates = [
   {
@@ -340,6 +536,7 @@ const inventoryCatalog = {
   "Desktop Pet Biscuit":{rarity:"common",flavor:"pet",desc:"Small snack for things crawling around the page."},
   "Visitor Counter Spring":{rarity:"common",flavor:"counter",desc:"Adds dramatic tension to fake numbers."},
   "Patch Note Staple":{rarity:"common",flavor:"update",desc:"Holds three smaller issues to one larger issue."},
+  "Maintainer Dust":{rarity:"common",flavor:"maintenance",desc:"Collected from the keyboard tray of a fake basement terminal."},
   "Coupon Ash":{rarity:"common",flavor:"coupon",desc:"What remains after zero percent burns down."},
   "VHS Label Curl":{rarity:"common",flavor:"vhs",desc:"Curled off a tape called FINAL_FINAL_STATIC."},
   "Scrollbar Dust Track":{rarity:"common",flavor:"scrollbar",desc:"The groove left behind by a haunted scrollbar."},
@@ -448,6 +645,7 @@ const inventoryCatalog = {
   "Lost Page Reliquary":{rarity:"relic",flavor:"lost",desc:"Holds crumbs from procedural pages."},
   "Visitor Counter Crown Gear":{rarity:"relic",flavor:"counter",desc:"The gear that made fake numbers feel royal."},
   "One True Close Button":{rarity:"mythic",flavor:"button",desc:"Said to close any fake window with one tiny X."},
+  "Basement Console Key":{rarity:"mythic",flavor:"maintenance",desc:"Unlocks no real server, just one very theatrical local panel."},
   "Glorious Popup Union Charter":{rarity:"mythic",flavor:"popup",desc:"The charter all rectangles cite in disputes."},
   "Lost GeoCities Crown":{rarity:"mythic",flavor:"old-web",desc:"Bright, chunky, and absolutely too much."},
   "Impossible Loading Percent":{rarity:"mythic",flavor:"loading",desc:"A number beyond 100, rounded down for safety."},
@@ -459,6 +657,7 @@ const inventoryCatalog = {
   "VDO Orbit Shard":{rarity:"cosmic",flavor:"vdo",desc:"Chipped from a bounce path that left the page."},
   "Static Nebula Button":{rarity:"cosmic",flavor:"button",desc:"A button-shaped galaxy that clicks back."},
   "Original Signal Canary":{rarity:"canary",flavor:"signal",desc:"A bright little proof of the original broadcast."},
+  "VDO Admin Receipt":{rarity:"canary",flavor:"maintenance",desc:"A receipt for fake privileges signed by a bouncing logo."},
   "Canary Signal Core":{rarity:"canary",flavor:"signal",desc:"Hums the official domain in a tiny voice."},
   "Canary Source Breadcrumb":{rarity:"canary",flavor:"source",desc:"A breadcrumb only mirrors forget to hide correctly."},
   "Impossible Popup Receipt":{rarity:"impossible",flavor:"popup",desc:"A receipt for a popup that never spawned."},
@@ -520,6 +719,9 @@ const achievementCatalog = {
   loginDenied:{name:"Login Denied",desc:"Fail the fake login enough times to become folklore."},
   questGoblin:{name:"Quest Goblin",desc:"Claim several cursed errands."},
   errandChampion:{name:"Errand Champion",desc:"Claim a large pile of quest-board rewards."},
+  patchNotePeeker:{name:"Patch Note Peeker",desc:"Open the basement patch notes."},
+  maintainerKnock:{name:"Maintainer Knock",desc:"Find the fake maintainer gate."},
+  basementConsole:{name:"Basement Console",desc:"Unlock the harmless in-universe maintainer console."},
   localStorageLandfill:{name:"LocalStorage Landfill",desc:"Collect 1000+ total inventory items."}
 };
 
@@ -824,6 +1026,36 @@ function archiveMood(){
   ];
   if(Math.random() < .035) return ["THE ARCHIVE REMEMBERED 2003","CANARY FEATHER PRESSURE DETECTED","MIRROR DUST IN THE VENT","HIDDEN PIXEL UNION MEETING"][Math.floor(Math.random()*4)];
   return moods[Math.floor(Math.random()*moods.length)];
+}
+
+function renderOrbitItems(){
+  const slots = $$("[data-orbit-items]");
+  if(!slots.length) return;
+  const secretMessages = Object.values(getDiscoveredSecrets())
+    .map((entry)=>entry && entry.message ? `secret echo: ${entry.message}` : "")
+    .filter(Boolean)
+    .slice(-12);
+  const latestItem = localStorage.getItem("oddLatestItem");
+  const pool = Array.from(new Set([
+    ...orbitItems,
+    ...Object.keys(inventoryCatalog),
+    ...(latestItem ? [`latest collected item: ${latestItem}`] : []),
+    ...secretMessages
+  ]));
+
+  for(let i=pool.length - 1;i>0;i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
+  }
+
+  const minCount = Math.min(80,pool.length);
+  const count = Math.min(pool.length,minCount + Math.floor(Math.random() * 40));
+  const selected = pool.slice(0,count);
+
+  slots.forEach((slot)=>{
+    slot.dataset.orbitCount = String(selected.length);
+    slot.innerHTML = selected.map((item)=>clean(item)).join("<br>");
+  });
 }
 
 function awardRandomJunk(reason="interaction"){
@@ -1604,6 +1836,7 @@ function attachHiddenDiscoveryPixels(){
 }
 
 function attachFooterSecrets(){
+  installMaintenanceScrews();
   $$(".footer").forEach((footer)=>{
     if(footer.dataset.secretFooter) return;
     footer.dataset.secretFooter = "true";
@@ -1613,6 +1846,12 @@ function attachFooterSecrets(){
       const clicks = incrementStat("oddFooterClicks",1);
       if(clicks === 3) signalBanner("The footer flinched.");
       if(clicks >= 5) discoverSecret("footer:copyright","Footer trespass logged. Original signal approved grudgingly.","Canary Feather",{achievement:"footerTrespasser"});
+      if(clicks >= 7){
+        localStorage.setItem("oddMaintenanceScrewRevealed","true");
+        revealMaintenanceScrew(true);
+        discoverSecret("console:maintenance-screw","A maintenance screw loosened near the footer.","Maintainer Dust",{silent:clicks !== 7});
+        if(clicks === 7) signalBanner("A maintenance screw clicked loose under the footer.");
+      }
       if(clicks >= 13) discoverSecret("footer:tiny-door","A tiny door opened behind the copyright line.","Tiny Door");
       if(clicks >= 21) discoverSecret("footer:archive-tooth","The footer lost an archive tooth. It says this is normal.","Archive Tooth");
     });
@@ -1624,7 +1863,7 @@ function attachConsoleLore(){
   sessionStorage.setItem("oddConsoleLoreShown","true");
   const logs = [
     "[Odd Frequency] maintenance log: the fake ads are theatrical and unionized.",
-    "[Odd Frequency] hint: type vdo, coupon, static, archive, or signal404 on a page background.",
+    "[Odd Frequency] hint: type vdo, coupon, static, archive, patchnotes, maintainer, or signal404 on a page background.",
     `[Odd Frequency] original signal canary: ${ARCHIVE_CANARY}`,
     "[Odd Frequency] console secret: run archiveConsoleSecret() if you enjoy suspicious crumbs."
   ];
@@ -1639,6 +1878,330 @@ function attachConsoleLore(){
     }
     if(checks > 18) clearInterval(detector);
   },1500);
+}
+
+function maintainerIsUnlocked(){
+  return localStorage.getItem("oddMaintainerUnlocked") === "true";
+}
+
+function maintenanceLogHTML(){
+  return `<div class="patch-note-list">` + maintenanceLogEntries.map(([version,note])=>`
+    <article class="patch-note">
+      <b>${clean(version)}</b>
+      <span>${clean(note)}</span>
+    </article>
+  `).join("") + `</div>`;
+}
+
+function openMaintainerWindow(id,title,bodyHTML,extraClass=""){
+  if(archiveIsMirrorLocked()) return null;
+  const existing = document.getElementById(id);
+  if(existing) existing.remove();
+  const w = document.createElement("div");
+  w.id = id;
+  w.className = `fake-window maintainer-window ${extraClass}`.trim();
+  w.dataset.windowId = id + "-" + (++fakeWindowCount);
+  w.style.left = Math.max(10,Math.min(innerWidth - 330,36 + Math.random() * 90)) + "px";
+  w.style.top = Math.max(10,Math.min(innerHeight - 260,42 + Math.random() * 70)) + "px";
+  w.innerHTML = `
+    <div class="win-title maintainer-title">
+      <span>${clean(title)}</span>
+      <button class="x" type="button" data-maintainer-close="${clean(id)}" aria-label="close maintainer window">X</button>
+    </div>
+    <div class="win-body maintainer-body">${bodyHTML}</div>
+  `;
+  document.body.appendChild(w);
+  w.addEventListener("click",(e)=>{
+    const close = e.target.closest("[data-maintainer-close]");
+    if(close){
+      closeMaintainerWindow(close.dataset.maintainerClose);
+      return;
+    }
+    const action = e.target.closest("[data-maintainer-action]");
+    if(action){
+      if(action.dataset.maintainerAction === "gate") openMaintainerGate();
+      if(action.dataset.maintainerAction === "patches") showPatchNotes();
+      return;
+    }
+    const submit = e.target.closest("[data-maintainer-submit]");
+    if(submit){
+      e.preventDefault();
+      attemptMaintainerLogin();
+      return;
+    }
+    const tabButton = e.target.closest(".maintainer-tab[data-tab]");
+    if(tabButton){
+      renderMaintainerConsoleTab(tabButton.dataset.tab);
+      return;
+    }
+    const toy = e.target.closest("[data-maintainer-toy]");
+    if(toy){
+      maintainerDebugToy(toy.dataset.maintainerToy);
+      return;
+    }
+    const signal = e.target.closest("[data-signal-tool]");
+    if(signal){
+      runSignalTool(signal.dataset.signalTool);
+    }
+  });
+  const gateForm = w.querySelector(".maintainer-gate");
+  if(gateForm){
+    gateForm.addEventListener("submit",(e)=>{
+      e.preventDefault();
+      attemptMaintainerLogin();
+    });
+  }
+  w.onmousedown = () => focusFakeWindow(w);
+  makeDraggable(w,w.querySelector(".win-title"));
+  fakeWindowTop = Math.max(fakeWindowTop,7600);
+  focusFakeWindow(w);
+  return w;
+}
+
+function closeMaintainerWindow(id){
+  const w = document.getElementById(id);
+  if(w) w.remove();
+}
+
+function closeMaintainerConsole(){
+  $$(".maintainer-window").forEach((w)=>w.remove());
+}
+
+function showPatchNotes(){
+  discoverSecret("console:patchnotes","Patch notes from the basement opened with a rusty click.","Patch Note Staple",{achievement:"patchNotePeeker"});
+  const body = `
+    <div class="maintainer-warning">SECRET LOG - not a real admin panel - local archive theater only.</div>
+    <h3>Patch Notes From The Basement</h3>
+    ${maintenanceLogHTML()}
+    <p class="maintainer-output">Typed code accepted: patchnotes. The changelog smelled faintly of warm CRT plastic.</p>
+    <button type="button" data-maintainer-action="gate">knock on maintainer hatch</button>
+  `;
+  openMaintainerWindow("maintainerPatchNotes","Patch Notes From The Basement",body,"patch-notes-window");
+}
+
+function openMaintainerGate(){
+  if(archiveIsMirrorLocked()) return;
+  closeMaintainerWindow("maintainerPatchNotes");
+  unlockAchievement("maintainerKnock");
+  discoverSecret("console:maintainer-gate","A basement console lock slid into view. It is fake, theatrical, and locally stored.","Maintainer Dust",{silent:true});
+  if(maintainerIsUnlocked()){
+    openMaintainerConsole(localStorage.getItem("oddMaintainerTab") || "patches");
+    return;
+  }
+  const attempts = Number(localStorage.getItem("oddMaintainerAttempts") || 0);
+  const body = `
+    <form class="maintainer-gate">
+      <div class="maintainer-warning">ARCHIVE MAINTAINER ACCESS - fake local console - no server exists.</div>
+      <p class="terminal-output">Basement Console Lock wants one silly phrase. Never type a real password here.</p>
+      <label>maintenance phrase
+        <input id="maintainerPassword" class="maintainer-password" type="password" autocomplete="off" placeholder="vdo-coupon-static">
+      </label>
+      <div id="maintainerGateStatus" class="maintainer-output">Attempts recorded locally for comedy: ${attempts}</div>
+      <p>
+        <button type="button" data-maintainer-submit data-sound="secret">unlock fake console</button>
+        <button type="button" data-maintainer-action="patches">read patch notes instead</button>
+      </p>
+    </form>
+  `;
+  openMaintainerWindow("maintainerGate","Odd Frequency Maintenance Terminal",body,"maintainer-gate-window");
+  const input = $("#maintainerPassword");
+  if(input) input.focus();
+}
+
+function attemptMaintainerLogin(){
+  const input = $("#maintainerPassword");
+  const status = $("#maintainerGateStatus");
+  if(!input) return;
+  const phrase = input.value.trim().toLowerCase();
+  input.value = "";
+  if(phrase === MAINTAINER_PASSPHRASE){
+    unlockMaintainerConsole();
+    return;
+  }
+  const attempts = incrementStat("oddMaintainerAttempts",1);
+  const denials = [
+    "ACCESS DENIED: the archive knows you are wearing regular shoes.",
+    "Password rejected. VDO looked away.",
+    "Maintainer lock coughed up a coupon crumb and stayed closed.",
+    "Wrong phrase. The basement printer has filed a complaint."
+  ];
+  if(status) status.textContent = `${denials[Math.floor(Math.random()*denials.length)]} Local fake attempts: ${attempts}`;
+  playSound("buzz");
+}
+
+function unlockMaintainerConsole(){
+  localStorage.setItem("oddMaintainerUnlocked","true");
+  unlockAchievement("basementConsole");
+  discoverSecret("console:basement-access","Basement console unlocked. No real authority was granted, but the buttons look important.","Basement Console Key",{achievement:"basementConsole",currency:["Static Coins",1]});
+  addInventoryItem("VDO Admin Receipt",1);
+  closeMaintainerConsole();
+  openMaintainerConsole("patches");
+  playSound("confetti");
+}
+
+function maintainerStatsHTML(){
+  const currency = getCurrency();
+  const stats = [
+    ["inventory count",countInventoryItems()],
+    ["unique inventory count",Object.keys(getInventory()).length],
+    ["achievements unlocked",`${countAchievements()} / ${Object.keys(achievementCatalog).length}`],
+    ["secrets discovered",countDiscoveredSecrets()],
+    ["Static Coins",Number(currency["Static Coins"] || 0)],
+    ["Popup Bucks",Number(currency["Popup Bucks"] || 0)],
+    ["Coupon Dust",Number(currency["Coupon Dust"] || 0)],
+    ["fake emails opened",Number(localStorage.getItem("oddEmailsOpened") || 0)],
+    ["fake files opened",Number(localStorage.getItem("oddFilesOpened") || 0)],
+    ["quests claimed",Object.keys(readJSON("oddQuestClaims",{})).length],
+    ["radio tunes",Number(localStorage.getItem("oddRadioTunes") || 0)],
+    ["CRT smacks",Number(localStorage.getItem("oddCRTCabinetSmacks") || 0)],
+    ["auction bids",Number(localStorage.getItem("oddAuctionBids") || 0)],
+    ["market trades",Number(localStorage.getItem("oddMarketTrades") || 0)],
+    ["daily claims",Number(localStorage.getItem("oddDailyClaims") || 0)]
+  ];
+  return `<div class="maintainer-stats">` + stats.map(([label,value])=>`
+    <div><span>${clean(label)}</span><b>${clean(value)}</b></div>
+  `).join("") + `</div>`;
+}
+
+function maintainerDebugToy(action){
+  if(archiveIsMirrorLocked()) return;
+  const out = $("#maintainerOutput");
+  const write = (text) => {
+    if(out) out.textContent = text;
+    latestEvent(text);
+  };
+  const toys = {
+    ad:()=>{spawnAd(true);write("Debug toy spawned one fake popup rectangle.");},
+    coupon:()=>{spawnFallingCoupon();write("Debug toy dropped one 0% coupon from the ceiling.");},
+    pet:()=>{spawnDesktopPet();write("Debug toy released a small desktop pet.");},
+    beep:()=>{playSound("beep");write("Debug toy beeped at approved basement volume.");},
+    static:()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1500);write("Debug toy shook loose a static burst.");},
+    patch:()=>{showPatchNotes();write("Patch notes opened in their own suspicious window.");},
+    mood:()=>{write(`Current archive mood: ${localStorage.getItem("oddArchiveMood") || "pleasantly unstable"}.`);},
+    dust:()=>{addInventoryItem("Maintainer Dust",1);write("Maintainer Dust added. It is mostly keyboard fossils.");},
+    coin:()=>{addCurrency("Static Coins",1);write("Added 1 Static Coin. Still not legal tender.");}
+  };
+  if(toys[action]) toys[action]();
+}
+
+function runSignalTool(tool){
+  if(archiveIsMirrorLocked()) return;
+  const out = $("#maintainerOutput");
+  const messages = {
+    vdo:"PING VDO: bounce daemon responded with one oval shrug.",
+    coupons:"REINDEX COUPONS: 0% savings sorted into emotionally unstable piles.",
+    popups:"DEFRAGMENT POPUP RECTANGLES: corners aligned, then immediately disagreed.",
+    buttons:"SCAN LOST BUTTONS: 3 submit-ish fossils and one shy OK discovered.",
+    printer:"BASEMENT PRINTER: please replace toner with aquarium gravel."
+  };
+  const rewards = {
+    vdo:["VDO Spark",1],
+    coupons:["Patch Note Staple",1],
+    popups:["Expired Banner Ad",1],
+    buttons:["Gray Button Paint Chip",1],
+    printer:["Maintainer Dust",1]
+  };
+  const text = messages[tool] || "Signal tool blinked without a ticket.";
+  if(out) out.textContent = text;
+  if(rewards[tool]) addInventoryItem(rewards[tool][0],rewards[tool][1]);
+  playSound(tool === "vdo" ? "wobble" : "blip");
+}
+
+function maintainerTabHTML(tab){
+  const tabs = {
+    patches:()=>`<h3>Patch Notes</h3>${maintenanceLogHTML()}`,
+    stats:()=>`<h3>Local Stats</h3>${maintainerStatsHTML()}`,
+    toys:()=>`
+      <h3>Debug Toys</h3>
+      <div class="maintainer-button-grid">
+        <button data-maintainer-toy="ad">spawn fake ad</button>
+        <button data-maintainer-toy="coupon">spawn falling coupon</button>
+        <button data-maintainer-toy="pet">spawn desktop pet</button>
+        <button data-maintainer-toy="beep">play beep</button>
+        <button data-maintainer-toy="static">static burst</button>
+        <button data-maintainer-toy="patch">open patch notes</button>
+        <button data-maintainer-toy="mood">show archive mood</button>
+        <button data-maintainer-toy="dust">add Maintainer Dust</button>
+        <button data-maintainer-toy="coin">add 1 Static Coin</button>
+      </div>`,
+    signal:()=>`
+      <h3>Signal Tools</h3>
+      <div class="maintainer-button-grid">
+        <button data-signal-tool="vdo">ping VDO</button>
+        <button data-signal-tool="coupons">reindex coupons</button>
+        <button data-signal-tool="popups">defragment popup rectangles</button>
+        <button data-signal-tool="buttons">scan for lost buttons</button>
+        <button data-signal-tool="printer">ask the basement printer</button>
+      </div>`,
+    note:()=>`
+      <h3>Owner Note</h3>
+      <p class="terminal-output">The maintainer is not named here. The archive was found humming and someone made the mistake of organizing it.</p>
+      <p>This panel is a toy. It has no real admin access, no backend, no scanner, no account, and no appetite for real passwords.</p>`
+  };
+  return (tabs[tab] || tabs.patches)();
+}
+
+function renderMaintainerConsoleTab(tab="patches"){
+  const safeTab = ["patches","stats","toys","signal","note"].includes(tab) ? tab : "patches";
+  localStorage.setItem("oddMaintainerTab",safeTab);
+  const body = $("#maintainerConsoleBody");
+  if(body){
+    body.innerHTML = maintainerTabHTML(safeTab) + `<div id="maintainerOutput" class="maintainer-output">terminal idle - no real commands available</div>`;
+  }
+  $$(".maintainer-tab").forEach((button)=>{
+    const active = button.dataset.tab === safeTab;
+    button.classList.toggle("active",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
+}
+
+function openMaintainerConsole(tab=localStorage.getItem("oddMaintainerTab") || "patches"){
+  if(archiveIsMirrorLocked()) return;
+  if(!maintainerIsUnlocked()){
+    openMaintainerGate();
+    return;
+  }
+  const body = `
+    <div class="maintainer-warning">LOCAL TOY CONSOLE - no real server, no real access, no eval.</div>
+    <div class="maintainer-tabs" role="tablist" aria-label="maintainer console sections">
+      <button class="maintainer-tab" data-tab="patches">Patch Notes</button>
+      <button class="maintainer-tab" data-tab="stats">Local Stats</button>
+      <button class="maintainer-tab" data-tab="toys">Debug Toys</button>
+      <button class="maintainer-tab" data-tab="signal">Signal Tools</button>
+      <button class="maintainer-tab" data-tab="note">Owner Note</button>
+    </div>
+    <section id="maintainerConsoleBody" class="maintainer-console-body"></section>
+  `;
+  openMaintainerWindow("maintainerConsole","ARCHIVE MAINTAINER ACCESS",body,"maintainer-console-window");
+  renderMaintainerConsoleTab(tab);
+}
+
+function revealMaintenanceScrew(force=false){
+  const revealed = force || Number(localStorage.getItem("oddFooterClicks") || 0) >= 7 || localStorage.getItem("oddMaintenanceScrewRevealed") === "true";
+  $$(".maintenance-screw").forEach((button)=>{
+    button.classList.toggle("revealed",revealed);
+    button.textContent = revealed ? "maintenance screw" : ".";
+    button.title = revealed ? "maintenance screw" : "nearly invisible maintenance screw";
+    button.tabIndex = revealed ? 0 : -1;
+  });
+}
+
+function installMaintenanceScrews(){
+  $$(".footer").forEach((footer)=>{
+    if(footer.querySelector(".maintenance-screw")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "maintenance-screw";
+    button.dataset.sound = "secret";
+    button.setAttribute("aria-label","maintenance screw");
+    button.textContent = ".";
+    button.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      openMaintainerGate();
+    });
+    footer.appendChild(button);
+  });
+  revealMaintenanceScrew();
 }
 
 function clickPuff(x,y){
@@ -1749,13 +2312,17 @@ function performSecretCode(code){
     dialup:()=>{discoverSecret("typed:dialup","A fossilized modem screamed politely.","Dial-up Fossil",{achievement:"dialupWhisperer"});},
     mirror:()=>{discoverSecret("typed:mirror","Mirror dust stayed on the official side of the glass.","Mirror Dust",{achievement:"signalWhisperer"});},
     archive:()=>{discoverSecret("typed:archive","The archive noticed you noticing it.","Tiny Door",{achievement:"signalWhisperer"}); spawnSecretPopup("archive-notice","ARCHIVE NOTICE","You typed the big word. The shelves are listening.","Tiny Door");},
+    patchnotes:()=>{showPatchNotes();},
+    maintainer:()=>{openMaintainerGate();},
+    devconsole:()=>{openMaintainerGate();},
+    owner:()=>{discoverSecret("console:owner-hint","Owner hint found: the archive was found humming and someone organized it.","Maintainer Dust",{achievement:"signalWhisperer"}); signalBanner("OWNER HINT: the maintainer is not named here; the archive hums anyway.");},
     console:()=>{discoverSecret("typed:console","Console-adjacent behavior detected. No tools were harmed.","Canary Feather",{achievement:"consoleGremlin"});}
   };
   if(actions[code]) actions[code]();
 }
 
 function attachSecretKeyboardCodes(){
-  const codes = ["signal404","haunted","archive","coupon","static","dialup","mirror","biggie","console","vdo","lm"];
+  const codes = ["signal404","patchnotes","devconsole","maintainer","haunted","archive","coupon","static","dialup","mirror","biggie","owner","console","vdo","lm"];
   addEventListener("keydown",(e)=>{
     if(archiveIsMirrorLocked()) return;
     if(e.ctrlKey || e.metaKey || e.altKey) return;
@@ -5329,6 +5896,7 @@ addEventListener("DOMContentLoaded",()=>{
   renderCanonicalSidebar();
   visitorCounter();
   randomQuote();
+  renderOrbitItems();
   clickGame();
   bugGame();
   guestbook();
@@ -5397,6 +5965,16 @@ addEventListener("DOMContentLoaded",()=>{
   window.spawnCloseMilestonePopup = spawnCloseMilestonePopup;
   window.replayCloseMilestone = replayCloseMilestone;
   window.performSecretCode = performSecretCode;
+  window.openMaintainerGate = openMaintainerGate;
+  window.attemptMaintainerLogin = attemptMaintainerLogin;
+  window.openMaintainerConsole = openMaintainerConsole;
+  window.closeMaintainerWindow = closeMaintainerWindow;
+  window.closeMaintainerConsole = closeMaintainerConsole;
+  window.renderMaintainerConsoleTab = renderMaintainerConsoleTab;
+  window.unlockMaintainerConsole = unlockMaintainerConsole;
+  window.showPatchNotes = showPatchNotes;
+  window.maintainerDebugToy = maintainerDebugToy;
+  window.runSignalTool = runSignalTool;
   window.setChaosLevel = setChaosLevel;
   window.triggerRandomEvent = triggerRandomEvent;
   window.panicButton = panicButton;
@@ -5416,6 +5994,7 @@ addEventListener("DOMContentLoaded",()=>{
   window.checkArchiveHost = checkArchiveHost;
   window.archiveIsMirrorLocked = archiveIsMirrorLocked;
   window.renderCanonicalSidebar = renderCanonicalSidebar;
+  window.renderOrbitItems = renderOrbitItems;
   window.toggleSpinMode = toggleSpinMode;
   window.spawnSticker = spawnSticker;
   window.spawnFallingCoupon = spawnFallingCoupon;

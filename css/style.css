@@ -143,6 +143,31 @@ body:before{
 .columns{columns:2}
 .counter{font-family:"Courier New";font-size:22px;background:#000;color:#0f0;border:3px inset #555;padding:8px;text-align:center}
 .footer{text-align:center;font-size:13px;color:#ccc;margin:20px}
+.orbit-box{
+  overflow:hidden;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 5px),
+    radial-gradient(circle at 15% 0,rgba(0,255,255,.18),transparent 38%),
+    rgba(18,0,30,.9);
+}
+.orbit-marquee{
+  display:block;
+  max-height:150px;
+  padding:6px;
+  background:#050505;
+  color:#b6ff00;
+  border:3px inset #777;
+  font:bold 12px "Courier New",monospace;
+  line-height:1.35;
+  text-shadow:0 0 6px #00ffff,1px 1px #000;
+  box-sizing:border-box;
+}
+.orbit-note{
+  margin:6px 0 0;
+  color:#00ffff;
+  font:bold 10px "Courier New",monospace;
+  text-transform:lowercase;
+}
 .archive-canary{
   position:absolute!important;
   width:1px!important;
@@ -931,6 +956,192 @@ meter{width:100%}
 .secret-popup .ad-title{background:#3b0066;color:#fff000}
 .secret-popup .ad-body{background:#090014;color:#fff}
 .secret-popup .ad-fine{color:#d7b7ff}
+.maintenance-screw{
+  display:inline-grid;
+  place-items:center;
+  width:9px;
+  height:9px;
+  min-width:9px;
+  padding:0;
+  margin:4px 0 0 8px;
+  overflow:hidden;
+  vertical-align:middle;
+  border:1px dotted rgba(255,240,0,.35);
+  background:#111;
+  color:#fff000;
+  font:bold 1px "Courier New",monospace;
+  opacity:.16;
+  box-shadow:0 0 4px rgba(0,255,255,.25);
+}
+.maintenance-screw.revealed{
+  width:auto;
+  height:auto;
+  min-width:0;
+  padding:2px 6px;
+  overflow:visible;
+  border:2px outset #fff000;
+  background:repeating-linear-gradient(45deg,#222 0 6px,#111 6px 12px);
+  color:#fff000;
+  font:bold 11px "Courier New",monospace;
+  opacity:.9;
+  text-transform:lowercase;
+  text-shadow:1px 1px #000,0 0 7px #0ff;
+}
+.maintenance-screw:hover,
+.maintenance-screw:focus{
+  opacity:1;
+  outline:2px dashed #00ffff;
+  box-shadow:0 0 12px #00ffff,0 0 18px #ff00cc;
+}
+.maintainer-window{
+  width:min(640px,94vw);
+  max-height:min(84vh,680px);
+  overflow:hidden;
+  background:#050505;
+  color:#b6ff00;
+  border:5px ridge #fff000;
+  box-shadow:8px 8px #000,0 0 26px #ff00cc,0 0 40px rgba(0,255,255,.45);
+  font-family:"Courier New",monospace;
+  text-shadow:1px 1px #000;
+}
+.maintainer-window .maintainer-title{
+  background:repeating-linear-gradient(90deg,#000080 0 14px,#42006b 14px 28px);
+  color:#fff000;
+  border-bottom:3px ridge #00ffff;
+  text-transform:uppercase;
+}
+.maintainer-window .maintainer-title .x{
+  min-width:28px;
+  background:#ff234a;
+  color:#fff;
+  border:2px outset #fff;
+}
+.maintainer-window .maintainer-body{
+  max-height:calc(min(84vh,680px) - 36px);
+  overflow:auto;
+  padding:12px;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 4px),
+    radial-gradient(circle at 20% 0,rgba(0,255,255,.18),transparent 35%),
+    #050505;
+}
+.maintainer-warning{
+  display:inline-block;
+  margin:0 0 10px;
+  padding:4px 7px;
+  color:#000;
+  background:#fff000;
+  border:3px outset #fff;
+  font:bold 12px "Courier New",monospace;
+  text-shadow:none;
+  box-shadow:0 0 10px #ff00cc;
+}
+.maintainer-gate{
+  display:grid;
+  gap:10px;
+}
+.maintainer-gate label{
+  display:grid;
+  gap:5px;
+  color:#00ffff;
+  font-weight:bold;
+  text-transform:uppercase;
+}
+.maintainer-password{
+  width:100%;
+  box-sizing:border-box;
+  background:#000;
+  color:#b6ff00;
+  border:3px inset #00ffff;
+  padding:8px;
+  font:bold 16px "Courier New",monospace;
+}
+.terminal-output,
+.maintainer-output{
+  background:#000;
+  color:#b6ff00;
+  border:2px inset #777;
+  padding:8px;
+  line-height:1.35;
+}
+.maintainer-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin:0 0 10px;
+}
+.maintainer-tab{
+  background:#c0c0c0;
+  color:#000;
+  border:3px outset #fff;
+  font:bold 12px "Courier New",monospace;
+}
+.maintainer-tab.active{
+  background:#000;
+  color:#fff000;
+  border-style:inset;
+  box-shadow:0 0 10px #00ffff inset;
+}
+.maintainer-console-body{
+  border:3px double #00ffff;
+  padding:10px;
+  background:rgba(0,0,0,.72);
+}
+.patch-note-list{
+  display:grid;
+  gap:8px;
+  margin:10px 0;
+}
+.patch-note{
+  display:grid;
+  grid-template-columns:minmax(120px,.35fr) 1fr;
+  gap:8px;
+  align-items:start;
+  padding:7px;
+  border:2px dashed #00ffff;
+  background:rgba(0,40,40,.7);
+}
+.patch-note b{
+  color:#fff000;
+}
+.maintainer-stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:7px;
+}
+.maintainer-stats div{
+  display:grid;
+  gap:3px;
+  padding:7px;
+  border:2px ridge #555;
+  background:#101010;
+}
+.maintainer-stats span{
+  color:#00ffff;
+  font-size:12px;
+  text-transform:uppercase;
+}
+.maintainer-stats b{
+  color:#fff000;
+}
+.maintainer-button-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:7px;
+  margin:8px 0 10px;
+}
+.maintainer-button-grid button,
+.maintainer-window .maintainer-body button{
+  border:3px outset #fff;
+  background:linear-gradient(#e8e8e8,#999);
+  color:#000;
+  font:bold 12px "Courier New",monospace;
+}
+.maintainer-button-grid button:hover,
+.maintainer-window .maintainer-body button:hover{
+  background:#fff000;
+  box-shadow:0 0 12px #ff00cc;
+}
 .sticker{position:fixed;z-index:2400;font-size:34px;pointer-events:none;animation:sticker 2.6s forwards}
 @keyframes sticker{0%{transform:scale(.2) rotate(0);opacity:0}25%{opacity:1}100%{transform:scale(1.5) rotate(360deg);opacity:0}}
 .confetti-bit{position:fixed;top:-24px;z-index:998;pointer-events:none;will-change:transform}
@@ -1788,6 +1999,21 @@ meter{width:100%}
   .crt-screen h2{font-size:24px}
   .crt-readout{display:grid}
   .crt-channel-list{grid-template-columns:1fr}
+  .maintainer-window{
+    width:calc(100vw - 18px);
+    left:8px!important;
+    max-height:86vh;
+  }
+  .maintainer-window .maintainer-body{
+    max-height:calc(86vh - 36px);
+    padding:9px;
+  }
+  .patch-note{
+    grid-template-columns:1fr;
+  }
+  .maintainer-button-grid{
+    grid-template-columns:1fr;
+  }
 }
 
 .fake-window{

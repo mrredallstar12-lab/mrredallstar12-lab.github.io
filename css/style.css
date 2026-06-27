@@ -818,6 +818,42 @@ meter{width:100%}
 }
 
 .inventory-card.owned,.achievement-card.unlocked,.shop-card.owned{background:rgba(0,40,20,.92);border-color:#b6ff00}
+.shop-intro-panel{
+  border-color:#fff000;
+  background:linear-gradient(135deg,rgba(20,0,40,.94),rgba(0,28,36,.92));
+  box-shadow:0 0 18px rgba(255,240,0,.35),inset 0 0 18px rgba(0,255,255,.16);
+}
+.shop-count{font:bold 14px "Courier New",monospace;color:#fff000}
+.shop-category{
+  display:inline-block;
+  margin:0 0 6px;
+  padding:2px 6px;
+  background:#000;
+  color:#0ff;
+  border:2px outset #0ff;
+  font:bold 11px "Courier New",monospace;
+  text-transform:uppercase;
+  letter-spacing:0;
+}
+.shop-card.cheap{border-color:#c8c8c8}
+.shop-card.mid-tier{border-color:#00ffff}
+.shop-card.expensive{
+  border-color:#fff000;
+  box-shadow:0 0 18px rgba(255,240,0,.42),inset 0 0 14px rgba(255,0,204,.18);
+}
+.shop-card.flex{
+  border-color:#ff00cc;
+  background:repeating-linear-gradient(135deg,rgba(0,0,0,.95) 0 14px,rgba(64,0,64,.92) 14px 28px);
+  box-shadow:0 0 22px rgba(255,0,204,.55),0 0 30px rgba(0,255,255,.25),inset 0 0 18px rgba(255,240,0,.18);
+}
+.shop-card.flex .shop-category{
+  color:#fff000;
+  border-color:#fff000;
+}
+.shop-card button:disabled{
+  cursor:not-allowed;
+  opacity:.65;
+}
 .rarity-guide-list{
   display:flex;
   flex-wrap:wrap;

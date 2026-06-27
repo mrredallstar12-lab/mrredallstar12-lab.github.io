@@ -483,6 +483,8 @@ const achievementCatalog = {
   weatherLiar:{name:"Weather Liar",desc:"Refresh fake weather 5 times."},
   patchSurvivor:{name:"Patch Survivor",desc:"Survive a fake update failure."},
   shopVictim:{name:"Shop Victim",desc:"Buy any fake shop item."},
+  shopHoarder:{name:"Shop Hoarder",desc:"Own 15 fake shop items."},
+  trophyShopper:{name:"Trophy Shopper",desc:"Buy an expensive or endgame fake shop trophy."},
   deeperArchive:{name:"Deeper Archive",desc:"Unlock the second secret phrase."},
   pixelGoblin:{name:"Pixel Goblin",desc:"Find a secret loose pixel."},
   footerTrespasser:{name:"Footer Trespasser",desc:"Click the footer until it gives up a secret."},
@@ -547,6 +549,7 @@ const closeMilestonePopups = [
 const currencyNames = ["Static Coins","Popup Bucks","Coupon Dust"];
 const chaosLabels = ["calm","weird","annoying","haunted","dial-up apocalypse"];
 const questPhrase = "bolt-coupon-vhs";
+const shopInventoryCatalog = {};
 
 function getInventory(){return readJSON("oddInventory",{})}
 function getAchievements(){return readJSON("oddAchievements",{})}
@@ -558,8 +561,21 @@ function getPopupCap(){
   return HARD_MAX_POPUPS;
 }
 
+function shopInventoryRarity(item){
+  const cost = Number(item && item.cost && item.cost[1] || 0);
+  if(item && item.category === "Endgame Flex" && cost >= 1000) return "impossible";
+  if(item && item.category === "Endgame Flex") return "mythic";
+  if(cost >= 600) return "cosmic";
+  if(cost >= 300) return "mythic";
+  if(cost >= 150) return "relic";
+  if(cost >= 75) return "veryRare";
+  if(cost >= 40) return "rare";
+  if(cost >= 15) return "odd";
+  return "common";
+}
+
 function getInventoryMeta(itemName){
-  const meta = inventoryCatalog[itemName] || {};
+  const meta = inventoryCatalog[itemName] || shopInventoryCatalog[itemName] || {};
   const rarity = rarityTiers[meta.rarity] ? meta.rarity : "common";
   return {
     rarity,
@@ -3141,32 +3157,199 @@ function rollbackFakeUpdate(){
 }
 
 const shopItems = {
-  "Louder Beep License":{cost:["Static Coins",8],desc:"Beep confidence officially increased."},
-  "Slightly Faster VDO":{cost:["Popup Bucks",10],desc:"The bouncing logo gets a tiny safe speed bump."},
-  "Premium Dust":{cost:["Coupon Dust",6],desc:"Dust, but it knows HTML."},
-  "Ad Storm Insurance":{cost:["Popup Bucks",12],desc:"No coverage, only a badge of poor judgment."},
-  "Mystery Bolt Polish":{cost:["Static Coins",5],desc:"Makes one bolt slightly shinier."},
-  "Aquarium Breadcrumbs":{cost:["Coupon Dust",5],desc:"Fish-like symbols appreciate this."},
-  "Invisible Cursor Coupon":{cost:["Popup Bucks",7],desc:"Cannot be seen, cannot be redeemed."},
-  "Coupon Laminator":{cost:["Coupon Dust",12],desc:"Preserves fake savings forever."},
-  "Emergency Popup Helmet":{cost:["Static Coins",14],desc:"The helmet is also a popup."}
+  "Louder Beep License":{cost:["Static Coins",8],category:"Cheap Junk",desc:"Beep confidence officially increased."},
+  "Slightly Faster VDO":{cost:["Popup Bucks",10],category:"Cheap Junk",desc:"The bouncing logo gets a tiny safe speed bump."},
+  "Premium Dust":{cost:["Coupon Dust",6],category:"Cheap Junk",desc:"Dust, but it knows HTML."},
+  "Ad Storm Insurance":{cost:["Popup Bucks",12],category:"Cheap Junk",desc:"No coverage, only a badge of poor judgment."},
+  "Mystery Bolt Polish":{cost:["Static Coins",5],category:"Cheap Junk",desc:"Makes one bolt slightly shinier."},
+  "Aquarium Breadcrumbs":{cost:["Coupon Dust",5],category:"Cheap Junk",desc:"Fish-like symbols appreciate this."},
+  "Invisible Cursor Coupon":{cost:["Popup Bucks",7],category:"Cheap Junk",desc:"Cannot be seen, cannot be redeemed."},
+  "Coupon Laminator":{cost:["Coupon Dust",12],category:"Cheap Junk",desc:"Preserves fake savings forever."},
+  "Emergency Popup Helmet":{cost:["Static Coins",14],category:"Cheap Junk",desc:"The helmet is also a popup."},
+  "Table Cell Wax":{cost:["Static Coins",4],category:"Cheap Junk",desc:"Polishes one table cell until it remembers 2003."},
+  "Browser Crumb Jar":{cost:["Static Coins",3],category:"Cheap Junk",desc:"A jar for crumbs left by hungry hyperlinks."},
+  "Backup Beep":{cost:["Static Coins",6],category:"Cheap Junk",desc:"One spare beep for emergencies or dramatic menus."},
+  "Marquee Oil":{cost:["Static Coins",7],category:"Cheap Junk",desc:"Keeps scrolling text from squeaking in public."},
+  "Cursor Polish":{cost:["Popup Bucks",4],category:"Cheap Junk",desc:"Makes the pointer look like it knows where it is going."},
+  "Sticker Glue":{cost:["Static Coins",5],category:"Cheap Junk",desc:"For stickers that refuse to stay weird."},
+  "Soft 404 Bandage":{cost:["Static Coins",8],category:"Cheap Junk",desc:"Covers a not-found error until it stops crying."},
+  "Aquarium Tap Water":{cost:["Coupon Dust",4],category:"Cheap Junk",desc:"Technically wet, spiritually CSS."},
+  "Coupon Dust Pan":{cost:["Coupon Dust",3],category:"Cheap Junk",desc:"Sweeps powdered savings into smaller piles."},
+  "Popup Button Screws":{cost:["Popup Bucks",5],category:"Cheap Junk",desc:"Keeps fake button panels attached to bad ideas."},
+  "Guestbook Eraser Dust":{cost:["Static Coins",6],category:"Cheap Junk",desc:"A smudge from a visitor who changed their mind."},
+  "CRT Smudge Cloth":{cost:["Static Coins",9],category:"Cheap Junk",desc:"Cleans everything except the feeling of old plastic."},
+  "Dial-up Shoe Horn":{cost:["Static Coins",11],category:"Cheap Junk",desc:"Helps a modem squeeze into the call."},
+  "Fake Toolbar Velcro":{cost:["Popup Bucks",9],category:"Cheap Junk",desc:"Attaches one useless button to another useless button."},
+  "Zero Percent Receipt Clip":{cost:["Coupon Dust",6],category:"Cheap Junk",desc:"Holds together receipts with no financial meaning."},
+  "Desktop Pet Snacks":{cost:["Static Coins",22],category:"Mid-Tier Props",desc:"Tiny treats for things crawling across the desktop."},
+  "Coupon Bug Bait":{cost:["Coupon Dust",18],category:"Mid-Tier Props",desc:"Attracts coupon bugs that deny being bugs."},
+  "VDO Corner Chalk":{cost:["Popup Bucks",24],category:"Mid-Tier Props",desc:"Marks where the VDO logo almost did something legendary."},
+  "Static Umbrella":{cost:["Static Coins",28],category:"Mid-Tier Props",desc:"Keeps light static off your fictional shoulders."},
+  "Guestbook Ink Refill":{cost:["Static Coins",16],category:"Mid-Tier Props",desc:"For spirit entries with unfinished opinions."},
+  "Fake Antivirus Sticker":{cost:["Popup Bucks",18],category:"Mid-Tier Props",desc:"Says PROTECTED in a font that protects nothing."},
+  "Loading Bar Wrench":{cost:["Static Coins",32],category:"Mid-Tier Props",desc:"Tightens progress bars stuck at ninety-nine."},
+  "CRT Moth Net":{cost:["Static Coins",35],category:"Mid-Tier Props",desc:"For catching moths between scanlines."},
+  "Radio Dial Extender":{cost:["Static Coins",26],category:"Mid-Tier Props",desc:"Reaches stations beyond normal nonsense."},
+  "Panic Button Spring":{cost:["Popup Bucks",30],category:"Mid-Tier Props",desc:"Makes panic bounce back more professionally."},
+  "Mystery Bolt Display Stand":{cost:["Static Coins",45],category:"Mid-Tier Props",desc:"Elevates one mystery bolt to museum height."},
+  "Coupon Barcode Repair Kit":{cost:["Coupon Dust",38],category:"Mid-Tier Props",desc:"Repairs barcodes that scanned as sighs."},
+  "Ad Storm Sandbags":{cost:["Popup Bucks",52],category:"Mid-Tier Props",desc:"Stacks around the browser when rectangles flood in."},
+  "Lost Signal Bookmark":{cost:["Static Coins",44],category:"Mid-Tier Props",desc:"Saves your place inside a station that is not there."},
+  "Desktop Shortcut Leash":{cost:["Popup Bucks",22],category:"Mid-Tier Props",desc:"Keeps fake shortcuts from wandering into the taskbar."},
+  "Tiny Modem Blanket":{cost:["Static Coins",30],category:"Mid-Tier Props",desc:"Keeps the modem warm between screams."},
+  "Golden Close Button":{cost:["Popup Bucks",125],category:"Expensive Trophies",desc:"A luxury X for closing rectangles with class."},
+  "Premium Popup Permit":{cost:["Popup Bucks",95],category:"Expensive Trophies",desc:"Authorizes one popup to feel important."},
+  "VDO Bounce Insurance":{cost:["Popup Bucks",140],category:"Expensive Trophies",desc:"Coverage begins after the corner has already been missed."},
+  "Fake Ad Museum Membership":{cost:["Popup Bucks",150],category:"Expensive Trophies",desc:"Includes basement rumors and a laminated badge."},
+  "Haunted Toolbar Deed":{cost:["Static Coins",180],category:"Expensive Trophies",desc:"Ownership papers for a toolbar that keeps moving."},
+  "Coupon Goblin Union Card":{cost:["Coupon Dust",160],category:"Expensive Trophies",desc:"Collective bargaining for zero percent savings."},
+  "Static City Parking Pass":{cost:["Static Coins",90],category:"Expensive Trophies",desc:"Valid nowhere, especially Static City."},
+  "Lost Page Compass":{cost:["Static Coins",110],category:"Expensive Trophies",desc:"Points toward pages the archive mislaid on purpose."},
+  "Archive Shelf Rental":{cost:["Static Coins",175],category:"Expensive Trophies",desc:"One dusty shelf, month-to-month, probably haunted."},
+  "Webring VIP Token":{cost:["Static Coins",120],category:"Expensive Trophies",desc:"Skip the line in a web ring with no line."},
+  "CRT Moth Conservatory Pass":{cost:["Static Coins",210],category:"Expensive Trophies",desc:"Admission to the warmest part of the monitor."},
+  "Signal Interruption License":{cost:["Popup Bucks",85],category:"Expensive Trophies",desc:"A permit to interrupt yourself with style."},
+  "Coupon Laminator Pro":{cost:["Coupon Dust",220],category:"Expensive Trophies",desc:"For preserving fake savings at archival quality."},
+  "Ad Museum Velvet Rope":{cost:["Popup Bucks",240],category:"Expensive Trophies",desc:"Keeps imaginary crowds away from fake exhibits."},
+  "One Percent Off Coupon":{cost:["Coupon Dust",300],category:"Endgame Flex",desc:"A forbidden coupon with actual value. The archive is nervous."},
+  "Official Archive Timeshare":{cost:["Static Coins",600],category:"Endgame Flex",desc:"Own one week per year in a hallway made of popups."},
+  "Diamond Popup Buck":{cost:["Popup Bucks",500],category:"Endgame Flex",desc:"A Popup Buck wearing a tiny chandelier."},
+  "Canary Signal Deed":{cost:["Coupon Dust",800],category:"Endgame Flex",desc:"Claims ownership of a whistle the source code keeps hiding."},
+  "Final Loading Bar Warranty":{cost:["Static Coins",750],category:"Endgame Flex",desc:"Covers progress bars after the heat death of patience."},
+  "Museum Basement Naming Rights":{cost:["Popup Bucks",1000],category:"Endgame Flex",desc:"Names a basement room after your worst click."},
+  "Geocities Crown Display Case":{cost:["Static Coins",900],category:"Endgame Flex",desc:"A velvet case for a crown made of animated gifs."},
+  "The Button That Does Not Need You":{cost:["Popup Bucks",1200],category:"Endgame Flex",desc:"It clicks itself in your general direction."},
+  "Void-Approved Shopping Cart":{cost:["Coupon Dust",650],category:"Endgame Flex",desc:"Approved by the loading void after three committee loops."},
+  "Fake Checkout Throne":{cost:["Static Coins",1500],category:"Endgame Flex",desc:"A throne for a checkout page that will never exist."},
+  "One True Close Button Display":{cost:["Popup Bucks",1400],category:"Endgame Flex",desc:"A museum display for the button all rectangles fear."},
+  "Cosmic Coupon Vault":{cost:["Coupon Dust",1200],category:"Endgame Flex",desc:"Stores zero percent savings under a moon rock lock."}
 };
+
+Object.entries(shopItems).forEach(([name,item])=>{
+  if(!inventoryCatalog[name]){
+    shopInventoryCatalog[name] = {rarity:shopInventoryRarity(item),flavor:"shop",desc:item.desc};
+  }
+});
+
+function countOwnedShopItems(purchases=getPurchases()){
+  return Object.keys(shopItems).filter((name)=>purchases[name]).length;
+}
+
+function shopPriceClass(item,purchased=false){
+  const cost = Number(item.cost[1] || 0);
+  const classes = ["shop-card"];
+  if(purchased) classes.push("owned");
+  if(item.category === "Endgame Flex") classes.push("flex");
+  else if(cost >= 75) classes.push("expensive");
+  else if(cost >= 15) classes.push("mid-tier");
+  else classes.push("cheap");
+  return classes.join(" ");
+}
+
+function renderShopIntro(purchases=getPurchases()){
+  const grid = $("#shopGrid");
+  if(!grid) return;
+  let panel = $("#shopIntroPanel");
+  if(!panel){
+    panel = document.createElement("div");
+    panel.id = "shopIntroPanel";
+    panel.className = "box shop-intro-panel";
+    grid.parentNode.insertBefore(panel,grid);
+  }
+  panel.innerHTML = `<h2>Fake Shop Restock</h2><p>The shelf restocked itself while nobody was legally watching.</p><p class="shop-count">Shop items owned: <b data-shop-owned-count>${countOwnedShopItems(purchases)} / ${Object.keys(shopItems).length}</b></p>`;
+}
 
 function renderShop(){
   const grid = $("#shopGrid");
   if(!grid) return;
-  renderCouponDustHint();
   const purchases = getPurchases();
+  renderShopIntro(purchases);
+  renderCouponDustHint();
   grid.innerHTML = Object.entries(shopItems).map(([name,item])=>{
     const [type,cost] = item.cost;
-    return `<div class="shop-card ${purchases[name] ? "owned" : ""}"><h3>${clean(name)}</h3><p>${clean(item.desc)}</p><p>Cost: ${cost} ${clean(type)}</p><button onclick="buyShopItem('${name}')">${purchases[name] ? "owned" : "buy fake item"}</button></div>`;
+    const owned = !!purchases[name];
+    return `<div class="${shopPriceClass(item,owned)}"><p class="shop-category">${clean(item.category || "Archive Shelf")}</p><h3>${clean(name)}</h3><p>${clean(item.desc)}</p><p>Cost: ${cost} ${clean(type)}</p><button ${owned ? "disabled" : ""} onclick="buyShopItem('${name}')">${owned ? "owned" : "buy fake item"}</button></div>`;
   }).join("") + `<div class="shop-card secret-shop-card"><h3>Under-Counter Static</h3><p>The clerk denies this shelf exists.</p><p>Cost: one suspicious click</p><button onclick="buySecretShopItem()">inspect clearance static</button></div>`;
   setStatusText("[data-shop-currency]",currencySummary());
+  setStatusText("[data-shop-owned-count]",`${countOwnedShopItems(purchases)} / ${Object.keys(shopItems).length}`);
 }
 
 function buySecretShopItem(){
   const unlocked = discoverSecret("shop:clearance-static","The shop's under-counter static sold you nothing beautifully.","Emergency Exit Sign",{achievement:"shopVictim",currency:["Static Coins",3]});
   if(unlocked) awardCouponDust(2,"under-counter static");
+}
+
+function applyShopPurchaseEffects(name,item){
+  if(name === "Coupon Bug Bait"){
+    spawnDesktopPet("coupon");
+    awardCouponDust(2,"coupon bug bait rebate");
+    signalBanner("Coupon bug bait purchased. Something tiny smelled the savings.");
+  }
+  if(name === "VDO Corner Chalk"){
+    addInventoryItem("VDO Spark",1);
+    vdoSecretBoostUntil = Date.now() + 4200;
+    signalBanner("VDO corner chalk applied. The bounce path feels judged.");
+  }
+  if(name === "Golden Close Button"){
+    addInventoryItem("Bent Close Button",3);
+    addInventoryItem("Expired Banner Ad",5);
+    signalBanner("Golden close button purchased. Rectangle authority increased.");
+  }
+  if(name === "CRT Moth Net"){
+    addInventoryItem("CRT Moth",1);
+    discoverSecret("shop:crt-moth-net","The CRT moth net caught one glowing little problem.","CRT Moth");
+  }
+  if(name === "Lost Page Compass"){
+    addInventoryItem("Forgotten Webring Token",1);
+    addQuestClue("shop","lost page compass points toward /archive/cache/coupon-void");
+  }
+  if(name === "Coupon Bug Bait" || name === "Coupon Goblin Union Card") spawnFallingCoupon();
+  if(name === "Coupon Goblin Union Card"){
+    spawnDesktopPet("coupon");
+    awardCouponDust(5,"coupon goblin union rebate");
+  }
+  if(name === "One Percent Off Coupon"){
+    addInventoryItem("Cursed Coupon",1);
+    awardCouponDust(10,"one percent coupon paradox");
+    discoverSecret("shop:one-percent-coupon","The shop accidentally sold a coupon with value.","Illegal Coupon Crumb");
+  }
+  if(name === "Museum Basement Naming Rights"){
+    addInventoryItem("Basement Ad Ticket",2);
+    unlockAchievement("basementCurator");
+    signalBanner("Museum basement naming rights purchased. A velvet rope salutes.");
+    discoverSecret("shop:basement-naming-rights","The fake ad museum basement briefly accepted your authority.","Basement Ad Ticket");
+  }
+  if(name === "Diamond Popup Buck"){
+    addInventoryItem("Popup Buck",5);
+    addCurrency("Popup Bucks",25);
+    signalBanner("Diamond Popup Buck emits refundable rectangle energy.");
+  }
+  if(name === "Canary Signal Deed"){
+    addInventoryItem("Original Signal Canary",1);
+    discoverSecret("shop:canary-signal-deed","The canary deed chirped the original signal.","Canary Feather");
+  }
+  if(name === "The Button That Does Not Need You"){
+    addInventoryItem("One True Close Button",1);
+    signalBanner("The button does not need you, but it accepted the receipt.");
+  }
+  if(name === "Fake Checkout Throne"){
+    addInventoryItem("One-of-One Archive Heart",1);
+    discoverSecret("shop:fake-checkout-throne","The fake checkout throne appeared, charged nothing real, and judged everything.","One-of-One Archive Heart");
+  }
+  if(name === "Cosmic Coupon Vault"){
+    addInventoryItem("Cosmic Coupon Moon Rock",1);
+    awardCouponDust(12,"cosmic coupon vault leakage");
+  }
+  if(name === "One True Close Button Display"){
+    addInventoryItem("Final Close Button Halo",1);
+    signalBanner("The close button display hums with unreasonable authority.");
+  }
+  if(name === "Static City Parking Pass") addCurrency("Static Coins",5);
+  if(name === "Desktop Pet Snacks") spawnDesktopPet();
+  if(name === "Radio Dial Extender") addInventoryItem("Radio Tower Paperclip",1);
+  if(name === "Fake Ad Museum Membership") addInventoryItem("Basement Ad Ticket",1);
+  if(name === "VDO Bounce Insurance") addInventoryItem("VDO Spark",2);
+  if(item.category === "Expensive Trophies" || item.category === "Endgame Flex") unlockAchievement("trophyShopper");
 }
 
 function buyShopItem(name){
@@ -3188,6 +3371,7 @@ function buyShopItem(name){
   writeJSON("oddShopPurchases",purchases);
   addInventoryItem(name,1);
   unlockAchievement("shopVictim");
+  applyShopPurchaseEffects(name,item);
   if(name === "Coupon Laminator"){
     const unlocked = discoverSecret("shop:coupon-laminator","The coupon laminator preserved one illegal crumb.","Illegal Coupon Crumb");
     if(unlocked) awardCouponDust(3,"coupon laminator rebate");
@@ -3195,6 +3379,7 @@ function buyShopItem(name){
   if(name === "Invisible Cursor Coupon") awardCouponDust(2,"invisible cursor coupon");
   if(name === "Aquarium Breadcrumbs") awardCouponDust(1,"aquarium breadcrumbs");
   if(name === "Emergency Popup Helmet") discoverSecret("shop:popup-helmet","Emergency popup helmet came with an exit sign.","Emergency Exit Sign");
+  if(countOwnedShopItems(purchases) >= 15) unlockAchievement("shopHoarder");
   renderShop();
   updateArchiveDashboard();
 }
@@ -3339,6 +3524,8 @@ addEventListener("DOMContentLoaded",()=>{
   window.flipPanel = flipPanel;
   window.renderInventory = renderInventory;
   window.renderAchievements = renderAchievements;
+  window.countOwnedShopItems = countOwnedShopItems;
+  window.renderShopIntro = renderShopIntro;
   window.showFakeFolder = showFakeFolder;
   window.openFakeFile = openFakeFile;
   window.cursedSearch = cursedSearch;

@@ -1371,17 +1371,6 @@ meter{width:100%}
   outline:2px dashed var(--lime);
   background:repeating-linear-gradient(45deg,rgba(182,255,0,.18) 0 7px,rgba(0,255,255,.16) 7px 14px),#090909;
 }
-.new-badge{
-  display:inline-block;
-  margin-left:4px;
-  border:2px outset var(--yellow);
-  background:var(--yellow);
-  color:#000;
-  padding:0 3px;
-  font:bold 9px "Courier New",monospace;
-  text-shadow:none;
-  transform:rotate(-4deg);
-}
 .badge-widget .badge{
   margin:3px 2px;
 }

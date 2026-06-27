@@ -1408,16 +1408,16 @@ const canonicalNavGroups = [
   {
     title:"EXPANSION WING",
     links:[
-      ["Inbox","inbox.html",true],
-      ["OddOS 98","oddos.html",true],
-      ["Market","market.html",true],
-      ["Map","map.html",true],
-      ["Daily","daily.html",true],
-      ["Fake Antivirus","antivirus.html",true],
-      ["Auction","auction.html",true],
-      ["Wiki","wiki.html",true],
-      ["Login","login.html",true],
-      ["Quest Board","quests.html",true]
+      ["Inbox","inbox.html"],
+      ["OddOS 98","oddos.html"],
+      ["Market","market.html"],
+      ["Map","map.html"],
+      ["Daily","daily.html"],
+      ["Fake Antivirus","antivirus.html"],
+      ["Auction","auction.html"],
+      ["Wiki","wiki.html"],
+      ["Login","login.html"],
+      ["Quest Board","quests.html"]
     ]
   }
 ];
@@ -1451,9 +1451,9 @@ function canonicalNavHTML(){
   return `<div class="box nav canonical-nav"><h3>navigation</h3>` + canonicalNavGroups.map((group)=>`
     <div class="nav-group">
       ${group.title ? `<small class="nav-heading">${clean(group.title)}</small>` : ""}
-      ${group.links.map(([label,file,isNew])=>{
+      ${group.links.map(([label,file])=>{
         const href = canonicalPageHref(file);
-        return `<a class="${canonicalLinkIsActive(href,file) ? "active" : ""}" href="${clean(href)}">${clean(label)}${isNew ? ` <span class="new-badge">NEW</span>` : ""}</a>`;
+        return `<a class="${canonicalLinkIsActive(href,file) ? "active" : ""}" href="${clean(href)}">${clean(label)}</a>`;
       }).join("")}
     </div>
   `).join("") + `</div>`;

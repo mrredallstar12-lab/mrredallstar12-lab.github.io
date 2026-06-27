@@ -3030,7 +3030,8 @@ let archiveRadioAudio = null;
 let currentRadioStation = "";
 let radioSyntheticSession = null;
 const failedRadioSources = new Set();
-const radioMissingTrackMessage = "TRACK MISSING — put a file in assets/audio or enable synthetic cursed radio mode.";
+const radioMissingTrackBackupOnMessage = "TRACK MISSING — real cassette not found. Cursed backup audio is taking over.";
+const radioMissingTrackBackupOffMessage = "TRACK MISSING — real cassette not found. Turn on cursed backup audio or add a file in assets/audio.";
 
 // Put owned or royalty-free MP3/OGG/WAV files in assets/audio, or replace src values with direct HTTPS stream URLs.
 const radioStationOrder = [
@@ -3101,17 +3102,17 @@ function getArchiveRadioAudio(){
 }
 
 function radioSyntheticModeEnabled(){
-  return localStorage.getItem("oddRadioSyntheticMode") === "true";
+  return localStorage.getItem("oddRadioSyntheticMode") !== "false";
 }
 
 function updateRadioSyntheticButtons(){
   const enabled = radioSyntheticModeEnabled();
   $$("[data-radio-synthetic-toggle]").forEach((button)=>{
-    button.textContent = `synthetic cursed radio mode: ${enabled ? "on" : "off"}`;
+    button.textContent = `cursed backup audio: ${enabled ? "ON" : "OFF"}`;
     button.setAttribute("aria-pressed",String(enabled));
     button.classList.toggle("active",enabled);
   });
-  setStatusText("[data-radio-synthetic-status]",enabled ? "synthetic fallback armed" : "real cassettes only");
+  setStatusText("[data-radio-synthetic-status]",enabled ? "real cassettes preferred; backup oscillator armed" : "real cassettes only; silence may occur");
 }
 
 function radioResolvedSrc(data){
@@ -3351,8 +3352,8 @@ function startSyntheticRadio(station,status){
   updateSyntheticRadioVolume();
   buildSyntheticRadioPattern(session,station);
   localStorage.setItem("oddRadioPaused","false");
-  appendRadioLog(`Synthetic cursed radio mode generating ${data.frequency || station}: ${data.name}.`);
-  renderRadioOutput(station,status || "Synthetic cursed radio mode is generating fake station audio.");
+  appendRadioLog(`Cursed backup audio generating ${data.frequency || station}: ${data.name}.`);
+  renderRadioOutput(station,status || "Cursed backup audio is generating fake station audio.");
   return true;
 }
 
@@ -3361,14 +3362,15 @@ function handleRadioFileFailure(station,sourcePath){
   if(!data) return;
   const failedPath = sourcePath || data.src || "(no source path)";
   if(data.src) failedRadioSources.add(radioResolvedSrc(data));
-  appendRadioLog(`${radioMissingTrackMessage} Failed source: ${failedPath}`);
+  const missingMessage = radioSyntheticModeEnabled() ? radioMissingTrackBackupOnMessage : radioMissingTrackBackupOffMessage;
+  appendRadioLog(`${missingMessage} Failed source: ${failedPath}`);
   if(radioSyntheticModeEnabled()){
-    startSyntheticRadio(station,`${radioMissingTrackMessage} Synthetic fallback is playing.`);
+    startSyntheticRadio(station,missingMessage);
   }
   else {
     stopSyntheticRadio();
     localStorage.setItem("oddRadioPaused","true");
-    renderRadioOutput(station,radioMissingTrackMessage);
+    renderRadioOutput(station,missingMessage);
   }
 }
 
@@ -3395,10 +3397,10 @@ function renderRadioOutput(station,status){
   const synthetic = radioSyntheticModeEnabled();
   const syntheticLive = !!(radioSyntheticSession && radioSyntheticSession.station === station);
   const sourceFailed = radioFileHasFailed(station);
-  const sourceText = data.src ? sourceFailed ? radioMissingTrackMessage : "Ready for real archive audio." : synthetic ? "No real cassette; synthetic cursed radio mode is available." : "No real signal attached yet.";
+  const sourceText = data.src ? sourceFailed ? (synthetic ? radioMissingTrackBackupOnMessage : radioMissingTrackBackupOffMessage) : "Ready for real archive audio." : synthetic ? "No real cassette; cursed backup audio is ready." : "No real signal attached yet.";
   const sourceLine = data.src
     ? `Signal source: ${clean(data.src)}${sourceFailed ? " (missing last time the archive checked)" : ""}`
-    : "No source path attached. Synthetic cursed radio mode can generate fake station audio.";
+    : "No source path attached. Cursed backup audio can generate fake station audio.";
   out.innerHTML = `
     <div class="radio-player ${syntheticLive ? "radio-synthetic-active" : ""}">
       <div class="radio-status-row"><span class="on-air">ON AIR</span><span class="radio-status">${clean(status || sourceText)}</span></div>
@@ -3415,11 +3417,11 @@ function renderRadioOutput(station,status){
         <button onclick="radioRandom()">random</button>
         <button onclick="radioNext()">next</button>
         <button onclick="requestBasementSong()">request song</button>
-        <button class="synthetic-radio-toggle" data-radio-synthetic-toggle aria-pressed="${synthetic}" onclick="toggleSyntheticRadioMode()">synthetic cursed radio mode: ${synthetic ? "on" : "off"}</button>
+        <button class="synthetic-radio-toggle" data-radio-synthetic-toggle aria-pressed="${synthetic}" onclick="toggleSyntheticRadioMode()">cursed backup audio: ${synthetic ? "ON" : "OFF"}</button>
         <label>volume <input type="range" min="0" max="1" step="0.05" value="${getArchiveRadioAudio().volume}" oninput="setRadioVolume(this.value)"></label>
         <span data-radio-volume-value>${volume}%</span>
       </div>
-      <p class="radio-mode-status" data-radio-synthetic-status>${synthetic ? "synthetic fallback armed" : "real cassettes only"}</p>
+      <p class="radio-mode-status" data-radio-synthetic-status>${synthetic ? "real cassettes preferred; backup oscillator armed" : "real cassettes only; silence may occur"}</p>
       <p class="mini-status ${data.src && !sourceFailed ? "" : "radio-source-missing"}">${sourceLine}</p>
     </div>`;
   updateRadioSyntheticButtons();
@@ -3431,9 +3433,9 @@ function radioPlay(){
   const audio = getArchiveRadioAudio();
   if(radioSyntheticModeEnabled()) getAudioContext();
   if(!data.src){
-    if(!startSyntheticRadio(currentRadioStation,"Synthetic cursed radio mode is generating fake station audio.")){
-      appendRadioLog(`${data.name} has no real signal attached. Synthetic cursed radio mode is off.`);
-      renderRadioOutput(currentRadioStation,"No real signal attached yet. Enable synthetic cursed radio mode or add a cassette.");
+    if(!startSyntheticRadio(currentRadioStation,"Cursed backup audio is generating fake station audio.")){
+      appendRadioLog(`${data.name} has no real signal attached. Cursed backup audio is off.`);
+      renderRadioOutput(currentRadioStation,"No real signal attached. Turn on cursed backup audio or add a cassette.");
       localStorage.setItem("oddRadioPaused","true");
     }
     return;
@@ -3520,9 +3522,9 @@ function tuneRadio(station){
     audio.removeAttribute("src");
     delete audio.dataset.sourcePath;
     audio.load();
-    if(!startSyntheticRadio(station,"Synthetic cursed radio mode is generating fake station audio.")){
+    if(!startSyntheticRadio(station,"Cursed backup audio is generating fake station audio.")){
       localStorage.setItem("oddRadioPaused","true");
-      renderRadioOutput(station,"Static-only station. No real signal attached yet.");
+      renderRadioOutput(station,"Static-only station. Turn on cursed backup audio or add a cassette.");
     }
   }
 }
@@ -3533,18 +3535,18 @@ function toggleSyntheticRadioMode(){
   updateRadioSyntheticButtons();
   if(!next){
     stopSyntheticRadio();
-    if(currentRadioStation) renderRadioOutput(currentRadioStation,"Synthetic cursed radio mode disabled. Real cassettes only.");
-    appendRadioLog("Synthetic cursed radio mode switched off. The fake oscillator went back into its box.");
+    if(currentRadioStation) renderRadioOutput(currentRadioStation,"Cursed backup audio disabled. Real cassettes only; silence may occur.");
+    appendRadioLog("Cursed backup audio switched off. The fake oscillator went back into its box.");
     return;
   }
-  appendRadioLog("Synthetic cursed radio mode switched on. The archive found a tiny synthesizer under the dial.");
+  appendRadioLog("Cursed backup audio switched on. The archive found a tiny synthesizer under the dial.");
   if(currentRadioStation){
     const data = radioStations[currentRadioStation];
     if(data && (!data.src || radioFileHasFailed(currentRadioStation))){
-      startSyntheticRadio(currentRadioStation,"Synthetic cursed radio mode is generating fake station audio.");
+      startSyntheticRadio(currentRadioStation,"Cursed backup audio is generating fake station audio.");
     }
     else {
-      renderRadioOutput(currentRadioStation,"Synthetic fallback armed. Real audio still gets first chair.");
+      renderRadioOutput(currentRadioStation,"Cursed backup audio armed. Real cassettes still get first chair.");
     }
   }
 }

@@ -716,6 +716,30 @@ meter{width:100%}
 }
 @keyframes secretToastPop{from{transform:translateY(12px) rotate(-1deg);opacity:0}to{transform:translateY(0) rotate(.5deg);opacity:1}}
 .secret-count-box{border-color:#0ff;background:rgba(0,18,28,.9)}
+.currency-guide-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:10px;
+  margin:12px 0;
+}
+.currency-guide{
+  min-height:150px;
+  font-family:"Courier New",monospace;
+}
+.currency-guide h2{font-size:clamp(18px,3vw,24px)}
+.currency-guide p{font-weight:bold;line-height:1.35}
+.static-coins-hint{
+  border-color:var(--cyan);
+  background:repeating-linear-gradient(45deg,rgba(0,255,255,.16) 0 10px,rgba(0,0,0,.22) 10px 20px),rgba(0,20,30,.93);
+  box-shadow:0 0 18px rgba(0,255,255,.4),inset 0 0 16px rgba(182,255,0,.16);
+}
+.static-coins-hint h2{color:var(--cyan)}
+.popup-bucks-hint{
+  border-color:var(--hot);
+  background:repeating-linear-gradient(45deg,rgba(255,0,204,.16) 0 9px,rgba(255,240,0,.12) 9px 18px),rgba(25,0,32,.94);
+  box-shadow:0 0 18px rgba(255,0,204,.4),inset 0 0 16px rgba(255,240,0,.16);
+}
+.popup-bucks-hint h2{color:var(--hot)}
 .coupon-dust-hint{
   border-color:#fff000;
   background:repeating-linear-gradient(45deg,rgba(255,240,0,.18) 0 10px,rgba(255,0,204,.16) 10px 20px),rgba(12,0,24,.92);
@@ -976,17 +1000,186 @@ meter{width:100%}
 .chaos-control{border-top:2px dotted #777;margin-top:8px;padding-top:8px}
 .chaos-control input{width:100%}
 .mini-status{font-size:11px;color:#ccc}
-.radio-note{border:2px dashed var(--cyan);background:#000;color:var(--lime);padding:7px;font:bold 12px "Courier New",monospace;text-shadow:0 0 6px var(--lime)}
-.radio-player{border:4px double var(--cyan);background:radial-gradient(circle at 20% 0,rgba(0,255,255,.18),transparent 34%),#090014;padding:10px;box-shadow:inset 0 0 18px rgba(0,255,255,.25),0 0 16px rgba(255,0,204,.35)}
-.radio-status{display:inline-block;border:3px outset #777;background:#001b13;color:var(--lime);padding:6px 8px;font:bold 13px "Courier New",monospace;text-shadow:0 0 8px var(--lime)}
-.radio-now{border-left:5px solid var(--hot);padding:7px 9px;background:rgba(255,0,204,.12)}
-.radio-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;padding:8px;border:2px dashed var(--yellow);background:rgba(0,0,0,.55)}
-.radio-controls label{display:flex;align-items:center;gap:6px;font:bold 12px "Courier New",monospace;color:var(--yellow)}
+.radio-dial-box{
+  background:radial-gradient(circle at 15% 0,rgba(255,240,0,.16),transparent 34%),linear-gradient(135deg,rgba(0,255,255,.11),rgba(255,0,204,.1)),var(--panel);
+}
+.radio-note{
+  border:2px dashed var(--cyan);
+  background:#000;
+  color:var(--lime);
+  padding:7px;
+  font:bold 12px "Courier New",monospace;
+  text-shadow:0 0 6px var(--lime);
+}
+.radio-dial-controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:8px 0 10px;
+  padding:8px;
+  border:2px dotted var(--yellow);
+  background:rgba(0,0,0,.5);
+}
+.radio-station-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:8px;
+  align-items:stretch;
+}
+.radio-station-button{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-height:98px;
+  text-align:left;
+  background:linear-gradient(180deg,#201047,#05000d);
+  border:3px outset var(--cyan);
+  color:#fff;
+  text-shadow:1px 1px #000,0 0 6px var(--cyan);
+}
+.radio-station-button b{color:var(--yellow)}
+.radio-station-button small{
+  color:#d7fff7;
+  font:11px "Courier New",monospace;
+}
+.radio-station-button.active{
+  background:repeating-linear-gradient(45deg,rgba(255,240,0,.22) 0 8px,rgba(255,0,204,.2) 8px 16px),#130020;
+  border-color:var(--yellow);
+  box-shadow:0 0 16px var(--yellow),inset 0 0 18px rgba(0,255,255,.28);
+  transform:rotate(-.4deg);
+}
+.radio-frequency{
+  display:inline-block;
+  align-self:flex-start;
+  border:2px inset #777;
+  background:#000;
+  color:var(--lime);
+  padding:2px 5px;
+  font:bold 12px "Courier New",monospace;
+}
+.radio-player{
+  border:4px double var(--cyan);
+  background:radial-gradient(circle at 20% 0,rgba(0,255,255,.18),transparent 34%),linear-gradient(180deg,rgba(0,0,0,.18),rgba(255,0,204,.12)),#090014;
+  padding:12px;
+  box-shadow:inset 0 0 18px rgba(0,255,255,.25),0 0 16px rgba(255,0,204,.35);
+}
+.radio-output h2{margin-top:7px}
+.radio-status-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.on-air{
+  display:inline-block;
+  border:3px outset #ff234a;
+  background:#ff234a;
+  color:#fff;
+  padding:4px 8px;
+  font:bold 14px "Courier New",monospace;
+  text-shadow:2px 2px #000;
+  box-shadow:0 0 14px #ff234a;
+  animation:blink .7s steps(1) infinite;
+}
+.radio-status{
+  display:inline-block;
+  border:3px outset #777;
+  background:#001b13;
+  color:var(--lime);
+  padding:6px 8px;
+  font:bold 13px "Courier New",monospace;
+  text-shadow:0 0 8px var(--lime);
+}
+.radio-now{
+  border-left:5px solid var(--hot);
+  padding:8px 9px;
+  margin:8px 0;
+  background:rgba(255,0,204,.12);
+  font:bold 14px "Courier New",monospace;
+}
+.radio-meta{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:8px;
+}
+.radio-meta p{
+  margin:0;
+  border:2px inset #777;
+  background:rgba(0,0,0,.45);
+  padding:7px;
+}
+.radio-signal{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin:6px 0 8px;
+  color:var(--yellow);
+  font:bold 12px "Courier New",monospace;
+}
+.radio-bars{
+  display:flex;
+  gap:3px;
+  padding:4px;
+  border:2px inset #777;
+  background:#000;
+}
+.radio-bars span{
+  width:13px;
+  height:22px;
+  border:1px solid #444;
+  background:#171717;
+}
+.radio-bars span.on{
+  background:linear-gradient(180deg,var(--lime),var(--cyan));
+  box-shadow:0 0 8px var(--cyan);
+}
+.radio-controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin:10px 0;
+  padding:8px;
+  border:2px dashed var(--yellow);
+  background:rgba(0,0,0,.55);
+}
+.radio-controls label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font:bold 12px "Courier New",monospace;
+  color:var(--yellow);
+}
 .radio-controls input{width:150px}
+.radio-source-missing{
+  color:var(--orange);
+  text-shadow:0 0 7px var(--orange);
+}
+.radio-log{
+  max-height:240px;
+  overflow:auto;
+  border:3px inset #777;
+  background:#000;
+  padding:8px;
+  color:var(--lime);
+  font:12px "Courier New",monospace;
+  box-shadow:inset 0 0 16px rgba(0,255,255,.25);
+}
+.radio-log p{
+  margin:0 0 7px;
+  border-bottom:1px dotted rgba(182,255,0,.35);
+  padding-bottom:5px;
+}
 .secret-panel.unlocked{display:block;border:3px dashed #fff000;padding:10px;margin-top:8px}
 
 @media(max-width:850px){
   .file-pane{grid-template-columns:1fr}
+  .radio-station-list{grid-template-columns:1fr}
+  .radio-station-button{min-height:auto}
+  .radio-controls input{width:110px}
+  .currency-guide-grid{grid-template-columns:1fr}
 }
 
 .fake-window{

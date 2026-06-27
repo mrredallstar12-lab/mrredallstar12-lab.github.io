@@ -775,7 +775,7 @@ function awardRandomJunk(reason="interaction"){
   addInventoryItem(item,1);
   if(reason === "ad") addCurrency("Popup Bucks",1);
   else if(reason === "event") addCurrency("Static Coins",1);
-  else if(reason === "coupon") awardCouponDust(1,"random coupon junk");
+  else if(reason === "coupon") awardCouponDust(2,"random coupon junk");
   else addCurrency(currencyNames[Math.floor(Math.random()*currencyNames.length)],1);
   rareDropFeedback(item,reason);
   return item;
@@ -1172,9 +1172,9 @@ function spawnFallingCoupon(){
   coupon.onclick = () => {
     if(coupon.dataset.claimed === "true") return;
     coupon.dataset.claimed = "true";
-    awardCouponDust(2,"clipped 0% coupon");
+    awardCouponDust(3,"clipped 0% coupon");
     if(Math.random() < .15) addInventoryItem("Illegal Coupon Crumb",1);
-    signalBanner("0% coupon clipped: +2 Coupon Dust");
+    signalBanner("0% coupon clipped: +3 Coupon Dust");
     coupon.remove();
   };
   document.body.appendChild(coupon);
@@ -1237,7 +1237,7 @@ function triggerRandomEvent(){
     ()=>{spawnDesktopPet();latestEvent("Desktop pet crossed the page.");},
     ()=>{spawnFallingCoupon();latestEvent("Fake coupon fell from the browser ceiling.");addInventoryItem("Cursed Coupon",1);},
     ()=>{document.body.classList.add("secret-signal-drift");setTimeout(()=>document.body.classList.remove("secret-signal-drift"),2200);latestEvent("Signal drift nudged the archive sideways.");discoverSecret("event:signal-drift","Signal drift mapped. The page leaned into it.","Bent Antenna",{silent:true});},
-    ()=>{spawnFallingCoupon();spawnFallingCoupon();latestEvent("Coupon migration crossed the viewport.");discoverSecret("event:coupon-migration","Coupon migration tagged and released.","Illegal Coupon Crumb",{silent:true,currency:["Coupon Dust",2]});},
+    ()=>{spawnFallingCoupon();spawnFallingCoupon();latestEvent("Coupon migration crossed the viewport.");discoverSecret("event:coupon-migration","Coupon migration tagged and released.","Illegal Coupon Crumb",{silent:true,currency:["Coupon Dust",3]});},
     ()=>{spawnSecretPopup("ghost-popup","GHOST POPUP","A popup was here before it was here.","Static Receipt");latestEvent("Ghost popup left a rectangle-shaped chill.");discoverSecret("event:ghost-popup","Ghost popup cataloged without a net.","Static Receipt",{silent:true});},
     ()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1200);latestEvent("CRT cough shook loose a moth.");discoverSecret("event:crt-cough","CRT cough produced one suspicious moth.","CRT Moth",{silent:true});},
     ()=>{vdoSecretBoostUntil = Date.now() + 3500;latestEvent("VDO hiccup sped up the corner watch.");discoverSecret("event:vdo-hiccup","VDO hiccup measured in sparks.","VDO Splinter",{silent:true});},
@@ -1281,8 +1281,20 @@ function spawnDesktopPet(type){
   el.style.top = 80 + Math.random() * Math.max(120,innerHeight - 180) + "px";
   el.onclick = () => {
     addInventoryItem(pet.item,1);
-    if(petType === "coupon") awardCouponDust(2,"coupon bug");
-    latestEvent(pet.msg);
+    const dustChance = petType === "coupon" ? .55 : .28;
+    if(Math.random() < dustChance){
+      const dust = 3 + Math.floor(Math.random() * 3);
+      awardCouponDust(dust,petType === "coupon" ? "coupon desktop pet" : "desktop pet");
+      const dustMessages = [
+        "The coupon bug coughed up dusty savings.",
+        "Your desktop pet found expired value behind the taskbar.",
+        "Coupon Dust acquired. The pet refuses to explain how."
+      ];
+      latestEvent(`${dustMessages[Math.floor(Math.random()*dustMessages.length)]} +${dust} Coupon Dust`);
+    }
+    else {
+      latestEvent(pet.msg);
+    }
     playSound("blip");
     el.remove();
   };
@@ -1554,7 +1566,7 @@ function performSecretCode(code){
   const actions = {
     vdo:()=>{vdoSecretBoostUntil = Date.now() + 6500; discoverSecret("typed:vdo","VDO heard its name and sped up.","VDO Splinter",{achievement:"signalWhisperer"});},
     signal404:()=>{addQuestClue("typed-signal404","signal404 still opens the first door"); discoverSecret("typed:signal404","signal404 echoed through the secret gate.","404 Shard",{achievement:"signalWhisperer"});},
-    coupon:()=>{const unlocked = discoverSecret("typed:coupon","A coupon crumb fell out of the keyboard.","Illegal Coupon Crumb",{achievement:"signalWhisperer"}); if(unlocked) awardCouponDust(3,"typed coupon secret"); spawnSecretPopup("coupon-crumb","KEYBOARD COUPON DETECTED","The archive found savings dust under one key.","Illegal Coupon Crumb");},
+    coupon:()=>{const unlocked = discoverSecret("typed:coupon","A coupon crumb fell out of the keyboard.","Illegal Coupon Crumb",{achievement:"signalWhisperer"}); if(unlocked) awardCouponDust(5,"typed coupon secret"); spawnSecretPopup("coupon-crumb","KEYBOARD COUPON DETECTED","The archive found savings dust under one key.","Illegal Coupon Crumb");},
     static:()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1500); discoverSecret("typed:static","Static answered in all caps.","Static Receipt",{achievement:"signalWhisperer"});},
     biggie:()=>{document.body.classList.add("biggie-mode");setTimeout(()=>document.body.classList.remove("biggie-mode"),2400); discoverSecret("typed:biggie","Biggie mode briefly inflated the archive ego.","Archive Tooth",{achievement:"signalWhisperer"});},
     lm:()=>{discoverSecret("typed:lm","LM initials found a canary feather in the source.","Canary Feather",{achievement:"signalWhisperer"});},
@@ -1891,7 +1903,7 @@ function awardAdTemplateReward(template){
   };
   const pool = rewards[template.className] || ["Popup Buck","CRT Dust","Expired Banner Ad"];
   const reward = pool[Math.floor(Math.random()*pool.length)];
-  if(reward === "Coupon Dust") awardCouponDust(1,"coupon popup reward");
+  if(reward === "Coupon Dust") awardCouponDust(2,"coupon popup reward");
   else if(reward === "Popup Buck") addCurrency("Popup Bucks",1);
   else addInventoryItem(reward,1);
 }
@@ -1937,7 +1949,7 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
       awardAdTemplateReward(template);
       if(/coupon|goblin|vhs|cookie/i.test(`${template.className} ${template.title}`) && ad.dataset.couponDustClaimed !== "true"){
         ad.dataset.couponDustClaimed = "true";
-        awardCouponDust(1,"coupon popup interaction");
+        awardCouponDust(2,"coupon popup interaction");
         if(Math.random() < .12) addInventoryItem("Coupon Dust",1);
       }
       if(template.className === "ad-aquarium") aquariumEvent();
@@ -2706,7 +2718,7 @@ function feedFish(){
   const out = $("#fishOut");
   if(out) out.textContent = "The aquarium accepts the browser crumbs and becomes slightly weirder.";
   addInventoryItem("Aquarium Bubble",1);
-  addCurrency("Coupon Dust",1);
+  awardCouponDust(2,"aquarium crumbs");
   unlockAchievement("aquariumGoblin");
   addQuestClue("aquarium","bubble points toward coupon");
   discoverSecret("aquarium:fed","The fed aquarium burped a secret bubble.","Aquarium Bubble");
@@ -2850,14 +2862,27 @@ function renderRarityGuide(){
 function renderCouponDustHint(){
   const host = $("#shopGrid") || $("#inventoryGrid");
   if(!host) return;
-  let panel = $("#couponDustHintPanel");
+  let panel = $("#currencyGuidePanel");
   if(!panel){
     panel = document.createElement("div");
-    panel.id = "couponDustHintPanel";
-    panel.className = "box coupon-dust-hint";
+    panel.id = "currencyGuidePanel";
+    panel.className = "currency-guide-grid";
     host.parentNode.insertBefore(panel,host);
   }
-  panel.innerHTML = `<h2>How to earn Coupon Dust</h2><p>Catch drifting 0% coupons, poke coupon popups, inspect coupon files, and bother coupon bugs. Typing coupon only works once because the archive is not that stupid.</p>`;
+  panel.innerHTML = `
+    <div class="box currency-guide static-coins-hint">
+      <h2>How to earn Static Coins</h2>
+      <p>Static Coins are the lint in the pockets of the haunted internet. Open and close cursed popups, poke site chaos, try secret codes, inspect fake files, trigger achievements, catch hidden pixels, and survive random archive events.</p>
+    </div>
+    <div class="box currency-guide popup-bucks-hint">
+      <h2>How to earn Popup Bucks</h2>
+      <p>Popup Bucks are legal tender in exactly zero countries and three suspicious toolbars. Bother fake ads, weather the ad storm, loot close-button milestones, use cursed search, chase rare event rewards, and let shop effects make poor financial decisions.</p>
+    </div>
+    <div id="couponDustHintPanel" class="box currency-guide coupon-dust-hint">
+      <h2>How to earn Coupon Dust</h2>
+      <p>Catch drifting 0% coupons, poke coupon popups, inspect coupon files, refresh coupon weather, bribe coupon shop items, and bother coupon-shaped desktop pets. Typing coupon only works once because the archive is not that stupid.</p>
+    </div>
+  `;
 }
 
 function renderInventory(){
@@ -2930,7 +2955,7 @@ function openFakeFile(folder,file){
   if(/coupon|\.cpn/i.test(file)){
     const couponId = file === "zero_percent.cpn" ? "files:zero-coupon" : `files:coupon-${file.replace(/[^a-z0-9]+/gi,"-").toLowerCase()}`;
     const unlocked = discoverSecret(couponId,`${file} leaked a little Coupon Dust from the cabinet.`,"Illegal Coupon Crumb");
-    if(unlocked) awardCouponDust(2,"coupon file");
+    if(unlocked) awardCouponDust(3,"coupon file");
   }
 }
 
@@ -3005,14 +3030,59 @@ let archiveRadioAudio = null;
 let currentRadioStation = "";
 
 // Put owned or royalty-free MP3/OGG/WAV files in assets/audio, or replace src values with direct HTTPS stream URLs.
+const radioStationOrder = [
+  "FM 40.4",
+  "FM 98.6",
+  "AM 666",
+  "FM 13.7",
+  "CH 404",
+  "FM 88.8",
+  "Static 66.6 FM",
+  "Popup Bucks Power Hour",
+  "Coupon Dust Weather Band",
+  "VDO Bounce Radio",
+  "Archive Jazz Leak",
+  "Mall Fountain 1999",
+  "Numbers From The Basement",
+  "Broken MIDI Memorial",
+  "One-of-One Silence",
+  "Fake Emergency Broadcast System"
+];
+
 const radioStations = {
-  "FM 40.4":{name:"Banner Ad Jazz",now:"saxophone over a blinking coupon",item:"Radio Static Sample",src:"../assets/audio/banner-jazz.wav",type:"audio/wav"},
-  "FM 98.6":{name:"Aquarium Weather",now:"humid bubbles over soft modem rain",item:"Weather Pixel",src:"../assets/audio/aquarium-weather.wav",type:"audio/wav"},
-  "AM 666":{name:"Loading Bar Sermons",now:"99 percent forever and amen",item:"Broken Loading Bar",src:"../assets/audio/loading-sermon.wav",type:"audio/wav"},
-  "FM 13.7":{name:"Coupon Emergency Broadcast",now:"urgent savings with no value",item:"Coupon Dust",src:"../assets/audio/coupon-emergency.wav",type:"audio/wav"},
-  "CH 404":{name:"Lost Signal",now:"static clue: bolt-coupon-vhs",item:"Radio Static Sample",src:"../assets/audio/ch404-static.wav",type:"audio/wav"},
-  "FM 88.8":{name:"VDO Corner Bounce Watch",now:"live commentary on a near miss",item:"VDO Spark",src:"../assets/audio/vdo-corner.wav",type:"audio/wav"}
+  "FM 40.4":{frequency:"FM 40.4",name:"Banner Ad Jazz",description:"Coupon lounge music played through a banner rectangle with one loose screw.",now:"Saxophone over a blinking coupon",dj:"DJ Rectangle with the velvet close button",sponsor:"Sponsored by the Fake Ad Museum basement rug.",item:"Radio Static Sample",src:"../assets/audio/banner-jazz.mp3",type:"audio/mpeg"},
+  "FM 98.6":{frequency:"FM 98.6",name:"Aquarium Weather",description:"Soft humid forecasts for fish-like pixels and damp CSS.",now:"Bubble radar with modem rain",dj:"Captain Bubbles from the leaky side panel",sponsor:"Sponsored by suspiciously wet table cells.",item:"Weather Pixel",src:"../assets/audio/aquarium-weather.mp3",type:"audio/mpeg"},
+  "AM 666":{frequency:"AM 666",name:"Loading Bar Sermons",description:"A sermon channel for progress bars that never learned to finish.",now:"99 percent forever and amen",dj:"Reverend Buffer",sponsor:"Sponsored by Restart Later Ministries.",item:"Broken Loading Bar",src:"../assets/audio/loading-sermon.mp3",type:"audio/mpeg"},
+  "FM 13.7":{frequency:"FM 13.7",name:"Coupon Emergency Broadcast",description:"Urgent savings warnings from an economy no serious clerk accepts.",now:"0% off storm advisory",dj:"The Discount Siren",sponsor:"Sponsored by three suspicious toolbars.",item:"Coupon Dust",src:"../assets/audio/coupon-emergency.mp3",type:"audio/mpeg"},
+  "CH 404":{frequency:"CH 404",name:"Lost Signal",description:"The clue station. It only tunes correctly when the static feels watched.",now:"Static clue: bolt-coupon-vhs",dj:"Nobody, loudly",sponsor:"Sponsored by missing pages and patient modems.",item:"Radio Static Sample",src:"../assets/audio/ch404-static.mp3",type:"audio/mpeg"},
+  "FM 88.8":{frequency:"FM 88.8",name:"VDO Corner Bounce Watch",description:"Live sports-style commentary for the bouncing screensaver signal.",now:"A near miss at the bottom-right corner",dj:"The Possessed Screensaver Booth",sponsor:"Sponsored by Slightly Faster VDO.",item:"VDO Spark",src:"../assets/audio/vdo-corner.mp3",type:"audio/mpeg"},
+  "Static 66.6 FM":{frequency:"66.6 FM",name:"Static 66.6 FM",description:"Mostly static, weird bumps, cursed station IDs, and one sneeze from the antenna.",now:"A station ID trapped under snow",dj:"Static Mike, probably a wire",sponsor:"Sponsored by loose coax and warm dust.",item:"Radio Static Sample"},
+  "Popup Bucks Power Hour":{frequency:"PB 10.25",name:"Popup Bucks Power Hour",description:"Chaotic sponsor jingles for a currency with no country and too many borders.",now:"Buy nothing twice, get one rectangle free",dj:"Buckminster Popup",sponsor:"Sponsored by Golden Close Button polish.",item:"Popup Buck"},
+  "Coupon Dust Weather Band":{frequency:"CDWB 0.0",name:"Coupon Dust Weather Band",description:"Forecasts for powdered savings, 0% off storms, and coupon humidity.",now:"Severe expired-value advisory",dj:"Meteorologist Clip N. Save",sponsor:"Sponsored by Coupon Laminator Pro.",item:"Coupon Dust"},
+  "VDO Bounce Radio":{frequency:"VDO 88.8X",name:"VDO Bounce Radio",description:"Screensaver worship, corner bounce rumors, and glitched applause.",now:"Corner impact watch with spiritual reverb",dj:"The VDO Choir of One",sponsor:"Sponsored by Bounce Insurance that starts too late.",item:"VDO Spark"},
+  "Archive Jazz Leak":{frequency:"AJL 40.4",name:"Archive Jazz Leak",description:"A lounge station leaking through the fake ad ductwork.",now:"Midnight sax for damp banner pixels",dj:"Lenny Cache and the Table Cells",sponsor:"Sponsored by a suspiciously elegant popup.",item:"Radio Static Sample",src:"../assets/audio/archive-jazz-leak.mp3",type:"audio/mpeg"},
+  "Mall Fountain 1999":{frequency:"FM 19.99",name:"Mall Fountain 1999",description:"Dead mall ambient music, plastic plants, and a coin that refuses to grant wishes.",now:"Food court echo with decorative water",dj:"Kiosk Ghost on level two",sponsor:"Sponsored by a store map with no you-are-here dot.",item:"Static Coin",src:"../assets/audio/mall-fountain-1999.mp3",type:"audio/mpeg"},
+  "Numbers From The Basement":{frequency:"AM 101.01",name:"Numbers From The Basement",description:"Numbers station vibes, spy-radio nonsense, and a basement that keeps counting you.",now:"4 0 4 7 3 coupon vhs",dj:"Operator Understairs",sponsor:"Sponsored by folders named DO_NOT_OPEN.",item:"404 Shard"},
+  "Broken MIDI Memorial":{frequency:"MIDI 7.7",name:"Broken MIDI Memorial",description:"Old web MIDI energy for buttons that still remember dancing.",now:"General MIDI funeral for a guestbook",dj:"Professor SoundFont",sponsor:"Sponsored by a very tired sound card.",item:"Tiny Modem",src:"../assets/audio/broken-midi-memorial.mp3",type:"audio/mpeg"},
+  "One-of-One Silence":{frequency:"1/1 FM",name:"One-of-One Silence",description:"A rare station with mostly silence, creepy metadata, and a collector's certificate.",now:"Silence, but numbered by the archive",dj:"The Quiet Signal",sponsor:"Sponsored by one priceless nothing.",item:"One-of-One Archive Heart"},
+  "Fake Emergency Broadcast System":{frequency:"FEBS 000",name:"Fake Emergency Broadcast System",description:"Browser-safe parody emergency text. No real official alert audio, no real warning.",now:"This is only a fake archive test",dj:"The Calm Alarm Department",sponsor:"Sponsored by emergency popup helmets.",item:"Emergency Exit Sign"}
 };
+
+const radioBasementRequests = [
+  "Basement request denied: the cassette is currently arguing with a spiderweb made of links.",
+  "Request accepted, then immediately placed in a folder named maybe-later.wav.",
+  "The basement DJ says your song exists, but only at 13 percent volume and 1999 pixels wide.",
+  "A clerk under the stairs mailed back a receipt that says TRACK MISSING, PROBABLY HAUNTED.",
+  "The request line coughed up a jingle for discounted nothing."
+];
+
+const radioIdMessages = [
+  "Station ID: broadcasting from a popup taped to a coat hanger.",
+  "Archive notice: any resemblance to real radio is a coincidence with reverb.",
+  "Sponsor break: this signal paid for itself in lint and Popup Bucks.",
+  "DJ note: if the track is missing, blame the cassette-eating cabinet.",
+  "Antenna report: signal strength measured in confidence, not science."
+];
 
 function getArchiveRadioAudio(){
   if(!archiveRadioAudio){
@@ -3021,19 +3091,82 @@ function getArchiveRadioAudio(){
     archiveRadioAudio.loop = true;
     archiveRadioAudio.volume = Number(localStorage.getItem("oddRadioVolume") || .65);
     archiveRadioAudio.addEventListener("error",()=>{
-      if(currentRadioStation) renderRadioOutput(currentRadioStation,"Playback blocked or stream unavailable. Try another station.");
+      if(currentRadioStation){
+        appendRadioLog("TRACK MISSING - the archive ate the cassette.");
+        renderRadioOutput(currentRadioStation,"TRACK MISSING - the archive ate the cassette.");
+      }
     });
   }
   return archiveRadioAudio;
 }
 
+function radioStationKeys(){
+  return radioStationOrder.filter((station)=>radioStations[station]);
+}
+
+function radioSignalStrength(station){
+  const hash = String(station || "static").split("").reduce((sum,char)=>sum + char.charCodeAt(0),0);
+  return Math.max(7,Math.min(99,35 + (hash % 47) + getChaosLevel() * 3));
+}
+
+function renderRadioSignal(station){
+  const strength = radioSignalStrength(station);
+  const filled = Math.max(1,Math.round(strength / 20));
+  const bars = Array.from({length:5},(_,i)=>`<span class="${i < filled ? "on" : ""}"></span>`).join("");
+  return `<div class="radio-signal" aria-label="fake signal strength ${strength} percent"><span class="radio-bars">${bars}</span><b>${strength}% signal-ish</b></div>`;
+}
+
+function appendRadioLog(message){
+  const log = $("#radioLog");
+  if(!log) return;
+  const line = document.createElement("p");
+  const stamp = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  line.textContent = `[${stamp}] ${message}`;
+  log.prepend(line);
+  while(log.children.length > 9) log.lastElementChild.remove();
+}
+
+function renderRadioStationList(){
+  const list = $("#radioStationList");
+  if(!list) return;
+  list.innerHTML = radioStationKeys().map((station)=>{
+    const data = radioStations[station];
+    const active = station === currentRadioStation ? " active" : "";
+    return `<button class="radio-station-button${active}" onclick="tuneRadio('${station}')" title="${clean(data.description)}"><span class="radio-frequency">${clean(data.frequency || station)}</span><b>${clean(data.name)}</b><small>${clean(data.now)}</small></button>`;
+  }).join("");
+}
+
 function renderRadioOutput(station,status){
   const data = radioStations[station];
   const out = $("#radioOutput");
-  if(!out || !data) return;
+  if(!out) return;
+  if(!data){
+    out.innerHTML = `<h2>No Station</h2><p>Static waiting for a click.</p><p class="mini-status">The dial is warm. The archive is pretending this is normal.</p>`;
+    return;
+  }
   const volume = Math.round(getArchiveRadioAudio().volume * 100);
-  const sourceText = data.src ? "Playing real archive audio" : "No real signal attached yet.";
-  out.innerHTML = `<div class="radio-player"><h2>${clean(station)} - ${clean(data.name)}</h2><p class="radio-now"><b>Now playing:</b> ${clean(data.now)}</p><p class="radio-status">${clean(status || sourceText)}</p><div class="radio-controls"><button onclick="radioPlay()">play</button><button onclick="radioPause()">pause</button><button onclick="radioStop()">stop</button><label>volume <input type="range" min="0" max="1" step="0.05" value="${getArchiveRadioAudio().volume}" oninput="setRadioVolume(this.value)"></label><span data-radio-volume-value>${volume}%</span></div><p class="mini-status">${data.src ? `Signal source: ${clean(data.src)}` : "Static-only station. Awaiting a real file or stream."}</p></div>`;
+  const sourceText = data.src ? "Ready for real archive audio." : "No real signal attached yet.";
+  out.innerHTML = `
+    <div class="radio-player">
+      <div class="radio-status-row"><span class="on-air">ON AIR</span><span class="radio-status">${clean(status || sourceText)}</span></div>
+      <h2>${clean(data.frequency || station)} - ${clean(data.name)}</h2>
+      ${renderRadioSignal(station)}
+      <p>${clean(data.description)}</p>
+      <div class="radio-now"><b>Now Playing:</b> ${clean(data.now)}</div>
+      <div class="radio-meta"><p><b>DJ:</b> ${clean(data.dj || "Nobody signed the shift clipboard.")}</p><p><b>Sponsor:</b> ${clean(data.sponsor || "Sponsored by decorative static.")}</p></div>
+      <div class="radio-controls">
+        <button onclick="radioPlay()">play</button>
+        <button onclick="radioPause()">pause</button>
+        <button onclick="radioStop()">stop</button>
+        <button onclick="radioPrevious()">prev</button>
+        <button onclick="radioRandom()">random</button>
+        <button onclick="radioNext()">next</button>
+        <button onclick="requestBasementSong()">request song</button>
+        <label>volume <input type="range" min="0" max="1" step="0.05" value="${getArchiveRadioAudio().volume}" oninput="setRadioVolume(this.value)"></label>
+        <span data-radio-volume-value>${volume}%</span>
+      </div>
+      <p class="mini-status ${data.src ? "" : "radio-source-missing"}">${data.src ? `Signal source: ${clean(data.src)}` : "Static-only station. Awaiting a real file, a direct HTTPS stream, or a miracle with a file extension."}</p>
+    </div>`;
 }
 
 function radioPlay(){
@@ -3041,19 +3174,35 @@ function radioPlay(){
   if(!data) return;
   const audio = getArchiveRadioAudio();
   if(!data.src){
-    renderRadioOutput(currentRadioStation,"No real signal attached yet.");
+    appendRadioLog(`${data.name} has no real signal attached. The DJ is humming through a paper cup.`);
+    renderRadioOutput(currentRadioStation,"No real signal attached yet. Static-only lore mode is active.");
+    localStorage.setItem("oddRadioPaused","true");
     return;
   }
-  if(!audio.src) audio.src = new URL(data.src,window.location.href).href;
+  const nextSrc = new URL(data.src,window.location.href).href;
+  if(audio.src !== nextSrc){
+    audio.pause();
+    audio.src = nextSrc;
+    audio.load();
+  }
   audio.dataset.type = data.type || "";
+  localStorage.setItem("oddRadioPaused","false");
   audio.play()
-    .then(()=>renderRadioOutput(currentRadioStation,"Playing real archive audio."))
-    .catch(()=>renderRadioOutput(currentRadioStation,"Playback blocked or stream unavailable. Try another station."));
+    .then(()=>{
+      appendRadioLog(`${data.frequency || currentRadioStation} is playing: ${data.now}`);
+      renderRadioOutput(currentRadioStation,"Playing real archive audio.");
+    })
+    .catch(()=>{
+      appendRadioLog("TRACK MISSING - the archive ate the cassette.");
+      renderRadioOutput(currentRadioStation,"TRACK MISSING - the archive ate the cassette.");
+    });
 }
 
 function radioPause(){
   const audio = getArchiveRadioAudio();
   audio.pause();
+  localStorage.setItem("oddRadioPaused","true");
+  appendRadioLog("Playback paused. The static is holding its breath.");
   if(currentRadioStation) renderRadioOutput(currentRadioStation,"Paused in the static.");
 }
 
@@ -3061,6 +3210,8 @@ function radioStop(){
   const audio = getArchiveRadioAudio();
   audio.pause();
   try{audio.currentTime = 0}catch(e){}
+  localStorage.setItem("oddRadioPaused","true");
+  appendRadioLog("Playback stopped. The antenna is sulking.");
   if(currentRadioStation) renderRadioOutput(currentRadioStation,"Stopped. The antenna is sulking.");
 }
 
@@ -3076,15 +3227,18 @@ function tuneRadio(station){
   const data = radioStations[station];
   if(!data) return;
   currentRadioStation = station;
+  localStorage.setItem("oddRadioLastStation",station);
   const audio = getArchiveRadioAudio();
   renderRadioOutput(station,data.src ? "Waking real archive audio..." : "No real signal attached yet.");
+  renderRadioStationList();
+  appendRadioLog(radioIdMessages[Math.floor(Math.random()*radioIdMessages.length)]);
   document.body.dataset.radioVibe = station.replace(/\W/g,"");
   addInventoryItem(data.item,1);
   addCurrency("Static Coins",2);
   const n = incrementStat("oddRadioTunes",1);
   if(station === "CH 404") addQuestClue("radio","CH 404 repeats bolt-coupon-vhs");
   if(station === "CH 404") discoverSecret("radio:ch404","CH 404 leaked a static sample with teeth.","Radio Static Sample");
-  if(station === "FM 88.8") discoverSecret("radio:vdo-corner-watch","FM 88.8 sold you a corner bounce rumor.","VDO Splinter");
+  if(station === "FM 88.8" || station === "VDO Bounce Radio") discoverSecret("radio:vdo-corner-watch","The VDO station sold you a corner bounce rumor.","VDO Splinter");
   if(n >= 5) unlockAchievement("radioDrifter");
   playSound("blip");
   if(data.src){
@@ -3092,14 +3246,69 @@ function tuneRadio(station){
     audio.src = new URL(data.src,window.location.href).href;
     audio.dataset.type = data.type || "";
     audio.load();
+    localStorage.setItem("oddRadioPaused","false");
     audio.play()
       .then(()=>renderRadioOutput(station,"Playing real archive audio."))
-      .catch(()=>renderRadioOutput(station,"Playback blocked or stream unavailable. Try another station."));
+      .catch(()=>{
+        appendRadioLog("TRACK MISSING - the archive ate the cassette.");
+        renderRadioOutput(station,"TRACK MISSING - the archive ate the cassette.");
+      });
   }
   else {
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
+    localStorage.setItem("oddRadioPaused","true");
+    renderRadioOutput(station,"Static-only station. No real signal attached yet.");
+  }
+}
+
+function radioStep(delta){
+  const keys = radioStationKeys();
+  if(!keys.length) return;
+  const index = Math.max(0,keys.indexOf(currentRadioStation));
+  const next = keys[(index + delta + keys.length) % keys.length];
+  tuneRadio(next);
+}
+
+function radioNext(){
+  radioStep(1);
+}
+
+function radioPrevious(){
+  radioStep(-1);
+}
+
+function radioRandom(){
+  const keys = radioStationKeys();
+  if(!keys.length) return;
+  const choices = keys.filter((key)=>key !== currentRadioStation);
+  tuneRadio((choices.length ? choices : keys)[Math.floor(Math.random() * (choices.length ? choices.length : keys.length))]);
+}
+
+function requestBasementSong(){
+  const response = radioBasementRequests[Math.floor(Math.random()*radioBasementRequests.length)];
+  appendRadioLog(response);
+  addCurrency("Static Coins",1);
+  if(Math.random() < .18) awardCouponDust(1,"basement song request");
+  if(currentRadioStation) renderRadioOutput(currentRadioStation,response);
+  else {
+    renderRadioOutput("");
+    signalBanner("Basement request line says: tune a station first.");
+  }
+  playSound("secret");
+}
+
+function initRadioPage(){
+  if(!$("#radioOutput") && !$("#radioStationList")) return;
+  renderRadioStationList();
+  const saved = localStorage.getItem("oddRadioLastStation");
+  if(saved && radioStations[saved]){
+    currentRadioStation = saved;
+    document.body.dataset.radioVibe = saved.replace(/\W/g,"");
+    renderRadioStationList();
+    renderRadioOutput(saved,"Last station remembered. Press play or turn the dial.");
+    appendRadioLog(`Recovered last dial position: ${saved}.`);
   }
 }
 
@@ -3113,9 +3322,9 @@ function refreshWeather(){
   const forecast = weatherForecasts[Math.floor(Math.random()*weatherForecasts.length)];
   if(out) out.innerHTML = `<h2>${clean(location)}</h2><p>${clean(forecast)}</p><p>Pressure: ${Math.floor(404+Math.random()*300)} static units.</p>`;
   addInventoryItem("Weather Pixel",1);
-  addCurrency("Coupon Dust",1);
+  awardCouponDust(2,"fake weather forecast");
   if(location === "VDO Ridge") discoverSecret("weather:vdo-ridge","VDO Ridge forecast: bouncing with scattered sparks.","Weather Pixel");
-  if(/coupon/i.test(forecast) || location === "Coupon Desert") discoverSecret("weather:coupon-front","A coupon weather front crossed the fake radar.","Illegal Coupon Crumb",{currency:["Coupon Dust",1]});
+  if(/coupon/i.test(forecast) || location === "Coupon Desert") discoverSecret("weather:coupon-front","A coupon weather front crossed the fake radar.","Illegal Coupon Crumb",{currency:["Coupon Dust",2]});
   const n = incrementStat("oddWeatherRefreshes",1);
   if(n >= 5) unlockAchievement("weatherLiar");
 }
@@ -3276,13 +3485,13 @@ function renderShop(){
 
 function buySecretShopItem(){
   const unlocked = discoverSecret("shop:clearance-static","The shop's under-counter static sold you nothing beautifully.","Emergency Exit Sign",{achievement:"shopVictim",currency:["Static Coins",3]});
-  if(unlocked) awardCouponDust(2,"under-counter static");
+  if(unlocked) awardCouponDust(3,"under-counter static");
 }
 
 function applyShopPurchaseEffects(name,item){
   if(name === "Coupon Bug Bait"){
     spawnDesktopPet("coupon");
-    awardCouponDust(2,"coupon bug bait rebate");
+    awardCouponDust(3,"coupon bug bait rebate");
     signalBanner("Coupon bug bait purchased. Something tiny smelled the savings.");
   }
   if(name === "VDO Corner Chalk"){
@@ -3306,11 +3515,11 @@ function applyShopPurchaseEffects(name,item){
   if(name === "Coupon Bug Bait" || name === "Coupon Goblin Union Card") spawnFallingCoupon();
   if(name === "Coupon Goblin Union Card"){
     spawnDesktopPet("coupon");
-    awardCouponDust(5,"coupon goblin union rebate");
+    awardCouponDust(7,"coupon goblin union rebate");
   }
   if(name === "One Percent Off Coupon"){
     addInventoryItem("Cursed Coupon",1);
-    awardCouponDust(10,"one percent coupon paradox");
+    awardCouponDust(14,"one percent coupon paradox");
     discoverSecret("shop:one-percent-coupon","The shop accidentally sold a coupon with value.","Illegal Coupon Crumb");
   }
   if(name === "Museum Basement Naming Rights"){
@@ -3338,7 +3547,7 @@ function applyShopPurchaseEffects(name,item){
   }
   if(name === "Cosmic Coupon Vault"){
     addInventoryItem("Cosmic Coupon Moon Rock",1);
-    awardCouponDust(12,"cosmic coupon vault leakage");
+    awardCouponDust(16,"cosmic coupon vault leakage");
   }
   if(name === "One True Close Button Display"){
     addInventoryItem("Final Close Button Halo",1);
@@ -3374,10 +3583,10 @@ function buyShopItem(name){
   applyShopPurchaseEffects(name,item);
   if(name === "Coupon Laminator"){
     const unlocked = discoverSecret("shop:coupon-laminator","The coupon laminator preserved one illegal crumb.","Illegal Coupon Crumb");
-    if(unlocked) awardCouponDust(3,"coupon laminator rebate");
+    if(unlocked) awardCouponDust(4,"coupon laminator rebate");
   }
-  if(name === "Invisible Cursor Coupon") awardCouponDust(2,"invisible cursor coupon");
-  if(name === "Aquarium Breadcrumbs") awardCouponDust(1,"aquarium breadcrumbs");
+  if(name === "Invisible Cursor Coupon") awardCouponDust(3,"invisible cursor coupon");
+  if(name === "Aquarium Breadcrumbs") awardCouponDust(2,"aquarium breadcrumbs");
   if(name === "Emergency Popup Helmet") discoverSecret("shop:popup-helmet","Emergency popup helmet came with an exit sign.","Emergency Exit Sign");
   if(countOwnedShopItems(purchases) >= 15) unlockAchievement("shopHoarder");
   renderShop();
@@ -3432,6 +3641,7 @@ addEventListener("DOMContentLoaded",()=>{
   renderFileExplorer();
   renderQuestClues();
   renderShop();
+  initRadioPage();
   renderSecretCount();
   renderCloseMilestoneMenu();
   startRandomAdScheduler();
@@ -3536,6 +3746,11 @@ addEventListener("DOMContentLoaded",()=>{
   window.radioPause = radioPause;
   window.radioStop = radioStop;
   window.setRadioVolume = setRadioVolume;
+  window.radioNext = radioNext;
+  window.radioPrevious = radioPrevious;
+  window.radioRandom = radioRandom;
+  window.requestBasementSong = requestBasementSong;
+  window.renderRadioStationList = renderRadioStationList;
   window.refreshWeather = refreshWeather;
   window.installFakeUpdate = installFakeUpdate;
   window.viewPatchNotes = viewPatchNotes;

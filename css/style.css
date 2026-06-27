@@ -1340,11 +1340,130 @@ meter{width:100%}
   border-bottom:1px dotted rgba(182,255,0,.35);
   padding-bottom:5px;
 }
+.nav-group{
+  border-top:2px dotted rgba(255,255,255,.28);
+  margin-top:7px;
+  padding-top:6px;
+}
+.canonical-sidebar{
+  align-self:start;
+}
+.canonical-sidebar .box{
+  margin-bottom:12px;
+  border-color:var(--cyan);
+  background:radial-gradient(circle at 12% 0,rgba(255,0,204,.22),transparent 35%),rgba(24,0,44,.88);
+}
+.canonical-sidebar .nav{
+  display:block;
+}
+.nav-heading{
+  display:block;
+  color:var(--yellow);
+  background:#000;
+  border:2px ridge var(--hot);
+  padding:3px 5px;
+  margin:0 0 5px;
+  font:bold 11px "Courier New",monospace;
+  letter-spacing:0;
+  text-shadow:0 0 7px var(--yellow);
+}
+.nav a.active{
+  outline:2px dashed var(--lime);
+  background:repeating-linear-gradient(45deg,rgba(182,255,0,.18) 0 7px,rgba(0,255,255,.16) 7px 14px),#090909;
+}
+.new-badge{
+  display:inline-block;
+  margin-left:4px;
+  border:2px outset var(--yellow);
+  background:var(--yellow);
+  color:#000;
+  padding:0 3px;
+  font:bold 9px "Courier New",monospace;
+  text-shadow:none;
+  transform:rotate(-4deg);
+}
+.badge-widget .badge{
+  margin:3px 2px;
+}
+.canonical-controls{
+  display:grid;
+  gap:7px;
+}
+.canonical-controls button{
+  width:100%;
+  text-align:center;
+}
+.canonical-controls [data-panic-button]{
+  border-color:var(--yellow);
+  background:#ff234a;
+  color:#fff;
+  box-shadow:0 0 12px #ff234a;
+}
+.canonical-controls .chaos-control{
+  border:2px dashed var(--yellow);
+  background:rgba(0,0,0,.45);
+  padding:7px;
+  margin:0;
+}
+.canonical-controls .chaos-control label{
+  display:grid;
+  gap:5px;
+  font:bold 12px "Courier New",monospace;
+  color:var(--yellow);
+}
+.canonical-controls .chaos-slider{
+  width:100%;
+}
+.canonical-controls .sound-toggle,
+.canonical-controls .quiet-signal-toggle{
+  font-size:12px;
+}
+.visitor-widget .counter{
+  width:100%;
+  box-sizing:border-box;
+}
+.side-widget{
+  border:2px inset #777;
+  background:rgba(0,0,0,.55);
+  color:#eaffff;
+  padding:7px;
+  margin:0 0 7px;
+  font:12px "Courier New",monospace;
+}
+.side-widget b{color:var(--yellow)}
+.related-widget a{
+  display:inline-block;
+  margin:3px 4px 0 0;
+  border:2px outset var(--cyan);
+  background:#001d25;
+  color:var(--cyan);
+  padding:2px 5px;
+  text-decoration:none;
+}
 .inbox-shell{
   display:grid;
   grid-template-columns:minmax(180px,280px) 1fr;
   gap:10px;
   background:linear-gradient(135deg,rgba(0,255,255,.12),rgba(255,0,204,.1)),#111;
+}
+.inbox-folders{
+  grid-column:1 / -1;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  border:3px inset #777;
+  background:#000;
+  padding:7px;
+}
+.inbox-folders button{
+  font-size:12px;
+  padding:5px 7px;
+}
+.inbox-folders button.active{
+  background:var(--yellow);
+  color:#000;
+  border-color:var(--yellow);
+  box-shadow:0 0 10px var(--yellow);
 }
 .inbox-list,
 .wiki-list{
@@ -1365,6 +1484,11 @@ meter{width:100%}
 }
 .inbox-row.unread{background:#fff000}
 .inbox-row.read{background:#a9f4ff}
+.inbox-row.deleted{
+  opacity:.68;
+  text-decoration:line-through;
+  filter:saturate(.7);
+}
 .inbox-row span,
 .inbox-row small{
   display:block;
@@ -1428,6 +1552,13 @@ meter{width:100%}
 .market-panel table{font:13px "Courier New",monospace}
 .market-up{color:var(--lime);text-shadow:0 0 7px var(--lime)}
 .market-down{color:#ff4040;text-shadow:0 0 7px #ff4040}
+.sparkline{
+  display:inline-block;
+  border:1px solid currentColor;
+  padding:1px 4px;
+  background:#000;
+  font:bold 11px "Courier New",monospace;
+}
 .market-headline{
   border:3px dashed var(--yellow);
   padding:8px;
@@ -1435,12 +1566,27 @@ meter{width:100%}
   color:var(--yellow);
   font:bold 14px "Courier New",monospace;
 }
+.market-log,
+.scan-log,
+.quarantine-vault{
+  border:3px inset #777;
+  background:#000;
+  color:var(--lime);
+  padding:7px;
+  max-height:230px;
+  overflow:auto;
+  font:12px "Courier New",monospace;
+}
+.market-log p,
+.scan-log p,
+.quarantine-vault p{margin:0 0 5px;border-bottom:1px dotted rgba(182,255,0,.25)}
 .map-grid,
 .auction-grid,
 .quest-board{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap:10px;
+  padding-bottom:110px;
 }
 .map-location,
 .auction-lot,
@@ -1456,6 +1602,19 @@ meter{width:100%}
   display:block;
   margin-top:6px;
   color:#d7fff7;
+}
+.map-location em{
+  display:inline-block;
+  margin-top:7px;
+  border:2px dashed var(--yellow);
+  padding:2px 5px;
+  color:var(--yellow);
+  font-style:normal;
+}
+.map-location.locked{
+  opacity:.62;
+  filter:grayscale(.7);
+  cursor:not-allowed;
 }
 .map-location.visited,
 .auction-lot.won,
@@ -1524,6 +1683,107 @@ meter{width:100%}
   height:100%;
   background:linear-gradient(90deg,var(--lime),var(--yellow),var(--hot));
   box-shadow:0 0 10px var(--yellow);
+}
+.quest-controls{
+  border-color:var(--yellow);
+  background:radial-gradient(circle at 10% 0,rgba(255,240,0,.2),transparent 38%),#090909;
+}
+.claim-all-button{
+  width:100%;
+  border:5px outset var(--hot);
+  background:var(--yellow);
+  color:#000;
+  font:bold 18px "Courier New",monospace;
+  text-shadow:none;
+  box-shadow:0 0 16px var(--hot),4px 4px #000;
+}
+.quest-filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:9px;
+}
+.quest-filters button.active{
+  background:var(--lime);
+  color:#000;
+  border-color:var(--lime);
+  box-shadow:0 0 12px var(--lime);
+}
+.quest-card.ready{
+  border-color:var(--lime);
+  box-shadow:4px 4px #000,0 0 18px rgba(182,255,0,.5);
+}
+.quest-card.progress{border-color:var(--cyan)}
+.quest-card.claimed{
+  border-color:var(--lime);
+  opacity:.78;
+  position:relative;
+}
+.claimed-stamp{
+  position:absolute;
+  right:8px;
+  top:8px;
+  border:3px double var(--lime);
+  color:var(--lime);
+  background:#001400;
+  padding:3px 6px;
+  font:bold 13px "Courier New",monospace;
+  transform:rotate(8deg);
+  box-shadow:0 0 10px var(--lime);
+}
+.quest-category,
+.reward-preview,
+.quest-tags{
+  display:block;
+  font:bold 12px "Courier New",monospace;
+  color:var(--yellow);
+}
+.reward-preview{
+  border:2px dotted var(--yellow);
+  background:rgba(0,0,0,.55);
+  padding:5px;
+}
+.fake-captcha{
+  border:4px ridge var(--cyan);
+  background:#000;
+  color:#fff;
+  padding:8px;
+}
+.fake-captcha-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(90px,1fr));
+  gap:6px;
+  margin:7px 0;
+}
+.wiki-list button.selected{
+  background:var(--yellow);
+  color:#000;
+  border-color:var(--yellow);
+}
+.wiki-list button.locked{
+  background:#111;
+  color:#aaa;
+  border-style:dashed;
+}
+.wiki-related button{margin:4px 4px 0 0}
+.inventory-controls{
+  border-color:var(--cyan);
+}
+.inventory-controls label{
+  display:inline-flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  margin:4px 8px 4px 0;
+  font:bold 12px "Courier New",monospace;
+}
+.inventory-controls input,
+.inventory-controls select{
+  background:#000;
+  color:var(--lime);
+  border:3px inset #777;
+  padding:5px;
+  font:bold 12px "Courier New",monospace;
 }
 .secret-panel.unlocked{display:block;border:3px dashed #fff000;padding:10px;margin-top:8px}
 

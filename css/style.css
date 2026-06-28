@@ -2186,6 +2186,119 @@ meter{width:100%}
   gap:6px;
   margin:7px 0;
 }
+.mini-link{
+  display:inline-block;
+  font-size:11px;
+  padding:3px 6px;
+  margin-top:4px;
+}
+.rumor-feed,
+.popup-graveyard,
+.alchemy-workbench,
+.room-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:12px;
+  padding-bottom:90px;
+}
+.rumor-card{
+  border:4px ridge #b06a24;
+  background:
+    radial-gradient(circle at 12% 10%,rgba(255,240,0,.28),transparent 20%),
+    linear-gradient(135deg,#3b1700,#120600);
+  color:#fff6d5;
+  padding:10px;
+  box-shadow:5px 5px 0 #000,0 0 14px rgba(255,138,0,.35);
+  font-family:"Courier New",monospace;
+}
+.rumor-card b{color:var(--yellow);text-shadow:1px 1px #000}
+.static-times{
+  background:#f5edc8;
+  color:#111;
+  border:6px double #111;
+  padding:14px;
+  font-family:Georgia,"Times New Roman",serif;
+  box-shadow:8px 8px 0 #000;
+}
+.static-times-masthead{
+  text-align:center;
+  font:bold clamp(34px,7vw,74px) Georgia,"Times New Roman",serif;
+  letter-spacing:2px;
+  border-top:5px double #111;
+  border-bottom:5px double #111;
+  margin-bottom:8px;
+}
+.static-headline{
+  color:#000;
+  text-shadow:none;
+  font-size:clamp(24px,4vw,42px);
+  line-height:1;
+  text-align:center;
+}
+.static-times-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:9px;
+}
+.static-times-section{
+  border-top:3px solid #111;
+  padding:7px;
+  background:rgba(255,255,255,.35);
+}
+.static-times-section h3{color:#111;text-shadow:none;margin-top:0}
+.popup-tombstone{
+  border:5px ridge #aaa;
+  border-radius:10px 10px 3px 3px;
+  background:linear-gradient(180deg,#4a4a55,#171721);
+  color:#e8e8f8;
+  padding:12px;
+  text-align:center;
+  box-shadow:inset 0 0 18px rgba(0,0,0,.7),4px 4px 0 #000;
+  font-family:"Courier New",monospace;
+}
+.popup-tombstone h3{color:#d7d7ff;text-shadow:0 0 8px #00ffff}
+.alchemy-workbench{
+  background:repeating-linear-gradient(90deg,rgba(120,70,20,.3) 0 14px,rgba(40,18,0,.3) 14px 28px);
+  border:5px ridge #8a4a14;
+  padding:10px;
+}
+.alchemy-recipe{
+  border:4px inset #8a4a14;
+  background:#1b0d00;
+  color:#ffe7b0;
+  padding:10px;
+  box-shadow:4px 4px #000;
+}
+.alchemy-recipe.ready{
+  border-color:var(--lime);
+  box-shadow:4px 4px #000,0 0 16px rgba(182,255,0,.45);
+}
+.alchemy-recipe.locked{
+  filter:grayscale(.7);
+  opacity:.72;
+}
+.room-card{
+  border:5px outset var(--cyan);
+  background:linear-gradient(180deg,#001027,#05000d);
+  color:#eaffff;
+  padding:12px;
+  box-shadow:5px 5px #000;
+}
+.room-card.locked{
+  border-color:#777;
+  filter:grayscale(.8);
+  opacity:.68;
+}
+.room-card.unlocked{
+  border-color:var(--yellow);
+  background:radial-gradient(circle at 20% 0,rgba(255,240,0,.18),transparent 38%),#001027;
+  box-shadow:5px 5px #000,0 0 20px rgba(255,240,0,.35);
+}
+.room-card button:disabled,
+.alchemy-recipe button:disabled{
+  cursor:not-allowed;
+  opacity:.6;
+}
 .wiki-list button.selected{
   background:var(--yellow);
   color:#000;

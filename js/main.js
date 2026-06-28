@@ -730,6 +730,12 @@ const achievementCatalog = {
   loginDenied:{name:"Login Denied",desc:"Fail the fake login enough times to become folklore."},
   questGoblin:{name:"Quest Goblin",desc:"Claim several cursed errands."},
   errandChampion:{name:"Errand Champion",desc:"Claim a large pile of quest-board rewards."},
+  popupUndertaker:{name:"Popup Undertaker",desc:"Bury 25 fake popups."},
+  rectangleMortician:{name:"Rectangle Mortician",desc:"Bury 100 fake popups."},
+  junkAlchemist:{name:"Junk Alchemist",desc:"Combine archive trash into a more suspicious object."},
+  workbenchGremlin:{name:"Workbench Gremlin",desc:"Complete 10 junk alchemy crafts."},
+  roomTrespasser:{name:"Room Trespasser",desc:"Unlock your first hidden archive room."},
+  doorProblem:{name:"Door Problem",desc:"Unlock several hidden archive rooms."},
   patchNotePeeker:{name:"Patch Note Peeker",desc:"Open the basement patch notes."},
   maintainerKnock:{name:"Maintainer Knock",desc:"Find the fake maintainer gate."},
   basementConsole:{name:"Basement Console",desc:"Unlock the harmless in-universe maintainer console."},
@@ -784,6 +790,30 @@ Object.assign(inventoryCatalog,{
   "Post-Corruption Thread":{rarity:"strange",flavor:"beyond",desc:"A thread that stitched the route past the damage."},
   "Clean Page Bone":{rarity:"haunted",flavor:"beyond",desc:"A pale structural piece from a page that stopped falling apart."},
   "Sublevel Key Tag":{rarity:"veryRare",flavor:"beyond",desc:"A numbered tag for a room under the room under the room."}
+});
+
+Object.assign(inventoryCatalog,{
+  "Rumor Pin":{rarity:"common",flavor:"rumor",desc:"A bent pin from the corkboard of small archive lies."},
+  "Static Times Clipping":{rarity:"uncommon",flavor:"newspaper",desc:"A fake newspaper clipping that smells like toner and static."},
+  "Newspaper Coupon Ink":{rarity:"common",flavor:"newspaper",desc:"Dark ink scraped from a coupon horoscope column."},
+  "Tiny Popup Shovel":{rarity:"uncommon",flavor:"graveyard",desc:"A tiny shovel for burying rectangles with dignity."},
+  "Rectangle Cemetery Key":{rarity:"rare",flavor:"graveyard",desc:"Opens the caretaker shed beside the popup tombstones."},
+  "Close Button Funeral Program":{rarity:"common",flavor:"graveyard",desc:"Printed for a popup that nearly convinced someone."},
+  "Premium Fake Coupon":{rarity:"rare",flavor:"alchemy",desc:"A coupon that looks expensive despite still saving nothing."},
+  "Bouncing Discount Relic":{rarity:"mythic",flavor:"alchemy",desc:"A relic that bounces between zero percent and enlightenment."},
+  "Emotionally Gray Toolbar":{rarity:"strange",flavor:"alchemy",desc:"A toolbar that feels installed even when it is not."},
+  "Broadcast Larva":{rarity:"haunted",flavor:"alchemy",desc:"A tiny signal grub hatched from moth egg and radio fuzz."},
+  "Polished Mystery Bolt":{rarity:"rare",flavor:"alchemy",desc:"The same mystery, but shinier and harder to explain."},
+  "Union Grave Permit":{rarity:"rare",flavor:"alchemy",desc:"Authorizes one rectangle to be buried with benefits."},
+  "Celebrated Quarantine":{rarity:"uncommon",flavor:"alchemy",desc:"A harmless fake quarantine with confetti stuck to the receipt."},
+  "Printed Static Coupon":{rarity:"odd",flavor:"alchemy",desc:"A coupon printed on newspaper static, redeemable nowhere."},
+  "Forbidden Progress Bar":{rarity:"forbidden",flavor:"alchemy",desc:"A progress bar that learned numbers it should not know."},
+  "Sideways Travel Pass":{rarity:"veryRare",flavor:"alchemy",desc:"A pass stamped by a map and validated by a web ring."},
+  "Vault Coupon Stamp":{rarity:"rare",flavor:"room",desc:"Stamped inside the Coupon Vault with no real purchasing power."},
+  "VDO Chapel Candle":{rarity:"haunted",flavor:"room",desc:"A small candle that flickers whenever the signal nearly hits a corner."},
+  "Button Court Summons":{rarity:"strange",flavor:"room",desc:"A summons for buttons accused of being too clickable."},
+  "Hatch Dust":{rarity:"odd",flavor:"room",desc:"Dust brushed from the corrupted maintenance hatch."},
+  "Ink-Stained Press Badge":{rarity:"rare",flavor:"room",desc:"A badge from the newspaper basement press crew."}
 });
 
 const closeMilestonePopups = [
@@ -1320,7 +1350,13 @@ function updateArchiveDashboard(){
   setStatusText("[data-dashboard-mood]",archiveMood());
   setStatusText("[data-dashboard-secrets], [data-secret-count]",String(countDiscoveredSecrets()));
   setStatusText("[data-latest-secret]",localStorage.getItem("oddLatestSecret") || "none yet");
+  setStatusText("[data-dashboard-rumors]",String(generateArchiveRumors(8).length));
+  setStatusText("[data-dashboard-graves]",String(getPopupGraveyard().length));
+  setStatusText("[data-dashboard-alchemy]",String(Number(localStorage.getItem("oddAlchemyCrafts") || 0)));
+  setStatusText("[data-dashboard-rooms]",`${countUnlockedRooms()} / ${unlockableRooms.length}`);
+  setStatusText("[data-dashboard-rare-coupons]",String(Number(localStorage.getItem("oddRareCouponsClicked") || 0)));
   renderExpansionWidgets();
+  renderArchiveRumorWidget();
 }
 
 function archiveMood(){
@@ -1609,13 +1645,15 @@ function spawnPanicAd(count){
   if(archiveIsMirrorLocked()) return;
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert panic-ad";
+  ad.dataset.spawnedAt = String(Date.now());
+  ad.dataset.popupSource = "panic";
   const html = `<div class="ad-title"><span>! PANIC SYSTEM</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">!</div><div><b>panic acknowledged, one emergency popup remains.</b><p>${count} popup(s) removed. Panic mode failed successfully.</p><p><button>accept receipt</button><button>panic again later</button></p><p class="ad-fine">This is a fake theatrical system notice.</p></div></div>`;
   ad.innerHTML = html;
   verifyPopupMarkup(ad,html,"panic-ad");
   document.body.appendChild(ad);
   positionPopupSafely(ad,"panic-ad");
   ad.querySelector(".x").onclick = () => {
-    awardAdClose();
+    awardAdClose(ad,"panic-ad","panic");
     ad.remove();
   };
   attachPopupChoiceHandler(ad,"panic-ad");
@@ -1638,6 +1676,8 @@ function spawnSecretPopup(id,title,body,rewardItem,options={}){
   if(document.querySelectorAll(".popup-ad").length >= getPopupCap()) return;
   const ad = document.createElement("div");
   ad.className = "popup-ad ad-alert secret-popup";
+  ad.dataset.spawnedAt = String(Date.now());
+  ad.dataset.popupSource = "secret";
   ad.dataset.secretPopup = id || "secret";
   const html = `<div class="ad-title"><span>?? ${clean(title)}</span><button class="x" title="close">X</button></div><div class="ad-body system-alert"><div class="alert-icon">?</div><div><b>${clean(body)}</b><p><button>catalog secret</button><button>pretend this is normal</button></p><p class="ad-fine">Secret parody popup. Still harmless. Still draggable.</p></div></div>`;
   ad.innerHTML = html;
@@ -1645,7 +1685,7 @@ function spawnSecretPopup(id,title,body,rewardItem,options={}){
   document.body.appendChild(ad);
   positionPopupSafely(ad,"secret-popup");
   ad.querySelector(".x").onclick = () => {
-    awardAdClose();
+    awardAdClose(ad,"secret-popup","secret");
     ad.remove();
   };
   const buttonReward = options.buttonReward === undefined ? rewardItem : options.buttonReward;
@@ -1654,7 +1694,8 @@ function spawnSecretPopup(id,title,body,rewardItem,options={}){
   makeDraggable(ad,ad.querySelector(".ad-title"));
 }
 
-function awardAdClose(){
+function awardAdClose(popup=null,templateClass="popup-ad",source="x"){
+  if(popup) recordPopupGrave(popup,templateClass,source);
   addInventoryItem("Expired Banner Ad",1);
   addCurrency("Popup Bucks",1);
   const closed = incrementStat("oddClosedAds",1);
@@ -1904,6 +1945,412 @@ function scheduleNextCouponDrop(initial=false){
   },delay);
 }
 
+function numberStat(...keys){
+  return keys.reduce((max,key)=>Math.max(max,Number(localStorage.getItem(key) || 0)),0);
+}
+
+function getArchiveRumorFacts(){
+  const inventory = getInventory();
+  const achievements = getAchievements();
+  const memory = getArchiveMemory();
+  const graveyard = getPopupGraveyard();
+  return {
+    coupons:Number(localStorage.getItem("oddFallingCouponsClicked") || 0),
+    rareCoupons:Number(localStorage.getItem("oddRareCouponsClicked") || 0),
+    bestCouponDrop:Number(localStorage.getItem("oddBestCouponDustDrop") || 0),
+    popupButtons:Number(localStorage.getItem("oddPopupButtonClicks") || 0),
+    popupCloses:numberStat("oddClosedAds","oddAdCloses"),
+    popupGraves:graveyard.length,
+    radioTunes:Number(localStorage.getItem("oddRadioTunes") || 0),
+    crtTunes:numberStat("oddCRTChannelTunes","oddCRTChannelsTuned"),
+    questClaims:Object.keys(readJSON("oddQuestClaims",{})).length,
+    inventoryCount:Object.values(inventory).reduce((sum,n)=>sum + Number(n || 0),0),
+    achievementCount:Object.keys(achievements).length,
+    corruptDepth:Number(localStorage.getItem("oddCorruptDepth") || 0),
+    enteredCorruption:!!memory.enteredCorruptZone,
+    reachedBeyond:!!memory.reachedBeyondCorruption,
+    fakeScans:Number(localStorage.getItem("oddFakeScans") || 0),
+    fakeQuarantines:Number(localStorage.getItem("oddFakeQuarantines") || 0),
+    auctionBids:Number(localStorage.getItem("oddAuctionBids") || 0),
+    wikiReads:Number(localStorage.getItem("oddWikiReads") || 0),
+    mapDiscoveries:Object.keys(readJSON("oddMapDiscoveries",{})).length,
+    alchemyCrafts:Number(localStorage.getItem("oddAlchemyCrafts") || 0),
+    roomsUnlocked:countUnlockedRooms(),
+    staticPrints:Number(localStorage.getItem("oddStaticTimesPrinted") || 0)
+  };
+}
+
+function generateArchiveRumors(limit=8){
+  const facts = getArchiveRumorFacts();
+  const pool = [
+    "RUMOR: A fresh visitor was seen reading button labels before pressing them.",
+    "RUMOR: The archive counted the same visitor number twice and blamed the marquee.",
+    "RUMOR: Popup buttons are no longer decorative. The rectangle union is furious.",
+    "RUMOR: VDO was seen bouncing near Channel 404 again.",
+    "RUMOR: The fake toolbar swamp has requested a corkboard."
+  ];
+  if(facts.coupons > 0) pool.push(`RUMOR: Someone clipped ${facts.coupons} floating coupon(s) and still saved nothing real.`);
+  if(facts.rareCoupons > 0) pool.push(`RUMOR: ${facts.rareCoupons} rare coupon incident(s) were reported near the old toolbar swamp.`);
+  if(facts.bestCouponDrop >= 50) pool.push(`RUMOR: A coupon dropped ${facts.bestCouponDrop} Coupon Dust and the cashier became theoretical.`);
+  if(facts.popupButtons > 0) pool.push(`RUMOR: ${facts.popupButtons} popup button negotiation(s) have been logged by the rectangle union.`);
+  if(facts.popupGraves > 0) pool.push(`RUMOR: The Popup Graveyard now contains ${facts.popupGraves} carefully buried rectangle(s).`);
+  if(facts.radioTunes > 0) pool.push("RUMOR: The radio signal followed someone through the sidebar and refused to pay rent.");
+  if(facts.crtTunes > 0) pool.push("RUMOR: The CRT tuned itself sideways and left a warm phosphor receipt.");
+  if(facts.enteredCorruption) pool.push("RUMOR: The corrupted passage is quieter today. Too quiet.");
+  if(facts.reachedBeyond) pool.push("RUMOR: Someone made it past the damaged layer and came back with dust in their tabs.");
+  if(facts.fakeScans > 0 || facts.fakeQuarantines > 0) pool.push("RUMOR: Fake antivirus quarantined a coupon and now the coupon is unionizing.");
+  if(facts.inventoryCount >= 50) pool.push(`RUMOR: The inventory shelf is holding ${facts.inventoryCount} useless object(s) and one complaint.`);
+  if(facts.achievementCount >= 10) pool.push("RUMOR: Achievement badges are multiplying under the old table border.");
+  if(facts.auctionBids > 0) pool.push("RUMOR: The auction house heard a bid from inside a popup coffin.");
+  if(facts.wikiReads > 0) pool.push("RUMOR: The wiki footnotes are whispering into the Static Times classifieds.");
+  if(facts.mapDiscoveries > 0) pool.push("RUMOR: The archive map has a coffee stain shaped like VDO Ridge.");
+  if(facts.alchemyCrafts > 0) pool.push("RUMOR: Junk Alchemy turned trash into more official trash and called it progress.");
+  if(facts.roomsUnlocked > 0) pool.push("RUMOR: A locked room opened after the archive decided enough local trouble had occurred.");
+  const salt = facts.coupons + facts.popupButtons * 3 + facts.inventoryCount * 5 + dailyIndex(17);
+  return pool
+    .map((text,index)=>({text,score:(index * 37 + salt) % 997}))
+    .sort((a,b)=>a.score - b.score)
+    .slice(0,limit)
+    .map((entry)=>entry.text);
+}
+
+function archiveRumorSidebarHTML(){
+  return `<div class="box sidebar-widget rumor-widget" data-rumor-widget><h3>Archive Rumor Feed</h3><p class="mini-status">rumors warming up...</p></div>`;
+}
+
+function renderArchiveRumorWidget(){
+  $$("[data-rumor-widget]").forEach((slot)=>{
+    const rumors = generateArchiveRumors(3);
+    slot.innerHTML = `<h3>Archive Rumor Feed</h3>${rumors.map((rumor)=>`<p class="mini-status">${clean(rumor.replace(/^RUMOR: /,""))}</p>`).join("")}<a class="button mini-link" href="${clean(canonicalPageHref("rumors.html"))}">read more rumors</a>`;
+  });
+}
+
+function renderArchiveRumors(){
+  const feed = $("#rumorFeed");
+  if(!feed) return;
+  const rumors = generateArchiveRumors(12);
+  feed.innerHTML = rumors.map((rumor,index)=>`<article class="rumor-card"><b>${clean(rumor.split(":")[0])}</b><p>${clean(rumor.replace(/^RUMOR: /,""))}</p><button type="button" onclick="pinTodaysRumor(${index})">pin this rumor</button></article>`).join("");
+  const facts = getArchiveRumorFacts();
+  setStatusText("#rumorStats",`Coupons clipped: ${facts.coupons} | Rare coupons: ${facts.rareCoupons} | Popup graves: ${facts.popupGraves} | Alchemy crafts: ${facts.alchemyCrafts}`);
+}
+
+function pinTodaysRumor(index=0){
+  const rumor = generateArchiveRumors(12)[index] || generateArchiveRumors(1)[0];
+  const pinned = readJSON("oddPinnedRumors",[]);
+  pinned.push({rumor,date:new Date().toLocaleString()});
+  writeJSON("oddPinnedRumors",pinned.slice(-20));
+  incrementStat("oddRumorsPinned",1);
+  addInventoryItem("Rumor Pin",1);
+  signalBanner("Rumor pinned to the corkboard. +1 Rumor Pin.");
+  setStatusText("#rumorOut","Pinned locally: " + rumor.replace(/^RUMOR: /,""));
+}
+
+function staticTimesDateKey(){
+  return localDayKey();
+}
+
+function generateStaticTimes(){
+  const facts = getArchiveRumorFacts();
+  const layout = Number(localStorage.getItem("oddStaticTimesLayoutFlavor") || 0);
+  const topStories = [
+    `LOCAL VISITOR CLICKS ${facts.popupButtons} POPUP BUTTONS, CLAIMS "THEY HAD ITEMS"`,
+    "VDO DENIES INVOLVEMENT IN COUPON HALO INCIDENT",
+    `FAKE ANTIVIRUS FINDS ${Math.max(7,facts.fakeScans * 7)} VIBE IRREGULARITIES, REFUSES TO ELABORATE`,
+    facts.rareCoupons ? "RARE COUPON SIGHTED OVER STATIC CITY" : "COMMON 0% COUPON FALLS WITH GREAT CONFIDENCE",
+    facts.enteredCorruption ? "CORRUPTED PASSAGE DECLARED OPTIONAL BUT DAMP" : "STABLE ARCHIVE PRETENDS NOTHING IS UNDER IT"
+  ];
+  return {
+    date:staticTimesDateKey(),
+    layout,
+    top:dailyPick(topStories,layout + 2),
+    weather:dailyPick(["Popup humidity rising near the fake ad museum.","Banner winds from the east, with scattered coupons.","Static pressure high; CRT warmth advisory remains theatrical.","Aquarium district reports bubbles shaped like headlines."],layout + 5),
+    market:`Static Coins steady, Popup Bucks suspicious, Coupon Dust traded at ${Math.max(0,facts.bestCouponDrop || 3)} imaginary units.`,
+    horoscope:dailyPick(["Coupon horoscope: fold left, then doubt the border.","Coupon horoscope: a misprint will respect your patience.","Coupon horoscope: zero percent is still technically a shape."],layout + 9),
+    obits:facts.popupGraves ? `${facts.popupGraves} popup rectangle(s) buried after close-button incidents.` : "No popup obituaries filed yet; rectangles remain nervous.",
+    vdo:facts.reachedBeyond ? "VDO watched someone return from beyond the corruption and blinked twice." : "VDO corner watch continues with no official comment.",
+    classifieds:dailyPick(["FOR SALE: one emotionally gray toolbar, local pickup only.","WANTED: newspaper basement intern, must tolerate fake ink.","LOST: tiny popup shovel, last seen near a tombstone."],layout + 14),
+    letters:dailyPick(["Dear Maintainer, why does the archive keep receipts for feelings?","Dear Static Times, please stop interviewing the close button.","Dear Editor, the rumor feed is lying accurately."],layout + 19)
+  };
+}
+
+function renderStaticTimes(){
+  const paper = $("#staticTimesPaper");
+  if(!paper) return;
+  const edition = generateStaticTimes();
+  paper.innerHTML = `
+    <div class="static-times-masthead">THE STATIC TIMES</div>
+    <p class="mini-status">Serving Fake News Since 1998-ish | ${clean(edition.date)} | layout flavor ${edition.layout}</p>
+    <h2 class="static-headline">${clean(edition.top)}</h2>
+    <div class="static-times-grid">
+      <section class="static-times-section"><h3>Archive Weather</h3><p>${clean(edition.weather)}</p></section>
+      <section class="static-times-section"><h3>Market / Fake Economy</h3><p>${clean(edition.market)}</p></section>
+      <section class="static-times-section"><h3>Coupon Horoscope</h3><p>${clean(edition.horoscope)}</p></section>
+      <section class="static-times-section"><h3>Popup Obituaries</h3><p>${clean(edition.obits)}</p></section>
+      <section class="static-times-section"><h3>VDO Watch</h3><p>${clean(edition.vdo)}</p></section>
+      <section class="static-times-section"><h3>Classifieds</h3><p>${clean(edition.classifieds)}</p></section>
+      <section class="static-times-section"><h3>Letters to the Maintainer</h3><p>${clean(edition.letters)}</p></section>
+    </div>
+  `;
+}
+
+function printFakeEdition(){
+  incrementStat("oddStaticTimesPrinted",1);
+  addInventoryItem("Static Times Clipping",1);
+  signalBanner("Fake edition printed locally. +1 Static Times Clipping.");
+  setStatusText("#staticTimesOut","The printer made no noise because it is imaginary.");
+  updateArchiveDashboard();
+}
+
+function clipStaticHeadline(){
+  incrementStat("oddStaticTimesClipped",1);
+  addInventoryItem("Newspaper Coupon Ink",1);
+  signalBanner("Headline clipped. +1 Newspaper Coupon Ink.");
+  setStatusText("#staticTimesOut","The headline left ink on your archive shelf.");
+  updateArchiveDashboard();
+}
+
+function refreshStaticTimesLayout(){
+  incrementStat("oddStaticTimesLayoutFlavor",1);
+  renderStaticTimes();
+  setStatusText("#staticTimesOut","Layout shuffled. The day's fake facts stayed equally fake.");
+}
+
+function getPopupGraveyard(){
+  const graves = readJSON("oddPopupGraveyard",[]);
+  return Array.isArray(graves) ? graves : [];
+}
+
+function popupGraveEpitaph(title,templateClass){
+  const epitaphs = [
+    `Here lies ${title}, closed before the paperwork dried.`,
+    `${title} almost convinced someone. Almost.`,
+    `A rectangle of class ${templateClass} rests beneath the blinking soil.`,
+    `${title} whispered one last fake offer into the close button.`
+  ];
+  return epitaphs[Math.floor(Math.random() * epitaphs.length)];
+}
+
+function awardPopupGraveMilestones(count){
+  const earned = readJSON("oddPopupGraveMilestones",{});
+  const milestones = [
+    {id:"first",count:1,item:"Close Button Funeral Program"},
+    {id:"undertaker",count:25,item:"Tiny Popup Shovel",achievement:"popupUndertaker"},
+    {id:"mortician",count:100,item:"Rectangle Cemetery Key",achievement:"rectangleMortician"}
+  ];
+  milestones.forEach((milestone)=>{
+    if(count >= milestone.count && !earned[milestone.id]){
+      earned[milestone.id] = {date:new Date().toLocaleString()};
+      addInventoryItem(milestone.item,1);
+      if(milestone.achievement) unlockAchievement(milestone.achievement);
+    }
+  });
+  writeJSON("oddPopupGraveMilestones",earned);
+}
+
+function recordPopupGrave(popup,templateClass="popup-ad",source="x"){
+  if(!popup || archiveIsMirrorLocked()) return;
+  const title = popup.querySelector(".ad-title span")?.textContent?.trim() || "UNLABELED RECTANGLE";
+  const bodyText = popup.querySelector(".ad-body")?.textContent?.replace(/\s+/g," ").trim() || "No last words recorded.";
+  const spawnedAt = Number(popup.dataset.spawnedAt || Date.now());
+  const grave = {
+    title,
+    templateClass,
+    epitaph:popupGraveEpitaph(title,templateClass),
+    closedAt:new Date().toLocaleString(),
+    source:popup.dataset.popupSource || source || "x",
+    ageSeconds:Math.max(0,Math.round((Date.now() - spawnedAt) / 1000)),
+    lastWords:bodyText.slice(0,120)
+  };
+  const graves = getPopupGraveyard();
+  graves.push(grave);
+  writeJSON("oddPopupGraveyard",graves.slice(-100));
+  awardPopupGraveMilestones(Math.min(100,graves.length));
+  renderPopupGraveyard();
+  updateArchiveDashboard();
+}
+
+function setPopupGraveSort(sort){
+  localStorage.setItem("oddPopupGraveSort",sort === "oldest" ? "oldest" : "newest");
+  renderPopupGraveyard();
+}
+
+function renderPopupGraveyard(){
+  const grid = $("#popupGraveyard");
+  if(!grid) return;
+  const sort = localStorage.getItem("oddPopupGraveSort") || "newest";
+  const graves = [...getPopupGraveyard()];
+  if(sort === "oldest") graves.reverse();
+  const display = sort === "newest" ? graves.slice().reverse() : graves;
+  setStatusText("#graveyardStats",`${graves.length} rectangle(s) buried locally. Sort: ${sort}.`);
+  grid.innerHTML = display.length ? display.map((grave,index)=>`
+    <article class="popup-tombstone">
+      <h3>${clean(grave.title)}</h3>
+      <p>${clean(grave.epitaph)}</p>
+      <p><b>Closed after:</b> ${Number(grave.ageSeconds || 0)} second(s)</p>
+      <p><b>Cause:</b> user clicked X</p>
+      <p><b>Last words:</b> ${clean(grave.lastWords || "No last words recorded.")}</p>
+      <button type="button" onclick="readPopupEpitaph(${index})">read epitaph</button>
+    </article>
+  `).join("") : `<div class="popup-tombstone"><h3>No graves yet</h3><p>Close fake popups with the X button and their rectangle paperwork will appear here.</p></div>`;
+}
+
+function readPopupEpitaph(index=0){
+  const sort = localStorage.getItem("oddPopupGraveSort") || "newest";
+  const graves = getPopupGraveyard();
+  const display = sort === "newest" ? graves.slice().reverse() : graves;
+  const grave = display[index] || display[0];
+  setStatusText("#graveyardOut",grave ? grave.epitaph : "The cemetery is waiting for its first theatrical rectangle.");
+}
+
+function leaveCouponFlowers(){
+  awardCouponDust(2,"popup graveyard flowers");
+  addInventoryItem("Close Button Funeral Program",1);
+  signalBanner("Coupon flowers left. +2 Coupon Dust and a funeral program.");
+  setStatusText("#graveyardOut","Coupon flowers placed by the least haunted tombstone.");
+}
+
+const alchemyRecipes = [
+  {id:"premium-fake-coupon",name:"Premium Fake Coupon",inputs:[["Coupon Dust Jar",1],["Golden Coupon Flake",1]],output:"Premium Fake Coupon",outputCount:1,rewardDust:5,desc:"A coupon that looks expensive despite still saving nothing."},
+  {id:"bouncing-discount-relic",name:"Bouncing Discount Relic",inputs:[["VDO Spark",1],["VDO Coupon Halo",1]],output:"Bouncing Discount Relic",outputCount:1,rewardDust:8,desc:"A relic that catches a tiny bounce inside a discount ring."},
+  {id:"emotionally-gray-toolbar",name:"Emotionally Gray Toolbar",inputs:[["Fake Toolbar",1],["Gray Button Paint Chip",1]],output:"Emotionally Gray Toolbar",outputCount:1,desc:"A toolbar with suspiciously mature feelings."},
+  {id:"broadcast-larva",name:"Broadcast Larva",inputs:[["CRT Moth Egg",1],["Radio Static Sample",1]],output:"Broadcast Larva",outputCount:1,desc:"A little signal thing that should stay in a jar."},
+  {id:"polished-mystery-bolt",name:"Polished Mystery Bolt",inputs:[["Mystery Bolt",1],["Mystery Bolt Polish",1]],output:"Polished Mystery Bolt",outputCount:1,desc:"The bolt remains mysterious, but now it shines."},
+  {id:"union-grave-permit",name:"Union Grave Permit",inputs:[["Popup Union Badge",1],["Tiny Popup Shovel",1]],output:"Union Grave Permit",outputCount:1,desc:"A permit for rectangle funeral logistics."},
+  {id:"celebrated-quarantine",name:"Celebrated Quarantine",inputs:[["Fake Quarantine Receipt",1],["Quarantine Confetti",1]],output:"Celebrated Quarantine",outputCount:1,desc:"A harmless fake quarantine with a party hat."},
+  {id:"printed-static-coupon",name:"Printed Static Coupon",inputs:[["Static Receipt",1],["Newspaper Coupon Ink",1]],output:"Printed Static Coupon",outputCount:1,rewardDust:3,desc:"A newspaper coupon printed on radio fuzz."},
+  {id:"forbidden-progress-bar",name:"Forbidden Progress Bar",inputs:[["Broken Loading Bar",1],["Impossible Loading Percent",1]],output:"Forbidden Progress Bar",outputCount:1,desc:"A loading bar that knows too much."},
+  {id:"sideways-travel-pass",name:"Sideways Travel Pass",inputs:[["Archive Map Stamp",1],["Forgotten Webring Token",1]],output:"Sideways Travel Pass",outputCount:1,desc:"A pass for moving through links at an angle."}
+];
+
+function inventoryItemCount(name){
+  return Number(getInventory()[name] || 0);
+}
+
+function hasInventoryItems(inputs){
+  return inputs.every(([name,count])=>inventoryItemCount(name) >= count);
+}
+
+function consumeInventoryItems(inputs){
+  if(!hasInventoryItems(inputs)) return false;
+  const inventory = getInventory();
+  inputs.forEach(([name,count])=>{
+    inventory[name] = Number(inventory[name] || 0) - count;
+    if(inventory[name] <= 0) delete inventory[name];
+  });
+  writeJSON("oddInventory",inventory);
+  updateArchiveDashboard();
+  renderInventory();
+  return true;
+}
+
+function craftAlchemyRecipe(id){
+  const recipe = alchemyRecipes.find((entry)=>entry.id === id);
+  const out = $("#alchemyOut");
+  if(!recipe) return;
+  if(!hasInventoryItems(recipe.inputs)){
+    if(out) out.textContent = "Workbench refuses: missing local junk ingredients.";
+    playSound("buzz");
+    renderAlchemy();
+    return;
+  }
+  if(!consumeInventoryItems(recipe.inputs)) return;
+  addInventoryItem(recipe.output,recipe.outputCount || 1);
+  if(recipe.rewardDust) awardCouponDust(recipe.rewardDust,"junk alchemy runoff");
+  const crafts = incrementStat("oddAlchemyCrafts",1);
+  const log = readJSON("oddAlchemyCraftLog",[]);
+  log.push({id:recipe.id,name:recipe.name,date:new Date().toLocaleString()});
+  writeJSON("oddAlchemyCraftLog",log.slice(-20));
+  unlockAchievement("junkAlchemist");
+  if(crafts >= 10) unlockAchievement("workbenchGremlin");
+  if(out) out.textContent = `Crafted ${recipe.output}. The workbench denies responsibility.`;
+  signalBanner(`Junk Alchemy complete: ${recipe.output}`);
+  playSound("secret");
+  renderAlchemy();
+  renderQuests();
+}
+
+function renderAlchemy(){
+  const grid = $("#alchemyWorkbench");
+  if(!grid) return;
+  grid.innerHTML = alchemyRecipes.map((recipe)=>{
+    const ready = hasInventoryItems(recipe.inputs);
+    const ingredients = recipe.inputs.map(([name,count])=>`${clean(name)} ${inventoryItemCount(name)}/${count}`).join("<br>");
+    return `<article class="alchemy-recipe ${ready ? "ready" : "locked"}">
+      <h3>${clean(recipe.name)}</h3>
+      <p>${clean(recipe.desc)}</p>
+      <p class="mini-status">${ingredients}</p>
+      <p><b>Output:</b> ${clean(recipe.output)}${recipe.rewardDust ? ` + ${recipe.rewardDust} Coupon Dust` : ""}</p>
+      <button type="button" onclick="craftAlchemyRecipe('${cleanAttr(recipe.id)}')" ${ready ? "" : "disabled"}>craft junk</button>
+    </article>`;
+  }).join("");
+  setStatusText("#alchemyStats",`${Number(localStorage.getItem("oddAlchemyCrafts") || 0)} craft(s) completed locally.`);
+}
+
+function popupCloseProgressCount(){
+  return Math.max(numberStat("oddClosedAds","oddAdCloses"),getPopupGraveyard().length);
+}
+
+const unlockableRooms = [
+  {id:"popup-cemetery-office",name:"Popup Cemetery Office",requirement:"Close or bury 50 fake popups",unlocked:()=>popupCloseProgressCount() >= 50,reward:"Rectangle Cemetery Key",desc:"A tiny office beside the popup graves with a ledger made of close buttons."},
+  {id:"coupon-vault",name:"Coupon Vault",requirement:"Clip 3 rare floating coupons",unlocked:()=>Number(localStorage.getItem("oddRareCouponsClicked") || 0) >= 3,reward:"Vault Coupon Stamp",desc:"A locked vault full of zero percent stamps and premium dust."},
+  {id:"vdo-chapel",name:"VDO Chapel",requirement:"Make VDO aware or witness a corner hit",unlocked:()=>Number(localStorage.getItem("oddVdoClicks") || 0) >= 5 || !!getAchievements().cornerWitness || !!getAchievements().vdoHarasser,reward:"VDO Chapel Candle",desc:"A small chapel where the bouncing signal pretends not to be worshiped."},
+  {id:"static-court",name:"Static Court",requirement:"Click 50 fake popup buttons",unlocked:()=>Number(localStorage.getItem("oddPopupButtonClicks") || 0) >= 50,reward:"Button Court Summons",desc:"A courtroom where buttons argue about who looked most clickable."},
+  {id:"corrupted-maintenance-hatch",name:"Corrupted Maintenance Hatch",requirement:"Reach beyond the corrupted passage",unlocked:()=>!!getArchiveMemory().reachedBeyondCorruption,reward:"Hatch Dust",desc:"A maintenance hatch under the damaged layer, calmer than it should be."},
+  {id:"newspaper-basement",name:"Newspaper Basement",requirement:"Print or clip The Static Times",unlocked:()=>Number(localStorage.getItem("oddStaticTimesPrinted") || 0) > 0 || Number(localStorage.getItem("oddStaticTimesClipped") || 0) > 0,reward:"Ink-Stained Press Badge",desc:"A basement press room full of fake headlines and tired ink."}
+];
+
+function countUnlockedRooms(){
+  return unlockableRooms.filter((room)=>{
+    try{return !!room.unlocked()}
+    catch{return false}
+  }).length;
+}
+
+function collectRoomReward(id){
+  const room = unlockableRooms.find((entry)=>entry.id === id);
+  const out = $("#roomsOut");
+  if(!room) return;
+  if(!room.unlocked()){
+    if(out) out.textContent = "Door refuses: not enough local archive trouble yet.";
+    playSound("buzz");
+    return;
+  }
+  const rewards = readJSON("oddUnlockedRoomRewards",{});
+  if(rewards[id]){
+    if(out) out.textContent = `${room.name} already stamped your local pass.`;
+    return;
+  }
+  rewards[id] = {date:new Date().toLocaleString()};
+  writeJSON("oddUnlockedRoomRewards",rewards);
+  addInventoryItem(room.reward,1);
+  const collected = Object.keys(rewards).length;
+  unlockAchievement("roomTrespasser");
+  if(collected >= 3) unlockAchievement("doorProblem");
+  if(out) out.textContent = `${room.name} opened. Reward collected: ${room.reward}.`;
+  signalBanner(`Hidden room opened: ${room.name}`);
+  renderRooms();
+  renderQuests();
+}
+
+function renderRooms(){
+  const grid = $("#roomGrid");
+  if(!grid) return;
+  const rewards = readJSON("oddUnlockedRoomRewards",{});
+  grid.innerHTML = unlockableRooms.map((room)=>{
+    let unlocked = false;
+    try{unlocked = !!room.unlocked()}catch{unlocked = false}
+    const collected = !!rewards[room.id];
+    return `<article class="room-card ${unlocked ? "unlocked" : "locked"}">
+      <h3>${unlocked ? "OPEN" : "LOCKED"}: ${clean(room.name)}</h3>
+      <p>${clean(room.desc)}</p>
+      <p><b>Requirement:</b> ${clean(room.requirement)}</p>
+      <p><b>Reward:</b> ${clean(room.reward)} ${collected ? "(collected)" : ""}</p>
+      <button type="button" onclick="collectRoomReward('${cleanAttr(room.id)}')" ${unlocked && !collected ? "" : "disabled"}>${collected ? "stamp collected" : unlocked ? "enter room / collect stamp" : "door locked"}</button>
+    </article>`;
+  }).join("");
+  setStatusText("#roomsStats",`${countUnlockedRooms()} of ${unlockableRooms.length} hidden rooms currently open.`);
+}
+
 function triggerRandomEvent(){
   if(archiveIsMirrorLocked()) return;
   const events = [
@@ -2031,6 +2478,16 @@ const canonicalNavGroups = [
     ]
   },
   {
+    title:"LIVING ARCHIVE",
+    links:[
+      ["Rumor Feed","rumors.html"],
+      ["Static Times","newspaper.html"],
+      ["Popup Graveyard","graveyard.html"],
+      ["Junk Alchemy","alchemy.html"],
+      ["Locked Rooms","rooms.html"]
+    ]
+  },
+  {
     title:"EXPANSION WING",
     links:[
       ["Inbox","inbox.html"],
@@ -2092,6 +2549,7 @@ function canonicalSidebarHTML(){
       <div id="counter" class="counter">00000000</div>
     </div>
     ${archiveMemorySidebarHTML()}
+    ${archiveRumorSidebarHTML()}
     <div class="box sidebar-widget badge-widget">
       <h3>badges</h3>
       ${canonicalBadges.map((badge)=>`<span class="badge">${clean(badge)}</span>`).join("")}
@@ -3480,13 +3938,15 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
   const template = adTemplates[Math.floor(Math.random() * adTemplates.length)];
   const ad = document.createElement("div");
   ad.className = `popup-ad ${template.className}`;
+  ad.dataset.spawnedAt = String(Date.now());
+  ad.dataset.popupSource = source;
   const html = adMarkup(template);
   ad.innerHTML = html;
   verifyPopupMarkup(ad,html,template.className);
   document.body.appendChild(ad);
   positionPopupSafely(ad,template.className);
   ad.querySelector(".x").onclick = () => {
-    awardAdClose();
+    awardAdClose(ad,template.className,source);
     ad.remove();
   };
   attachPopupChoiceHandler(ad,template.className);
@@ -5688,7 +6148,12 @@ const expansionRelatedPages = {
   "auction.html":[["Archive Market","market.html"],["Shop","shop.html"],["Inventory","inventory.html"]],
   "wiki.html":[["Cursed Search","search.html"],["???","secrets.html"],["Quest Board","quests.html"]],
   "login.html":[["???","secrets.html"],["Fake Inbox","inbox.html"],["Quest Board","quests.html"]],
-  "quests.html":[["Fake Inbox","inbox.html"],["Archive Map","map.html"],["Inventory","inventory.html"]]
+  "quests.html":[["Fake Inbox","inbox.html"],["Archive Map","map.html"],["Inventory","inventory.html"]],
+  "rumors.html":[["Static Times","newspaper.html"],["Popup Graveyard","graveyard.html"],["Quest Board","quests.html"]],
+  "newspaper.html":[["Rumor Feed","rumors.html"],["Junk Alchemy","alchemy.html"],["Locked Rooms","rooms.html"]],
+  "graveyard.html":[["Rumor Feed","rumors.html"],["Junk Alchemy","alchemy.html"],["Fake Ad Museum","ads.html"]],
+  "alchemy.html":[["Inventory","inventory.html"],["Popup Graveyard","graveyard.html"],["Shop","shop.html"]],
+  "rooms.html":[["Corrupted Passage","corrupt.html"],["Static Times","newspaper.html"],["Achievements","achievements.html"]]
 };
 
 function pageHrefForWidget(file){
@@ -6728,6 +7193,12 @@ addEventListener("DOMContentLoaded",()=>{
   renderExpansionWidgets();
   renderCorruptPage();
   renderBeyondPage();
+  renderArchiveRumors();
+  renderStaticTimes();
+  renderPopupGraveyard();
+  renderAlchemy();
+  renderRooms();
+  renderArchiveRumorWidget();
   initRadioPage();
   initCRTPage();
   renderSecretCount();
@@ -6814,6 +7285,26 @@ addEventListener("DOMContentLoaded",()=>{
   window.spawnSticker = spawnSticker;
   window.spawnFallingCoupon = spawnFallingCoupon;
   window.scheduleNextCouponDrop = scheduleNextCouponDrop;
+  window.generateArchiveRumors = generateArchiveRumors;
+  window.renderArchiveRumors = renderArchiveRumors;
+  window.pinTodaysRumor = pinTodaysRumor;
+  window.renderArchiveRumorWidget = renderArchiveRumorWidget;
+  window.generateStaticTimes = generateStaticTimes;
+  window.renderStaticTimes = renderStaticTimes;
+  window.printFakeEdition = printFakeEdition;
+  window.clipStaticHeadline = clipStaticHeadline;
+  window.refreshStaticTimesLayout = refreshStaticTimesLayout;
+  window.recordPopupGrave = recordPopupGrave;
+  window.renderPopupGraveyard = renderPopupGraveyard;
+  window.setPopupGraveSort = setPopupGraveSort;
+  window.readPopupEpitaph = readPopupEpitaph;
+  window.leaveCouponFlowers = leaveCouponFlowers;
+  window.hasInventoryItems = hasInventoryItems;
+  window.consumeInventoryItems = consumeInventoryItems;
+  window.craftAlchemyRecipe = craftAlchemyRecipe;
+  window.renderAlchemy = renderAlchemy;
+  window.collectRoomReward = collectRoomReward;
+  window.renderRooms = renderRooms;
   window.fakeDownload = fakeDownload;
   window.randomThing = randomThing;
   window.fakeFact = fakeFact;

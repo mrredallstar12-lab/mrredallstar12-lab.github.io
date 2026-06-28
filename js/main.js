@@ -492,6 +492,10 @@ const inventoryCatalog = {
   "Canary Feather":{rarity:"canary",flavor:"canary",desc:"Proof that the original signal left a tiny breadcrumb."},
   "VDO Splinter":{rarity:"rare",flavor:"signal",desc:"A noisy chip from the bouncing logo's emotional shell."},
   "Illegal Coupon Crumb":{rarity:"strange",flavor:"discounted",desc:"Zero percent off, broken into smaller zeroes."},
+  "Misprinted Coupon Corner":{rarity:"uncommon",flavor:"coupon",desc:"A torn corner from a coupon that printed itself sideways."},
+  "Golden Coupon Flake":{rarity:"rare",flavor:"coupon",desc:"A shiny flake from a 0% discount pretending to be premium."},
+  "Negative Discount Relic":{rarity:"haunted",flavor:"coupon",desc:"A coupon so useless it bent backward into value."},
+  "VDO Coupon Halo":{rarity:"mythic",flavor:"vdo",desc:"A glowing coupon ring briefly blessed by the bouncing signal."},
   "Haunted Cursor":{rarity:"haunted",flavor:"pointer",desc:"Still points at the thing you almost clicked."},
   "Static Receipt":{rarity:"uncommon",flavor:"paper",desc:"A receipt printed by a radio station with no printer."},
   "Tiny Door":{rarity:"veryRare",flavor:"small",desc:"Opens into a corridor made of CSS comments."},
@@ -698,6 +702,7 @@ const achievementCatalog = {
   consoleGremlin:{name:"Console Gremlin",desc:"Find the archive's console-adjacent secret."},
   signalWhisperer:{name:"Signal Whisperer",desc:"Type a secret phrase into the archive."},
   couponCultist:{name:"Coupon Cultist",desc:"Discover several coupon-related secrets."},
+  couponMiracle:{name:"Coupon Miracle",desc:"Clip an extremely rare floating coupon."},
   staticCartographer:{name:"Static Cartographer",desc:"Discover five hidden interactions."},
   mirrorExile:{name:"Mirror Exile",desc:"Witness unauthorized mirror containment."},
   archiveArchaeologist:{name:"Archive Archaeologist",desc:"Discover ten hidden secrets."},
@@ -1752,25 +1757,106 @@ function checkArchiveHost(){
   return false;
 }
 
+const fallingCouponVariants = [
+  {
+    id:"common",
+    label:"0% OFF",
+    className:"coupon-common",
+    weight:84,
+    dust:3,
+    message:"0% coupon clipped: +3 Coupon Dust"
+  },
+  {
+    id:"misprint",
+    label:"MISPRINT",
+    className:"coupon-misprint",
+    weight:10,
+    dust:10,
+    item:"Misprinted Coupon Corner",
+    message:"Rare misprint coupon clipped: +10 Coupon Dust"
+  },
+  {
+    id:"gold",
+    label:"GOLD 0%",
+    className:"coupon-gold",
+    weight:4,
+    dust:25,
+    item:"Golden Coupon Flake",
+    message:"Golden 0% coupon clipped: +25 Coupon Dust"
+  },
+  {
+    id:"negative",
+    label:"-0% OFF",
+    className:"coupon-negative",
+    weight:1.5,
+    dust:50,
+    item:"Negative Discount Relic",
+    message:"Negative discount coupon clipped: +50 Coupon Dust"
+  },
+  {
+    id:"vdo",
+    label:"VDO VOID COUPON",
+    className:"coupon-vdo",
+    weight:.5,
+    dust:100,
+    item:"VDO Coupon Halo",
+    achievement:"couponMiracle",
+    message:"VDO Void Coupon clipped: +100 Coupon Dust. The archive blinked."
+  }
+];
+
+function pickFallingCouponVariant(){
+  const total = fallingCouponVariants.reduce((sum,variant)=>sum + variant.weight,0);
+  let roll = Math.random() * total;
+  for(const variant of fallingCouponVariants){
+    roll -= variant.weight;
+    if(roll <= 0) return variant;
+  }
+  return fallingCouponVariants[0];
+}
+
+function recordRareFallingCoupon(variant){
+  if(!variant || variant.id === "common") return;
+  incrementStat("oddRareCouponsClicked",1);
+  const best = Number(localStorage.getItem("oddBestCouponDustDrop") || 0);
+  if(variant.dust > best) localStorage.setItem("oddBestCouponDustDrop",String(variant.dust));
+  const log = readJSON("oddCouponVariantLog",[]);
+  log.push({
+    id:variant.id,
+    label:variant.label,
+    dust:variant.dust,
+    item:variant.item || "",
+    date:new Date().toLocaleString()
+  });
+  writeJSON("oddCouponVariantLog",log.slice(-20));
+  renderQuests();
+  updateArchiveDashboard();
+}
+
 function spawnFallingCoupon(){
   if(archiveIsMirrorLocked()) return null;
   const maxCoupons = 5;
   if(document.querySelectorAll(".falling-coupon").length >= maxCoupons) return null;
+  const variant = pickFallingCouponVariant();
   const coupon = document.createElement("button");
   coupon.type = "button";
-  coupon.className = "falling-coupon";
+  coupon.className = `falling-coupon ${variant.className}`;
   coupon.dataset.claimed = "false";
+  coupon.dataset.couponVariant = variant.id;
   coupon.dataset.sound = "coin";
-  coupon.textContent = "0% OFF";
+  coupon.textContent = variant.label;
   coupon.style.left = Math.random()*90 + "vw";
   coupon.style.animationDuration = 7 + Math.random()*5 + "s";
   coupon.onclick = () => {
     if(coupon.dataset.claimed === "true") return;
     coupon.dataset.claimed = "true";
     incrementStat("oddFallingCouponsClicked",1);
-    awardCouponDust(3,"clipped 0% coupon");
-    if(Math.random() < .15) addInventoryItem("Illegal Coupon Crumb",1);
-    signalBanner("0% coupon clipped: +3 Coupon Dust");
+    awardCouponDust(variant.dust,`clipped ${variant.label} coupon`);
+    if(variant.item) addInventoryItem(variant.item,1);
+    if(variant.achievement) unlockAchievement(variant.achievement);
+    if(variant.id === "common" && Math.random() < .15) addInventoryItem("Illegal Coupon Crumb",1);
+    recordRareFallingCoupon(variant);
+    signalBanner(variant.message);
     coupon.remove();
   };
   document.body.appendChild(coupon);
@@ -6419,6 +6505,7 @@ function renderFakeLogin(){
 
 const questBoard = [
   {id:"coupon-clicks",title:"Clip 5 falling coupons",category:"Currency Goblin Tasks",tags:["core","currency"],target:5,progress:()=>Number(localStorage.getItem("oddFallingCouponsClicked") || 0),reward:{dust:6,item:"Quest Receipt"}},
+  {id:"coupon-luck-incident",title:"Clip 3 rare floating coupons",category:"Currency Goblin Tasks",tags:["core","currency","coupon"],target:3,progress:()=>Number(localStorage.getItem("oddRareCouponsClicked") || 0),reward:{dust:25,item:"Golden Coupon Flake"}},
   {id:"ad-negotiation",title:"Click 10 fake popup buttons",category:"Core Archive",tags:["core","popup"],target:10,progress:()=>Number(localStorage.getItem("oddPopupButtonClicks") || 0),reward:{currency:["Popup Bucks",5],item:"Popup Union Badge"}},
   {id:"channel-404",title:"Tune Channel 404",category:"CRT / Radio Signals",tags:["secret","signal"],target:1,progress:()=>getDiscoveredSecrets()["tv:channel-404"] || getDiscoveredSecrets()["radio:ch404"] || Number(localStorage.getItem("oddRadioTunes") || 0) >= 5 ? 1 : 0,reward:{currency:["Static Coins",5],item:"Channel 404 Relic"}},
   {id:"vdo-ridge",title:"Visit VDO Ridge on the map",category:"Expansion Wing",tags:["expansion","secret"],target:1,progress:()=>readJSON("oddMapDiscoveries",{})["vdo-ridge"] ? 1 : 0,reward:{currency:["Static Coins",4],item:"VDO Spark"}},

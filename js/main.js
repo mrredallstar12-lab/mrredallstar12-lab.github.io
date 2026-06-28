@@ -433,6 +433,10 @@ function clean(text){
   return String(text).replace(/[<>&]/g,(char)=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[char]));
 }
 
+function cleanAttr(text){
+  return clean(text).replace(/"/g,"&quot;");
+}
+
 function readJSON(key,fallback){
   try{return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback))}
   catch{return fallback}
@@ -668,6 +672,8 @@ const inventoryCatalog = {
 
 const achievementCatalog = {
   popupPest:{name:"Popup Pest Control",desc:"Close 10 fake ads."},
+  popupPoker:{name:"Popup Poker",desc:"Click popup ad buttons instead of immediately closing them."},
+  adNegotiator:{name:"Ad Negotiator",desc:"Interact with 50 fake ad buttons."},
   adStormSurvivor:{name:"Ad Storm Survivor",desc:"Start ad storm."},
   secretDoor:{name:"Secret Door Opener",desc:"Unlock ???."},
   pixelHunter:{name:"Pixel Hunter",desc:"Find the hidden pixel."},
@@ -1607,7 +1613,7 @@ function spawnPanicAd(count){
     awardAdClose();
     ad.remove();
   };
-  ad.querySelectorAll(".ad-body button").forEach((button)=>button.onclick = () => spawnSticker());
+  attachPopupChoiceHandler(ad,"panic-ad");
   makeDraggable(ad,ad.querySelector(".ad-title"));
 }
 
@@ -1638,10 +1644,8 @@ function spawnSecretPopup(id,title,body,rewardItem,options={}){
     ad.remove();
   };
   const buttonReward = options.buttonReward === undefined ? rewardItem : options.buttonReward;
-  ad.querySelectorAll(".ad-body button").forEach((button)=>button.onclick = () => {
-    if(buttonReward) addInventoryItem(buttonReward,1);
-    spawnSticker();
-  });
+  if(buttonReward) ad.dataset.buttonReward = buttonReward;
+  attachPopupChoiceHandler(ad,"secret-popup");
   makeDraggable(ad,ad.querySelector(".ad-title"));
 }
 
@@ -2743,10 +2747,409 @@ function spawnSticker(){
   setTimeout(()=>d.remove(),2700);
 }
 
+function popupChoiceButtons(template){
+  return template.buttons.map((label,index)=>`
+    <button type="button" data-popup-choice data-template-class="${cleanAttr(template.className)}" data-choice-index="${index}" data-choice-label="${cleanAttr(label)}">${clean(label)}</button>
+  `).join("");
+}
+
+function popupResult(popup,title,text){
+  const body = popup && popup.querySelector(".ad-body");
+  if(!body) return;
+  let result = body.querySelector(".popup-result");
+  if(!result){
+    result = document.createElement("div");
+    result.className = "popup-result";
+    body.appendChild(result);
+  }
+  result.innerHTML = `<b>${clean(title)}</b><p>${clean(text)}</p>`;
+}
+
+function popupResultHTML(popup,title,html){
+  const body = popup && popup.querySelector(".ad-body");
+  if(!body) return;
+  let result = body.querySelector(".popup-result");
+  if(!result){
+    result = document.createElement("div");
+    result.className = "popup-result";
+    body.appendChild(result);
+  }
+  result.innerHTML = `<b>${clean(title)}</b><div>${html}</div>`;
+}
+
+function popupReceipt(popup,lines=[]){
+  const body = popup && popup.querySelector(".ad-body");
+  if(!body) return;
+  const receipt = document.createElement("div");
+  receipt.className = "popup-receipt";
+  receipt.innerHTML = `<b>FAKE RECEIPT</b>${lines.map((line)=>`<p>${clean(line)}</p>`).join("")}`;
+  body.appendChild(receipt);
+}
+
+function popupProgress(popup,label,doneText,done){
+  const body = popup && popup.querySelector(".ad-body");
+  if(!body) return;
+  let progress = body.querySelector(".popup-progress");
+  if(!progress){
+    progress = document.createElement("div");
+    progress.className = "popup-progress";
+    body.appendChild(progress);
+  }
+  progress.innerHTML = `<b>${clean(label)}</b><div class="popup-progress-bar"><span></span></div><p>starting...</p>`;
+  const bar = progress.querySelector("span");
+  const status = progress.querySelector("p");
+  setTimeout(()=>{if(bar) bar.style.width = "100%"; if(status) status.textContent = "nearly pretending...";},60);
+  setTimeout(()=>{
+    if(status) status.textContent = doneText;
+    if(typeof done === "function") done();
+  },950);
+}
+
+function popupInternalLink(file,label){
+  return `<a class="button popup-internal-link" href="${cleanAttr(canonicalPageHref(file))}">${clean(label)}</a>`;
+}
+
+function popupMeter(popup,label="nonsense meter"){
+  popupResultHTML(popup,label,`<div class="popup-meter"><span style="width:${30 + Math.floor(Math.random()*65)}%"></span></div><p>${clean(label)} opened. Results: theatrical pressure acceptable.</p>${popupInternalLink("lab.html","open Chaos Lab")}`);
+}
+
+function recordPopupChoice(button,popup,className,label){
+  const clicks = incrementStat("oddPopupButtonClicks",1);
+  if(clicks >= 10) unlockAchievement("popupPoker");
+  if(clicks >= 50) unlockAchievement("adNegotiator");
+  const log = readJSON("oddPopupChoiceLog",[]);
+  log.push({
+    label,
+    className,
+    title:popup?.querySelector(".ad-title span")?.textContent || "fake popup",
+    date:new Date().toLocaleString()
+  });
+  writeJSON("oddPopupChoiceLog",log.slice(-20));
+  if(typeof rememberArchiveAction === "function") rememberArchiveAction("popupChoice",`clicked ${label}`);
+  renderQuests();
+  updateArchiveDashboard();
+}
+
+function decoratePopupChoiceButtons(popup,className){
+  popup.querySelectorAll(".ad-body button").forEach((button,index)=>{
+    if(button.classList.contains("x")) return;
+    if(!button.dataset.popupChoice) button.dataset.popupChoice = "true";
+    if(!button.dataset.templateClass) button.dataset.templateClass = className;
+    if(!button.dataset.choiceIndex) button.dataset.choiceIndex = String(index);
+    if(!button.dataset.choiceLabel) button.dataset.choiceLabel = button.textContent.trim();
+    button.type = "button";
+  });
+}
+
+function attachPopupChoiceHandler(popup,className){
+  popup.dataset.templateClass = className;
+  decoratePopupChoiceButtons(popup,className);
+  popup.addEventListener("click",(e)=>{
+    const button = e.target.closest("[data-popup-choice]");
+    if(!button || !popup.contains(button)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    handlePopupChoice(button);
+  });
+}
+
+const popupChoiceActions = {
+  "ad-coupon":["couponClip","couponFold","couponReceipt"],
+  "ad-goblin":["couponGoblin","couponStamp","couponDust"],
+  "ad-prize":["admirePrize","declinePrize","moreGlitter"],
+  "ad-antivirus":["fakeScan","quarantineCoupon","openAntivirusPage"],
+  "ad-toolbar":["previewToolbar","keepClean","whyGray"],
+  "ad-visitor":["acceptNumber","visitorReroll","frameVisitor"],
+  "ad-ring":["ringSurf","ringNext","ringStay"],
+  "ad-alert":["alertAck","openMeter","ignoreProfessional"],
+  "ad-fortune":["readOmen","shuffleFate","closePortal"],
+  "ad-psychic":["readOmen","declineProphecy","askStatic"],
+  "ad-dialup":["boostBeeps","testKbs","cancelHandshake"],
+  "panic-ad":["panicReceipt","panicAgain"],
+  "secret-popup":["catalogSecret","pretendNormal"]
+};
+
+const popupLabelActions = {
+  "clip coupon":"couponClip",
+  "fold it wrong":"couponFold",
+  "summon receipt":"couponReceipt",
+  "more glitter":"moreGlitter",
+  "scan feelings":"fakeScan",
+  "quarantine coupon":"quarantineCoupon",
+  "preview toolbar":"previewToolbar",
+  "surf sideways":"ringSurf",
+  "next weird site":"ringNext",
+  "stay here":"ringStay",
+  "reroll number":"visitorReroll",
+  "open meter":"openMeter",
+  "read omen":"readOmen",
+  "shuffle fate":"shuffleFate",
+  "open tiny cage":"petCage",
+  "adopt pixel crab":"adoptPet",
+  "release bubbles":"releaseBubbles",
+  "refresh fake weather":"refreshPopupWeather",
+  "rewind tape":"rewindTape",
+  "defragment vibes":"defragVibes",
+  "view progress":"viewProgress",
+  "accept receipt":"panicReceipt",
+  "panic again later":"panicAgain",
+  "catalog secret":"catalogSecret",
+  "pretend this is normal":"pretendNormal",
+  "prev":"ringSurf",
+  "random":"ringNext",
+  "next":"ringNext"
+};
+
+function popupNavigate(popup,file,message){
+  popupResultHTML(popup,"INTERNAL DOOR",`${clean(message)} ${popupInternalLink(file,"open archive page")}`);
+  setTimeout(()=>{location.href = canonicalPageHref(file);},650);
+}
+
+function spawnOnePopupFromChoice(){
+  if(popupsAreMuted() || archiveIsMirrorLocked()) return;
+  if(document.querySelectorAll(".popup-ad").length >= getPopupCap()) return;
+  spawnAd(false,"choice");
+}
+
+function handlePopupChoice(button){
+  if(archiveIsMirrorLocked()) return;
+  const popup = button.closest(".popup-ad");
+  if(!popup) return;
+  const className = button.dataset.templateClass || popup.dataset.templateClass || Array.from(popup.classList).find((name)=>/^ad-/.test(name)) || "popup-ad";
+  const index = Number(button.dataset.choiceIndex || 0);
+  const label = (button.dataset.choiceLabel || button.textContent || "mystery button").trim();
+  const normalized = label.toLowerCase();
+  button.classList.add("popup-choice-clicked");
+  setTimeout(()=>button.classList.remove("popup-choice-clicked"),420);
+  recordPopupChoice(button,popup,className,label);
+  playSound("blip");
+  const action = popupLabelActions[normalized] || (popupChoiceActions[className] && popupChoiceActions[className][index]) || "generic";
+  performPopupChoiceAction(action,{button,popup,className,index,label,normalized});
+}
+
+function performPopupChoiceAction(action,ctx){
+  const {popup,label,normalized} = ctx;
+  const fortunes = [
+    "The next archive shelf will blink when nobody clicks it.",
+    "A tiny modem approves your suspicious curiosity.",
+    "The close button union is monitoring this interaction.",
+    "A coupon moon rises over the fake toolbar district."
+  ];
+  const internalPages = ["ads.html","shop.html","inventory.html","radio.html","tv.html","oracle.html","weather.html","antivirus.html","oddos.html","webring.html","lost.html"];
+  switch(action){
+    case "couponClip":
+      awardCouponDust(3,"popup clip coupon");
+      addInventoryItem("Illegal Coupon Crumb",1);
+      if(Math.random() < .35) spawnFallingCoupon();
+      popupResult(popup,"COUPON CLIPPED","Coupon clipped. Savings remain legally imaginary. +3 Coupon Dust.");
+      return;
+    case "couponFold":
+      addInventoryItem("Rotten Coupon Pixel",1);
+      popupResult(popup,"COUPON FOLDED WRONG","The coupon folded into a tiny pixel with damp ambitions.");
+      return;
+    case "couponReceipt":
+      awardCouponDust(1,"popup coupon receipt");
+      popupReceipt(popup,["0% off approved","Coupon Dust: +1","Cash value: still none","Receipt printed by a nervous rectangle"]);
+      return;
+    case "couponGoblin":
+      spawnDesktopPet("coupon");
+      awardCouponDust(2,"coupon goblin popup");
+      popupResult(popup,"GOBLIN SUMMONED","A coupon-shaped desktop pet has been released with supervision.");
+      return;
+    case "couponStamp":
+      addInventoryItem("Coupon Goblin Memo",1);
+      popupResult(popup,"STAMP ACCEPTED","The goblin stamped your archive paperwork with zero percent authority.");
+      return;
+    case "couponDust":
+      awardCouponDust(3,"swept coupon dust");
+      popupResult(popup,"DUST SWEPT","Coupon Dust swept into localStorage. The broom filed a complaint.");
+      return;
+    case "admirePrize":
+      addCurrency("Popup Bucks",1);
+      addInventoryItem("Tiny Fake Certificate",1);
+      popupReceipt(popup,["Prize admired successfully","+1 Popup Buck","Certificate confidence: excessive"]);
+      return;
+    case "declinePrize":
+      addCurrency("Static Coins",1);
+      popupResult(popup,"DECLINED LOUDLY","The prize committee respects the volume and pays one Static Coin for drama.");
+      return;
+    case "moreGlitter":
+      spawnConfetti();
+      addCurrency("Popup Bucks",1);
+      popupResult(popup,"GLITTER APPROVED","Glitter approved. The prize committee is now coughing. +1 Popup Buck.");
+      return;
+    case "fakeScan":
+      popupProgress(popup,"fake vibe scan","Scan complete: 7 vibe irregularities found. No files were touched.",()=>addInventoryItem("Fake Quarantine Receipt",1));
+      return;
+    case "quarantineCoupon":
+      addInventoryItem("Quarantine Confetti",1);
+      addInventoryItem("Fake Quarantine Receipt",1);
+      popupResult(popup,"COUPON QUARANTINED","The coupon was placed in a velvet fake quarantine box. Nothing real was scanned.");
+      return;
+    case "openAntivirusPage":
+      popupResultHTML(popup,"SCAN ROOM AVAILABLE",`Ignore filed professionally. ${popupInternalLink("antivirus.html","open fake antivirus page")}`);
+      return;
+    case "previewToolbar":
+      addInventoryItem("Fake Toolbar",1);
+      openFakeWindow("Toolbar Preview","[ Weather ] [ Wormhole ] [ Sandwich Status ] [ Emotionally Gray Button ]<br><br>Preview failed successfully. Nothing was installed.");
+      popupResult(popup,"TOOLBAR PREVIEW","A tiny toolbar preview opened. It is made of theater and gray plastic.");
+      return;
+    case "keepClean":
+      addCurrency("Static Coins",1);
+      popupResult(popup,"BROWSER KEPT CLEAN","No toolbar was installed. The archive awards one Static Coin for restraint.");
+      return;
+    case "whyGray":
+      addInventoryItem("Gray Button Paint Chip",1);
+      popupResult(popup,"GRAY EXPLAINED","The toolbar is gray because it remembers 2003 too clearly.");
+      return;
+    case "acceptNumber":
+      addCurrency("Static Coins",1);
+      popupResult(popup,"NUMBER ACCEPTED","The fake visitor number was framed internally. +1 Static Coin.");
+      return;
+    case "visitorReroll":{
+      const number = String(Math.floor(100000 + Math.random()*899999));
+      const cert = popup.querySelector(".visitor-certificate span");
+      if(cert) cert.textContent = number;
+      addCurrency("Static Coins",1);
+      popupResult(popup,"NUMBER REROLLED",`New fake visitor number: ${number}. +1 Static Coin.`);
+      return;
+    }
+    case "frameVisitor":
+      addInventoryItem("Visitor Counter Spring",1);
+      popupReceipt(popup,["Visitor certificate framed","Frame material: old table border","Counter spring recovered"]);
+      return;
+    case "ringSurf":
+      popupNavigate(popup,"webring.html","Surfing sideways through the internal web ring.");
+      return;
+    case "ringNext":
+      popupNavigate(popup,internalPages[Math.floor(Math.random()*internalPages.length)],"The ring chose a safe internal page.");
+      return;
+    case "ringStay":
+      addInventoryItem("Forgotten Webring Token",1);
+      popupResult(popup,"STAYING HERE","You stayed here. The web ring left a token anyway.");
+      return;
+    case "alertAck":
+      addCurrency("Static Coins",1);
+      popupResult(popup,"ACKNOWLEDGED","The desktop alert feels seen. +1 Static Coin.");
+      return;
+    case "openMeter":
+      popupMeter(popup,"nonsense meter");
+      return;
+    case "ignoreProfessional":
+      addInventoryItem("Button Confidence Washer",1);
+      popupResult(popup,"IGNORED PROFESSIONALLY","The popup respects your clipboard posture and files a washer.");
+      return;
+    case "readOmen":
+      addInventoryItem("Modem Prayer Bead",1);
+      popupResult(popup,"OMEN RECEIVED",fortunes[Math.floor(Math.random()*fortunes.length)]);
+      return;
+    case "shuffleFate":
+      popup.querySelectorAll(".fortune-slip,.starscope").forEach((el)=>el.textContent = fortunes[Math.floor(Math.random()*fortunes.length)]);
+      addCurrency("Static Coins",1);
+      popupResult(popup,"FATE SHUFFLED","The modem shuffled fate into a different folder. +1 Static Coin.");
+      return;
+    case "closePortal":
+      addInventoryItem("Tiny Door",1);
+      popupResult(popup,"PORTAL CLOSED-ISH","The portal closed into a tiny door and stayed decorative.");
+      return;
+    case "declineProphecy":
+      addCurrency("Static Coins",1);
+      popupResult(popup,"PROPHECY DECLINED","The crystal modem took it personally but paid one Static Coin.");
+      return;
+    case "askStatic":
+      document.body.classList.add("static-burst");
+      setTimeout(()=>document.body.classList.remove("static-burst"),900);
+      popupResult(popup,"STATIC ANSWERED","The static said: try the oracle, but bring a receipt.");
+      return;
+    case "boostBeeps":
+      addInventoryItem("Tiny Modem",1);
+      playSound("alarm");
+      popupResult(popup,"BEEPS BOOSTED","Imaginary modem volume increased by one tiny scream.");
+      return;
+    case "testKbs":
+      popupMeter(popup,"kb/s theater meter");
+      addCurrency("Static Coins",1);
+      return;
+    case "cancelHandshake":
+      addInventoryItem("Dial-up Pebble",1);
+      popupResult(popup,"HANDSHAKE CANCELLED","The modem handshake waved politely and left a pebble.");
+      return;
+    case "petCage":
+    case "adoptPet":
+      spawnDesktopPet(action === "adoptPet" ? "crab" : undefined);
+      popupResult(popup,"PET EVENT","A tiny desktop pet crossed the archive floor.");
+      return;
+    case "releaseBubbles":
+      addInventoryItem("Aquarium Bubble",1);
+      aquariumEvent();
+      popupResult(popup,"BUBBLES RELEASED","Aquarium bubbles released. The fish symbols approve.");
+      return;
+    case "refreshPopupWeather":
+      addInventoryItem("Weather Pixel",1);
+      popupResultHTML(popup,"FAKE WEATHER",`Forecast refreshed inside the popup. ${popupInternalLink("weather.html","open fake weather")}`);
+      return;
+    case "rewindTape":
+      addInventoryItem("VHS Label Curl",1);
+      popupResult(popup,"TAPE REWOUND","The VHS tape rewound to a scene labeled STATIC BUT POLITE.");
+      return;
+    case "defragVibes":
+      popupProgress(popup,"defragmenting vibes","Vibes defragmented. Table cells remain emotionally chunky.",()=>addInventoryItem("Fake Patch Note",1));
+      return;
+    case "viewProgress":
+      popupProgress(popup,"nothing.zip progress","Download complete: zero files created, one feeling archived.",()=>addCurrency("Static Coins",1));
+      return;
+    case "panicReceipt":
+      addInventoryItem("Emergency Panic Receipt",1);
+      popupReceipt(popup,["Panic acknowledged again","Emergency popup remains legally decorative","Receipt carbon copied"]);
+      return;
+    case "panicAgain":
+      spawnSticker();
+      popupResult(popup,"PANIC SCHEDULED","Panic has been rescheduled for later, probably five pixels from now.");
+      return;
+    case "catalogSecret":{
+      const reward = popup.dataset.buttonReward;
+      if(reward) addInventoryItem(reward,1);
+      popupResult(popup,"SECRET CATALOGED","Secret cataloged locally. The archive coughed approvingly.");
+      return;
+    }
+    case "pretendNormal":
+      addCurrency("Static Coins",1);
+      popupResult(popup,"NORMAL PRETENDED","You pretended this was normal. The archive did not believe you. +1 Static Coin.");
+      return;
+    default:
+      genericPopupChoice(ctx);
+  }
+}
+
+function genericPopupChoice(ctx){
+  const {popup,className,label,normalized} = ctx;
+  if(/coupon|discount|stamp|dust/.test(normalized) || /coupon|goblin/.test(className)){
+    awardCouponDust(1,"generic popup choice");
+  }else if(Math.random() < .65){
+    addCurrency("Static Coins",1);
+  }
+  if(Math.random() < .28) awardRandomJunk("popup button");
+  if(Math.random() < .24) spawnSticker();
+  if(Math.random() < .08) spawnOnePopupFromChoice();
+  const fallbackMessages = [
+    "The button filed paperwork.",
+    "The popup rearranged its feelings.",
+    "A tiny receipt appeared and immediately denied responsibility.",
+    "The archive rewarded your poor decision with one suspicious noise."
+  ];
+  const lines = [
+    `${label} pressed`,
+    fallbackMessages[Math.floor(Math.random()*fallbackMessages.length)],
+    "Reward: tiny and legally imaginary."
+  ];
+  popupReceipt(popup,lines);
+  popupResult(popup,"BUTTON CONSEQUENCE","The button made a noise and produced one small archive consequence.");
+}
+
 function adMarkup(template){
   const body = clean(template.body);
   const fine = clean(template.fine);
-  const buttons = template.buttons.map((label)=>`<button>${clean(label)}</button>`).join("");
+  const buttons = popupChoiceButtons(template);
   const title = `<div class="ad-title"><span>${clean(template.icon)} ${clean(template.title)}</span><button class="x" title="close">X</button></div>`;
   if(template.className === "ad-prize"){
     return `${title}<div class="ad-body"><div class="ad-burst">WINNER-ISH!</div><b>${body}</b><p class="ad-loud">Claim one imaginary trophy and a lifetime supply of blinking.</p><div class="winner-number">CERTIFICATE #${Math.floor(10000 + Math.random()*89999)}</div><p>${buttons}</p><p class="ad-fine">${fine}</p></div>`;
@@ -3000,19 +3403,7 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
     awardAdClose();
     ad.remove();
   };
-  ad.querySelectorAll(".ad-body button").forEach((button)=>{
-    button.onclick = () => {
-      spawnSticker();
-      awardAdTemplateReward(template);
-      if(/coupon|goblin|vhs|cookie/i.test(`${template.className} ${template.title}`) && ad.dataset.couponDustClaimed !== "true"){
-        ad.dataset.couponDustClaimed = "true";
-        awardCouponDust(2,"coupon popup interaction");
-        if(Math.random() < .12) addInventoryItem("Coupon Dust",1);
-      }
-      if(template.className === "ad-aquarium") aquariumEvent();
-      if(Math.random() > .72) spawnAd(true,"manual");
-    };
-  });
+  attachPopupChoiceHandler(ad,template.className);
   makeDraggable(ad,ad.querySelector(".ad-title"));
   if(source !== "manual"){
     const chaos = getChaosLevel();
@@ -6028,6 +6419,7 @@ function renderFakeLogin(){
 
 const questBoard = [
   {id:"coupon-clicks",title:"Clip 5 falling coupons",category:"Currency Goblin Tasks",tags:["core","currency"],target:5,progress:()=>Number(localStorage.getItem("oddFallingCouponsClicked") || 0),reward:{dust:6,item:"Quest Receipt"}},
+  {id:"ad-negotiation",title:"Click 10 fake popup buttons",category:"Core Archive",tags:["core","popup"],target:10,progress:()=>Number(localStorage.getItem("oddPopupButtonClicks") || 0),reward:{currency:["Popup Bucks",5],item:"Popup Union Badge"}},
   {id:"channel-404",title:"Tune Channel 404",category:"CRT / Radio Signals",tags:["secret","signal"],target:1,progress:()=>getDiscoveredSecrets()["tv:channel-404"] || getDiscoveredSecrets()["radio:ch404"] || Number(localStorage.getItem("oddRadioTunes") || 0) >= 5 ? 1 : 0,reward:{currency:["Static Coins",5],item:"Channel 404 Relic"}},
   {id:"vdo-ridge",title:"Visit VDO Ridge on the map",category:"Expansion Wing",tags:["expansion","secret"],target:1,progress:()=>readJSON("oddMapDiscoveries",{})["vdo-ridge"] ? 1 : 0,reward:{currency:["Static Coins",4],item:"VDO Spark"}},
   {id:"inbox-five",title:"Open 5 fake emails",category:"Expansion Wing",tags:["expansion"],target:5,progress:()=>Number(localStorage.getItem("oddEmailsOpened") || 0),reward:{currency:["Popup Bucks",5],item:"Suspicious Attachment"}},
@@ -6319,6 +6711,10 @@ addEventListener("DOMContentLoaded",()=>{
   window.fortune = fortune;
   window.spawnAd = spawnAd;
   window.spawnAdBurst = spawnAdBurst;
+  window.handlePopupChoice = handlePopupChoice;
+  window.popupResult = popupResult;
+  window.popupReceipt = popupReceipt;
+  window.popupProgress = popupProgress;
   window.getPopupCap = getPopupCap;
   window.toggleAdStorm = toggleAdStorm;
   window.togglePopupMute = togglePopupMute;

@@ -706,12 +706,42 @@ meter{width:100%}
 .popup-ad .ad-body{display:block;min-height:130px;max-height:calc(82vh - 44px);overflow-y:auto;overflow-x:hidden;padding:10px;background:#fff;color:#000;visibility:visible;opacity:1;position:relative;z-index:1}
 .popup-ad .ad-body *{visibility:visible;opacity:1}
 .popup-ad .ad-body:empty::before{content:"AD BODY FAILED TO LOAD";display:block;padding:10px;background:#000;color:#0f0;border:2px dashed #ff0}
-.popup-ad button{font-size:12px}
+.popup-ad button{font-size:12px;transition:transform .08s ease,filter .08s ease,box-shadow .08s ease}
+.popup-ad .ad-body button[data-popup-choice]{margin:4px 3px;min-height:30px}
+.popup-ad .ad-body button:hover,.popup-ad .ad-body button:focus{filter:saturate(1.5) contrast(1.15);box-shadow:0 0 10px #ff00cc;outline:2px dotted #000}
+.popup-ad .ad-body button:active,.popup-ad .ad-body button.popup-choice-clicked{transform:translate(2px,2px);border-style:inset;background:#fff000;color:#000}
 .popup-ad .x{display:inline-block;visibility:visible;opacity:1;background:#c00;color:#fff;border:2px outset #fff;padding:1px 7px;min-width:28px;position:relative;z-index:3}
 .ad-fine{font-size:10px;color:#333}
 .fake-progress{height:17px;border:2px inset #777;background:#111;overflow:hidden}
 .fake-progress:before{content:"";display:block;height:100%;width:60%;background:repeating-linear-gradient(90deg,#0f0 0 9px,#080 9px 18px);animation:progress 1.2s infinite alternate}
 @keyframes progress{to{width:93%}}
+.popup-result,.popup-receipt,.popup-progress{
+  margin-top:8px;
+  padding:7px;
+  border:3px inset #777;
+  background:#000;
+  color:#00ff66;
+  font:12px "Courier New",monospace;
+  text-shadow:none;
+}
+.popup-result p,.popup-receipt p,.popup-progress p{margin:5px 0}
+.popup-result b,.popup-receipt b,.popup-progress b{display:block;margin-bottom:4px;color:#fff000;text-shadow:1px 1px #000}
+.popup-receipt{background:#fffbd0;color:#111;border-color:#c9a600}
+.popup-progress-bar,.popup-meter{
+  height:16px;
+  border:2px inset #777;
+  background:#111;
+  overflow:hidden;
+  margin:6px 0;
+}
+.popup-progress-bar span,.popup-meter span{
+  display:block;
+  height:100%;
+  width:8%;
+  background:repeating-linear-gradient(90deg,#00ff66 0 8px,#007733 8px 16px);
+  transition:width .85s steps(8);
+}
+.popup-internal-link{font-size:11px;margin-top:4px}
 @keyframes adPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 
 .ad-prize{background:#fff4a8;border-color:#ffcf00;box-shadow:8px 8px 0 #6b3200,0 0 28px #ff8a00}

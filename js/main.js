@@ -757,6 +757,24 @@ Object.assign(inventoryCatalog,{
   "Auction Paddle Splinter":{rarity:"common",flavor:"auction",desc:"A chip from a bidding paddle that got too excited."}
 });
 
+Object.assign(inventoryCatalog,{
+  "Corrupted Breadcrumb":{rarity:"odd",flavor:"corruption",desc:"A crumb from the damaged layer. It points both directions."},
+  "Static Scar":{rarity:"strange",flavor:"corruption",desc:"A thin mark left where the page recovered from signal rot."},
+  "Memory Leak Receipt":{rarity:"rare",flavor:"memory",desc:"Proof that a local echo dripped into the wrong folder."},
+  "Deep Archive Mold":{rarity:"haunted",flavor:"archive",desc:"Grows only where stable pages touch damaged pages."},
+  "VDO Fingerprint":{rarity:"rare",flavor:"vdo",desc:"A smudged oval print from the passage wall."},
+  "Broken Page Edge":{rarity:"uncommon",flavor:"page",desc:"A torn margin from a file that still renders."},
+  "LocalStorage Echo":{rarity:"strange",flavor:"memory",desc:"Repeats what happened locally, never loudly enough to be evidence."},
+  "Damaged Directory Tag":{rarity:"uncommon",flavor:"file",desc:"A label from a folder that should have stayed closed."},
+  "Checksum Bruise":{rarity:"odd",flavor:"signal",desc:"A purple mark where the archive counted itself wrong."},
+  "Rotten Coupon Pixel":{rarity:"cursed",flavor:"coupon",desc:"A discount pixel that spoiled in the corrupted passage."},
+  "Recovered Stable Fragment":{rarity:"rare",flavor:"beyond",desc:"A clean piece recovered after the broken hallway."},
+  "Quiet Static Receipt":{rarity:"uncommon",flavor:"beyond",desc:"A receipt printed after the noise remembered manners."},
+  "Post-Corruption Thread":{rarity:"strange",flavor:"beyond",desc:"A thread that stitched the route past the damage."},
+  "Clean Page Bone":{rarity:"haunted",flavor:"beyond",desc:"A pale structural piece from a page that stopped falling apart."},
+  "Sublevel Key Tag":{rarity:"veryRare",flavor:"beyond",desc:"A numbered tag for a room under the room under the room."}
+});
+
 const closeMilestonePopups = [
   {
     closes:25,
@@ -815,6 +833,291 @@ function getQuest(){return readJSON("oddQuest",{})}
 function getChaosLevel(){return Math.max(0,Math.min(4,Number(localStorage.getItem("oddChaosLevel") || 1)))}
 function getPopupCap(){
   return HARD_MAX_POPUPS;
+}
+
+const corruptDamageLabels = [
+  "surface damage",
+  "signal rot",
+  "directory bruising",
+  "HTML fracture",
+  "table collapse weather",
+  "deep static organ",
+  "browser basement event"
+];
+
+const corruptFileOutputs = {
+  "stable-index-copy.html":{
+    text:"stable-index-copy.html renders one clean sentence, then loses its border.",
+    item:"Broken Page Edge"
+  },
+  "vdo-shadow.tmp":{
+    text:"vdo-shadow.tmp contains an oval afterimage moving one frame late.",
+    item:"VDO Fingerprint"
+  },
+  "coupon-mold.css":{
+    text:"coupon-mold.css smells like zero percent off and damp table cells.",
+    item:"Rotten Coupon Pixel"
+  },
+  "visitor-count.old":{
+    text:"visitor-count.old remembers a number that never visited.",
+    item:"Memory Leak Receipt"
+  },
+  "sidebar-leftovers.bin":{
+    text:"sidebar-leftovers.bin rattles with badges, links, and one bent spacer.",
+    item:"Damaged Directory Tag"
+  },
+  "memory-echo.log":{
+    text:"memory-echo.log repeats your local archive trail in a very small voice.",
+    item:"LocalStorage Echo"
+  }
+};
+
+const beyondShelfItems = [
+  "Recovered Stable Fragment",
+  "Quiet Static Receipt",
+  "Post-Corruption Thread",
+  "Clean Page Bone",
+  "Sublevel Key Tag"
+];
+
+function getArchiveMemory(){
+  const memory = readJSON("oddArchiveMemory",{});
+  return {
+    firstSeen:memory.firstSeen || "",
+    lastSeen:memory.lastSeen || "",
+    visits:Number(memory.visits || 0),
+    uniquePages:Array.isArray(memory.uniquePages) ? memory.uniquePages : [],
+    pageVisits:memory.pageVisits && typeof memory.pageVisits === "object" ? memory.pageVisits : {},
+    latestAction:memory.latestAction || "",
+    actionLog:Array.isArray(memory.actionLog) ? memory.actionLog : [],
+    enteredCorruptZone:!!memory.enteredCorruptZone,
+    exitedCorruptZone:!!memory.exitedCorruptZone,
+    passedThroughCorruption:!!memory.passedThroughCorruption,
+    reachedBeyondCorruption:!!memory.reachedBeyondCorruption
+  };
+}
+
+function writeArchiveMemory(memory){
+  writeJSON("oddArchiveMemory",memory);
+  updateArchiveMemoryWidgets();
+}
+
+function rememberArchiveAction(action,detail=""){
+  const memory = getArchiveMemory();
+  const stamp = new Date().toLocaleString();
+  memory.latestAction = detail ? `${action}: ${detail}` : action;
+  memory.lastSeen = stamp;
+  memory.actionLog = [
+    ...(memory.actionLog || []),
+    {action,detail,date:stamp}
+  ].slice(-18);
+  if(action === "enteredCorruptZone") memory.enteredCorruptZone = true;
+  if(action === "exitedCorruptZone") memory.exitedCorruptZone = true;
+  if(action === "passedThroughCorruption") memory.passedThroughCorruption = true;
+  if(action === "reachedBeyondCorruption") memory.reachedBeyondCorruption = true;
+  writeArchiveMemory(memory);
+  return true;
+}
+
+function recordArchivePageVisit(){
+  const page = currentPageKey();
+  const memory = getArchiveMemory();
+  const stamp = new Date().toLocaleString();
+  if(!memory.firstSeen) memory.firstSeen = stamp;
+  memory.lastSeen = stamp;
+  memory.visits += 1;
+  if(!memory.uniquePages.includes(page)) memory.uniquePages.push(page);
+  memory.pageVisits[page] = Number(memory.pageVisits[page] || 0) + 1;
+  if(page === "corrupt.html"){
+    memory.enteredCorruptZone = true;
+    memory.latestAction = "enteredCorruptZone: stepped into the damaged layer";
+  }
+  if(page === "beyond.html"){
+    memory.passedThroughCorruption = true;
+    memory.reachedBeyondCorruption = true;
+    memory.latestAction = "reachedBeyondCorruption: arrived past the damaged layer";
+  }
+  writeArchiveMemory(memory);
+  if(page === "corrupt.html") rememberArchiveAction("enteredCorruptZone","landed on corrupted passage");
+  if(page === "beyond.html") rememberArchiveAction("reachedBeyondCorruption","landed beyond the corrupted passage");
+  if(page === "corrupt.html") applyCorruptZoneState();
+}
+
+function updateArchiveMemoryWidgets(){
+  const memory = getArchiveMemory();
+  setStatusText("[data-memory-visits]",String(memory.visits));
+  setStatusText("[data-memory-rooms]",String(memory.uniquePages.length));
+  setStatusText("[data-memory-latest]",memory.latestAction || "no echo yet");
+}
+
+function archiveMemorySidebarHTML(){
+  const memory = getArchiveMemory();
+  return `
+    <div class="box sidebar-widget archive-memory-widget">
+      <h3>archive memory</h3>
+      <p>visits remembered: <b data-memory-visits>${clean(memory.visits)}</b></p>
+      <p>rooms remembered: <b data-memory-rooms>${clean(memory.uniquePages.length)}</b></p>
+      <p>latest echo: <span data-memory-latest>${clean(memory.latestAction || "no echo yet")}</span></p>
+    </div>
+  `;
+}
+
+function getCorruptDepth(){
+  return Math.max(0,Math.min(corruptDamageLabels.length - 1,Number(localStorage.getItem("oddCorruptDepth") || 0)));
+}
+
+function corruptDamageLabel(depth=getCorruptDepth()){
+  return corruptDamageLabels[depth] || corruptDamageLabels[0];
+}
+
+function applyCorruptZoneState(){
+  if(currentPageKey() !== "corrupt.html" && !document.body.classList.contains("corrupt-zone")) return;
+  const depth = getCorruptDepth();
+  document.body.classList.add("corrupt-zone");
+  corruptDamageLabels.forEach((_,i)=>document.body.classList.remove(`corrupt-depth-${i}`));
+  document.body.classList.add(`corrupt-depth-${depth}`);
+  document.body.classList.toggle("corrupt-stabilized",sessionStorage.getItem("oddCorruptZoneStabilized") === "true");
+  setStatusText("[data-corrupt-damage]",corruptDamageLabel(depth));
+}
+
+function increaseCorruptDepth(reason="page damage stirred"){
+  const next = Math.min(corruptDamageLabels.length - 1,getCorruptDepth() + 1);
+  localStorage.setItem("oddCorruptDepth",String(next));
+  rememberArchiveAction("corruptDepth",`${reason}; current damage ${corruptDamageLabel(next)}`);
+  applyCorruptZoneState();
+  renderCorruptMemoryEchoes();
+  return next;
+}
+
+function stabilizeCorruptZone(){
+  sessionStorage.setItem("oddCorruptZoneStabilized","true");
+  rememberArchiveAction("stabilizedCorruptZone","signal stabilized locally");
+  addInventoryItem("Static Scar",1);
+  playSound("wobble");
+  applyCorruptZoneState();
+  setStatusText("[data-corrupt-output]","Signal stabilized locally. The damage is still underneath.");
+  return true;
+}
+
+function inspectCorruptFile(file){
+  const info = corruptFileOutputs[file] || {text:"The file opens into a square of static and one polite refusal.",item:"Corrupted Breadcrumb"};
+  increaseCorruptDepth(`opened ${file}`);
+  rememberArchiveAction("corruptFile",file);
+  addInventoryItem(info.item,1);
+  if(Math.random() < .35) addCurrency("Static Coins",1);
+  setStatusText("[data-corrupt-output]",`${file}: ${info.text}`);
+  playSound("secret");
+  return true;
+}
+
+function corruptMemoryEchoLines(){
+  const achievements = getAchievements();
+  const lines = [];
+  if(Number(localStorage.getItem("oddRadioTunes") || 0) > 0) lines.push("The radio signal followed you down here.");
+  if(Number(localStorage.getItem("oddCRTCabinetSmacks") || 0) > 0) lines.push("The CRT remembers your hand.");
+  if(Number(localStorage.getItem("oddEmailsOpened") || 0) > 0) lines.push("One fake email arrived before you did.");
+  if(maintainerIsUnlocked()) lines.push("The maintenance screw is loose in this layer too.");
+  if(achievements.pixelHunter) lines.push("A hidden pixel clicks somewhere behind the damaged wall.");
+  if(Number(localStorage.getItem("oddFallingCouponsClicked") || 0) > 0 || Number(localStorage.getItem("oddCouponDustEarned") || 0) > 0) lines.push("Coupon Dust has settled inside the page seams.");
+  if(getArchiveMemory().passedThroughCorruption) lines.push("A route past this damage is already marked in local memory.");
+  return lines.length ? lines : ["The archive has not brought many echoes down here yet.","A clean page is waiting somewhere past the broken hallway."];
+}
+
+function renderCorruptMemoryEchoes(){
+  const list = $("[data-corrupt-echoes]");
+  if(!list) return;
+  list.innerHTML = corruptMemoryEchoLines().map((line)=>`<li>${clean(line)}</li>`).join("");
+}
+
+function renderCorruptPage(){
+  if(currentPageKey() !== "corrupt.html") return;
+  applyCorruptZoneState();
+  renderCorruptMemoryEchoes();
+  setStatusText("[data-corrupt-output]","The damaged directory is waiting. Pick one file, or keep moving.");
+}
+
+function claimBeyondObject(itemName){
+  if(!beyondShelfItems.includes(itemName)) return false;
+  addInventoryItem(itemName,1);
+  addCurrency("Static Coins",1);
+  rememberArchiveAction("beyondShelf",`recovered ${itemName}`);
+  setStatusText("[data-beyond-output]",`${itemName} recovered. It feels cleaner than the hallway behind you.`);
+  renderBeyondPage();
+  playSound("secret");
+  return true;
+}
+
+function beyondWhisper(){
+  const memory = getArchiveMemory();
+  if(memory.passedThroughCorruption) return "Something here knows you came through the damaged page.";
+  if(Number(localStorage.getItem("oddRadioTunes") || 0) > 4) return "A quiet station hums under the shelf.";
+  if(maintainerIsUnlocked()) return "The basement console light is visible from this depth.";
+  return "The static is behind you now. Mostly.";
+}
+
+function renderBeyondPage(){
+  if(currentPageKey() !== "beyond.html") return;
+  document.body.classList.add("beyond-zone");
+  const memory = getArchiveMemory();
+  setStatusText("[data-beyond-summary]",`The archive remembers ${memory.visits} visits, ${memory.uniquePages.length} rooms, and ${memory.passedThroughCorruption ? "one damaged passage" : "a passage you have nearly crossed"}.`);
+  setStatusText("[data-beyond-whisper]",beyondWhisper());
+  setStatusText("[data-beyond-latest]",memory.latestAction || "No local echo has settled here yet.");
+}
+
+function openCorruptPassagePrompt(){
+  if(archiveIsMirrorLocked()) return;
+  rememberArchiveAction("corruptPrompt","typed corrupt on a stable page");
+  const href = canonicalPageHref("corrupt.html");
+  const body = `
+    <div class="maintainer-warning">LOCAL PAGE DAMAGE DETECTED</div>
+    <p>This part of the archive is intentionally unstable. No files will be harmed. Probably.</p>
+    <p>The damaged layer is a passage, not a destination.</p>
+    <p>
+      <a class="button danger" href="${clean(href)}" onclick="rememberArchiveAction('enteredCorruptZone','accepted typed corrupt warning')">enter corrupted passage</a>
+      <button type="button" onclick="rememberArchiveAction('stayedStable','declined corrupted passage');closeMaintainerWindow('corruptWarning')">stay in stable archive</button>
+    </p>
+  `;
+  openMaintainerWindow("corruptWarning","Damaged Layer Warning",body,"corrupt-warning-window");
+}
+
+function maintainerCorruptionHTML(){
+  const memory = getArchiveMemory();
+  return `
+    <h3>Corrupted Passage</h3>
+    <p class="maintainer-output">Damage label: ${clean(corruptDamageLabel())}</p>
+    <div class="maintainer-stats corruption-stats">
+      <div><span>entered corrupted passage</span><b>${memory.enteredCorruptZone ? "yes" : "no"}</b></div>
+      <div><span>passed through corruption</span><b>${memory.passedThroughCorruption ? "yes" : "no"}</b></div>
+      <div><span>beyond reached</span><b>${memory.reachedBeyondCorruption ? "yes" : "no"}</b></div>
+      <div><span>latest echo</span><b>${clean(memory.latestAction || "none")}</b></div>
+    </div>
+    <div class="maintainer-button-grid">
+      <button data-corrupt-tool="open">open corrupted passage</button>
+      <button data-corrupt-tool="stabilize">stabilize corrupted zone</button>
+      ${memory.passedThroughCorruption ? `<button data-corrupt-tool="beyond">open beyond page</button>` : ""}
+    </div>
+  `;
+}
+
+function runCorruptionTool(action){
+  if(archiveIsMirrorLocked()) return;
+  const out = $("#maintainerOutput");
+  if(action === "open"){
+    rememberArchiveAction("enteredCorruptZone","opened from maintainer console");
+    location.href = canonicalPageHref("corrupt.html");
+    return;
+  }
+  if(action === "beyond"){
+    rememberArchiveAction("reachedBeyondCorruption","opened beyond from maintainer console");
+    location.href = canonicalPageHref("beyond.html");
+    return;
+  }
+  if(action === "stabilize"){
+    sessionStorage.setItem("oddCorruptZoneStabilized","true");
+    rememberArchiveAction("stabilizedCorruptZone","maintainer console stabilization toggle");
+    if(out) out.textContent = "Corrupted zone stabilization flag set for this session.";
+    playSound("wobble");
+  }
 }
 
 function shopInventoryRarity(item){
@@ -1698,6 +2001,7 @@ function canonicalSidebarHTML(){
       <h3>visitor counter</h3>
       <div id="counter" class="counter">00000000</div>
     </div>
+    ${archiveMemorySidebarHTML()}
     <div class="box sidebar-widget badge-widget">
       <h3>badges</h3>
       ${canonicalBadges.map((badge)=>`<span class="badge">${clean(badge)}</span>`).join("")}
@@ -1796,7 +2100,9 @@ function pageSecretMeta(page=currentPageKey()){
     "tv.html":{id:"pixel:tv",msg:"Channel 404 flashed behind the CRT glass.",item:"CRT Moth",x:68,y:44,char:"#"},
     "files.html":{id:"pixel:files",msg:"A fake file fell out of /DO_NOT_OPEN.",item:"Forgotten Webring Token",x:6,y:68,char:"/"},
     "search.html":{id:"pixel:search",msg:"Search result zero indexed itself.",item:"Canary Feather",x:73,y:22,char:"0"},
-    "guestbook.html":{id:"pixel:guestbook",msg:"An old guestbook cursor was still warm.",item:"Haunted Cursor",x:36,y:66,char:","}
+    "guestbook.html":{id:"pixel:guestbook",msg:"An old guestbook cursor was still warm.",item:"Haunted Cursor",x:36,y:66,char:","},
+    "corrupt.html":{id:"pixel:corrupt",msg:"A damaged directory tag fell out of the broken hallway.",item:"Damaged Directory Tag",x:44,y:41,char:"/"},
+    "beyond.html":{id:"pixel:beyond",msg:"A quiet stable fragment clicked under the shelf.",item:"Recovered Stable Fragment",x:64,y:54,char:"."}
   };
   return map[page] || {id:`pixel:${page}`,msg:"A tiny door opened behind the CSS.",item:"Loose Pixel",x:14 + Math.floor(Math.random()*70),y:20 + Math.floor(Math.random()*60),char:"."};
 }
@@ -1863,7 +2169,7 @@ function attachConsoleLore(){
   sessionStorage.setItem("oddConsoleLoreShown","true");
   const logs = [
     "[Odd Frequency] maintenance log: the fake ads are theatrical and unionized.",
-    "[Odd Frequency] hint: type vdo, coupon, static, archive, patchnotes, maintainer, or signal404 on a page background.",
+    "[Odd Frequency] hint: type vdo, coupon, static, archive, corrupt, patchnotes, maintainer, or signal404 on a page background.",
     `[Odd Frequency] original signal canary: ${ARCHIVE_CANARY}`,
     "[Odd Frequency] console secret: run archiveConsoleSecret() if you enjoy suspicious crumbs."
   ];
@@ -1942,6 +2248,11 @@ function openMaintainerWindow(id,title,bodyHTML,extraClass=""){
     const signal = e.target.closest("[data-signal-tool]");
     if(signal){
       runSignalTool(signal.dataset.signalTool);
+      return;
+    }
+    const corrupt = e.target.closest("[data-corrupt-tool]");
+    if(corrupt){
+      runCorruptionTool(corrupt.dataset.corruptTool);
     }
   });
   const gateForm = w.querySelector(".maintainer-gate");
@@ -2134,6 +2445,7 @@ function maintainerTabHTML(tab){
         <button data-signal-tool="buttons">scan for lost buttons</button>
         <button data-signal-tool="printer">ask the basement printer</button>
       </div>`,
+    corruption:()=>maintainerCorruptionHTML(),
     note:()=>`
       <h3>Owner Note</h3>
       <p class="terminal-output">The maintainer is not named here. The archive was found humming and someone made the mistake of organizing it.</p>
@@ -2143,7 +2455,7 @@ function maintainerTabHTML(tab){
 }
 
 function renderMaintainerConsoleTab(tab="patches"){
-  const safeTab = ["patches","stats","toys","signal","note"].includes(tab) ? tab : "patches";
+  const safeTab = ["patches","stats","toys","signal","corruption","note"].includes(tab) ? tab : "patches";
   localStorage.setItem("oddMaintainerTab",safeTab);
   const body = $("#maintainerConsoleBody");
   if(body){
@@ -2169,6 +2481,7 @@ function openMaintainerConsole(tab=localStorage.getItem("oddMaintainerTab") || "
       <button class="maintainer-tab" data-tab="stats">Local Stats</button>
       <button class="maintainer-tab" data-tab="toys">Debug Toys</button>
       <button class="maintainer-tab" data-tab="signal">Signal Tools</button>
+      <button class="maintainer-tab" data-tab="corruption">Corrupted Passage</button>
       <button class="maintainer-tab" data-tab="note">Owner Note</button>
     </div>
     <section id="maintainerConsoleBody" class="maintainer-console-body"></section>
@@ -2316,6 +2629,7 @@ function performSecretCode(code){
     patchnotes:()=>{showPatchNotes();},
     maintainer:()=>{openMaintainerGate();},
     devconsole:()=>{openMaintainerGate();},
+    corrupt:()=>{openCorruptPassagePrompt();},
     owner:()=>{discoverSecret("console:owner-hint","Owner hint found: the archive was found humming and someone organized it.","Maintainer Dust",{achievement:"signalWhisperer"}); signalBanner("OWNER HINT: the maintainer is not named here; the archive hums anyway.");},
     console:()=>{discoverSecret("typed:console","Console-adjacent behavior detected. No tools were harmed.","Canary Feather",{achievement:"consoleGremlin"});}
   };
@@ -2323,7 +2637,7 @@ function performSecretCode(code){
 }
 
 function attachSecretKeyboardCodes(){
-  const codes = ["signal404","patchnotes","devconsole","maintainer","haunted","archive","coupon","static","dialup","mirror","biggie","owner","console","vdo","lm"];
+  const codes = ["signal404","patchnotes","devconsole","maintainer","haunted","archive","corrupt","coupon","static","dialup","mirror","biggie","owner","console","vdo","lm"];
   addEventListener("keydown",(e)=>{
     if(archiveIsMirrorLocked()) return;
     if(e.ctrlKey || e.metaKey || e.altKey) return;
@@ -5894,6 +6208,7 @@ function summonSpiritEntry(){
 
 addEventListener("DOMContentLoaded",()=>{
   checkArchiveHost();
+  recordArchivePageVisit();
   renderCanonicalSidebar();
   visitorCounter();
   randomQuote();
@@ -5932,6 +6247,8 @@ addEventListener("DOMContentLoaded",()=>{
   renderFakeLogin();
   renderQuests();
   renderExpansionWidgets();
+  renderCorruptPage();
+  renderBeyondPage();
   initRadioPage();
   initCRTPage();
   renderSecretCount();
@@ -5976,6 +6293,20 @@ addEventListener("DOMContentLoaded",()=>{
   window.showPatchNotes = showPatchNotes;
   window.maintainerDebugToy = maintainerDebugToy;
   window.runSignalTool = runSignalTool;
+  window.getArchiveMemory = getArchiveMemory;
+  window.writeArchiveMemory = writeArchiveMemory;
+  window.rememberArchiveAction = rememberArchiveAction;
+  window.recordArchivePageVisit = recordArchivePageVisit;
+  window.getCorruptDepth = getCorruptDepth;
+  window.increaseCorruptDepth = increaseCorruptDepth;
+  window.applyCorruptZoneState = applyCorruptZoneState;
+  window.stabilizeCorruptZone = stabilizeCorruptZone;
+  window.inspectCorruptFile = inspectCorruptFile;
+  window.renderCorruptPage = renderCorruptPage;
+  window.claimBeyondObject = claimBeyondObject;
+  window.renderBeyondPage = renderBeyondPage;
+  window.openCorruptPassagePrompt = openCorruptPassagePrompt;
+  window.runCorruptionTool = runCorruptionTool;
   window.setChaosLevel = setChaosLevel;
   window.triggerRandomEvent = triggerRandomEvent;
   window.panicButton = panicButton;

@@ -214,7 +214,7 @@ const orbitItems = [
   "market ticker paper curl",
   "OddOS boot chime wrapper"
 ];
-const MAINTAINER_PASSPHRASE = "vdo-coupon-static";
+const MAINTAINER_PASSPHRASE = "screwdriver-static-404";
 const maintenanceLogEntries = [
   ["v0.98.404","Added Fake Inbox. It immediately received spam."],
   ["v0.99.13","OddOS 98 installed. The uninstall wizard escaped."],
@@ -1993,8 +1993,9 @@ function openMaintainerGate(){
     <form class="maintainer-gate">
       <div class="maintainer-warning">ARCHIVE MAINTAINER ACCESS - fake local console - no server exists.</div>
       <p class="terminal-output">Basement Console Lock wants one silly phrase. Never type a real password here.</p>
+      <p class="terminal-output">Hint: the screw heard static near door 404.</p>
       <label>maintenance phrase
-        <input id="maintainerPassword" class="maintainer-password" type="password" autocomplete="off" placeholder="vdo-coupon-static">
+        <input id="maintainerPassword" class="maintainer-password" type="password" autocomplete="off" placeholder="enter maintenance phrase">
       </label>
       <div id="maintainerGateStatus" class="maintainer-output">Attempts recorded locally for comedy: ${attempts}</div>
       <p>

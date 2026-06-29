@@ -1626,6 +1626,36 @@ meter{width:100%}
   margin-top:7px;
   padding-top:6px;
 }
+.nav-collapse-controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  margin:0 0 8px;
+}
+.nav-collapse-controls button,
+.nav-group-toggle{
+  width:100%;
+  min-height:28px;
+  padding:4px 6px;
+  font:bold 11px "Courier New",monospace;
+}
+.nav-group-toggle{
+  text-align:left;
+  color:var(--yellow);
+  background:repeating-linear-gradient(90deg,rgba(0,255,255,.12) 0 6px,rgba(255,0,204,.12) 6px 12px),#050505;
+  border:2px outset var(--cyan);
+  text-transform:uppercase;
+}
+.nav-group-toggle[disabled]{
+  opacity:1;
+  cursor:default;
+}
+.nav-group.collapsed .nav-group-links{
+  display:none;
+}
+.nav-group.open .nav-group-toggle{
+  box-shadow:inset 0 0 10px rgba(182,255,0,.22),0 0 8px rgba(0,255,255,.25);
+}
 .canonical-sidebar{
   align-self:start;
 }
@@ -1697,6 +1727,28 @@ meter{width:100%}
 .archive-memory-widget b,
 .archive-memory-widget span{
   color:var(--lime);
+}
+.archive-echo-panel{
+  border-color:var(--yellow);
+  background:radial-gradient(circle at 12% 0,rgba(255,240,0,.18),transparent 38%),rgba(0,0,0,.72);
+}
+.archive-echo-panel ul,
+.rumor-pins ul,
+.static-edition-archive ul,
+.caretaker-notes ul,
+.craft-history ul,
+.room-stamps ul,
+.recent-items-panel ul,
+.recent-achievements-panel ul{
+  margin:7px 0 0;
+  padding-left:18px;
+}
+.archive-echo-panel li,
+.caretaker-notes li,
+.craft-history li{
+  margin-bottom:5px;
+  border-bottom:1px dotted rgba(255,255,255,.18);
+  padding-bottom:4px;
 }
 .visitor-widget .counter{
   width:100%;
@@ -2212,6 +2264,22 @@ meter{width:100%}
   font-family:"Courier New",monospace;
 }
 .rumor-card b{color:var(--yellow);text-shadow:1px 1px #000}
+.pinned-rumors{
+  grid-column:1 / -1;
+  border-color:var(--yellow);
+  background:repeating-linear-gradient(45deg,rgba(255,240,0,.14) 0 8px,rgba(255,0,204,.1) 8px 16px),#241000;
+}
+.rumor-card button,
+.popup-tombstone button,
+.alchemy-recipe button,
+.room-card button{
+  margin:3px 3px 0 0;
+  min-height:30px;
+}
+.rumor-coupon{border-color:#fff000}
+.rumor-popup{border-color:#ff2bd6}
+.rumor-signal{border-color:#00ffff}
+.rumor-corruption{border-color:#ff4040}
 .static-times{
   background:#f5edc8;
   color:#111;
@@ -2227,6 +2295,23 @@ meter{width:100%}
   border-top:5px double #111;
   border-bottom:5px double #111;
   margin-bottom:8px;
+}
+.static-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  justify-content:center;
+  border-bottom:2px solid #111;
+  padding-bottom:6px;
+  margin-bottom:8px;
+}
+.static-tabs a{
+  color:#111;
+  border:2px solid #111;
+  padding:2px 6px;
+  background:#fff8d8;
+  text-decoration:none;
+  font:bold 12px "Courier New",monospace;
 }
 .static-headline{
   color:#000;
@@ -2246,6 +2331,12 @@ meter{width:100%}
   background:rgba(255,255,255,.35);
 }
 .static-times-section h3{color:#111;text-shadow:none;margin-top:0}
+.static-times-section button{
+  background:#111;
+  color:#f5edc8;
+  border:3px outset #111;
+  box-shadow:none;
+}
 .popup-tombstone{
   border:5px ridge #aaa;
   border-radius:10px 10px 3px 3px;
@@ -2257,6 +2348,20 @@ meter{width:100%}
   font-family:"Courier New",monospace;
 }
 .popup-tombstone h3{color:#d7d7ff;text-shadow:0 0 8px #00ffff}
+.grave-filter-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:7px;
+}
+#graveyardExtras,
+#alchemyExtras,
+#roomDetail,
+.inventory-detail,
+.achievement-summary{
+  border-color:var(--yellow);
+  background:radial-gradient(circle at 10% 0,rgba(255,240,0,.16),transparent 35%),rgba(0,0,0,.72);
+}
 .alchemy-workbench{
   background:repeating-linear-gradient(90deg,rgba(120,70,20,.3) 0 14px,rgba(40,18,0,.3) 14px 28px);
   border:5px ridge #8a4a14;
@@ -2277,6 +2382,10 @@ meter{width:100%}
   filter:grayscale(.7);
   opacity:.72;
 }
+.alchemy-recipe h3,
+.room-card h3{
+  margin-top:0;
+}
 .room-card{
   border:5px outset var(--cyan);
   background:linear-gradient(180deg,#001027,#05000d);
@@ -2293,6 +2402,12 @@ meter{width:100%}
   border-color:var(--yellow);
   background:radial-gradient(circle at 20% 0,rgba(255,240,0,.18),transparent 38%),#001027;
   box-shadow:5px 5px #000,0 0 20px rgba(255,240,0,.35);
+}
+.room-card .mini-status,
+.alchemy-recipe .mini-status{
+  border:1px dotted rgba(255,255,255,.35);
+  padding:4px;
+  background:rgba(0,0,0,.35);
 }
 .room-card button:disabled,
 .alchemy-recipe button:disabled{
@@ -2329,12 +2444,33 @@ meter{width:100%}
   padding:5px;
   font:bold 12px "Courier New",monospace;
 }
+.inventory-detail{
+  margin:8px 0;
+  padding:9px;
+}
+.recent-items{
+  border:2px dotted var(--cyan);
+  padding:6px;
+  background:rgba(0,0,0,.45);
+}
+.inventory-card{
+  text-align:left;
+  cursor:pointer;
+}
+.inventory-card .mini-status,
+.achievement-card .mini-status{
+  color:var(--yellow);
+}
+.achievement-summary{
+  margin-bottom:12px;
+}
 .secret-panel.unlocked{display:block;border:3px dashed #fff000;padding:10px;margin-top:8px}
 
 @media(max-width:850px){
   .file-pane{grid-template-columns:1fr}
   .radio-station-list{grid-template-columns:1fr}
   .inbox-shell{grid-template-columns:1fr}
+  .nav-collapse-controls{grid-template-columns:1fr}
   .radio-station-button{min-height:auto}
   .radio-controls input{width:110px}
   .currency-guide-grid{grid-template-columns:1fr}
@@ -2357,6 +2493,14 @@ meter{width:100%}
   }
   .maintainer-button-grid{
     grid-template-columns:1fr;
+  }
+  .static-times{padding:9px}
+  .static-times-masthead{letter-spacing:0}
+  .room-card button,
+  .alchemy-recipe button,
+  .popup-tombstone button,
+  .rumor-card button{
+    width:100%;
   }
 }
 

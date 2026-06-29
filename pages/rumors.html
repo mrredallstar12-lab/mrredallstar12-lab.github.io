@@ -18,13 +18,14 @@
     <div class="grid">
       <aside><div class="box nav"><h3>navigation</h3><a href="../index.html">Home</a><a href="newspaper.html">Static Times</a><a href="graveyard.html">Popup Graveyard</a><a href="alchemy.html">Junk Alchemy</a><a href="rooms.html">Locked Rooms</a></div></aside>
       <main>
-        <div class="box"><h1>Archive Rumor Feed</h1><p>A corkboard full of impossible claims generated from harmless local archive stats.</p><p id="rumorStats" class="mini-status">loading rumor facts...</p><p id="rumorOut"></p></div>
+        <div class="box"><h1>Archive Rumor Feed</h1><p>A corkboard full of impossible claims generated from harmless local archive stats.</p><button onclick="refreshRumorBoard()">refresh rumor board</button><button onclick="clipRumor(0)">turn top rumor into clipping</button><p id="rumorStats" class="mini-status">loading rumor facts...</p><p id="rumorOut"></p></div>
+        <div class="box archive-echo-panel"><h2>Latest Archive Echoes</h2><div data-archive-echoes="6">the corkboard is listening...</div></div>
         <div id="rumorFeed" class="rumor-feed"></div>
       </main>
       <aside><div class="box" data-expansion-widgets="rumors.html"></div></aside>
     </div>
     <div class="footer">Odd Frequency Archive - rumor feed.<br>&copy; Odd Frequency Archive - original signal at oddfrequencyarchive.com. Unauthorized mirrors will be haunted by static. <span class="archive-canary" aria-hidden="true">odd-frequency-canine-bolt-404-lm-original</span></div>
   </div>
-  <script src="../js/main.js?v=living-archive-1"></script>
+  <script src="../js/main.js?v=archive-depth-1"></script>
 </body>
 </html>

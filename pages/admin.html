@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="author" content="Odd Frequency Archive">
+  <meta name="copyright" content="Odd Frequency Archive">
+  <meta name="archive-canary" content="odd-frequency-canine-bolt-404-lm-original">
+  <link rel="canonical" href="https://oddfrequencyarchive.com/pages/admin.html">
+  <title>Odd Frequency Archive - Admin Foundation</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="unlisted-wing admin-foundation-page">
+  <main class="unlisted-shell">
+    <section class="unlisted-panel">
+      <p class="records-label">ADMIN FOUNDATION / SERVER REQUIRED</p>
+      <h1>Moderation Interface Stub</h1>
+      <p>This page is not linked from public navigation. It does not grant admin access by itself. Administrative actions must be enforced by the Cloudflare Worker using the server-side <code>ADMIN_TOKEN</code>.</p>
+      <label>API base URL <input id="adminApiBase" autocomplete="off" placeholder="https://api.example.workers.dev"></label>
+      <label>Admin token <input id="adminToken" type="password" autocomplete="off" placeholder="not stored permanently"></label>
+      <button type="button" onclick="OFAAdminFoundation.loadSubmissions()">load pending submissions</button>
+      <pre id="adminOutput">No request sent yet.</pre>
+      <p><a class="button" href="../index.html">return to normal archive</a></p>
+    </section>
+  </main>
+  <script src="../js/main.js?v=world-foundation-1"></script>
+  <script src="../js/ofa-api.js?v=world-foundation-1"></script>
+  <script>
+    window.OFAAdminFoundation = {
+      async loadSubmissions(){
+        const out = document.getElementById("adminOutput");
+        const base = document.getElementById("adminApiBase").value.replace(/\/+$/,"");
+        const token = document.getElementById("adminToken").value;
+        if(!base || !token){out.textContent = "API base and token are required. Token is not saved."; return;}
+        try{
+          const res = await fetch(base + "/api/v1/admin/submissions",{headers:{Authorization:"Bearer " + token}});
+          out.textContent = JSON.stringify(await res.json(),null,2);
+        }catch(error){
+          out.textContent = "Admin request failed: " + error.message;
+        }
+      }
+    };
+  </script>
+</body>
+</html>

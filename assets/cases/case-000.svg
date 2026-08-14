@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="640" viewBox="0 0 520 640" role="img" aria-labelledby="title desc">
+  <title id="title">Fictional restricted portrait placeholder for Mara Vale</title>
+  <desc id="desc">An original non-identifying grayscale restricted portrait placeholder with the face removed and archival warnings.</desc>
+  <rect width="520" height="640" fill="#f1f1f1"/>
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="4"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .2"/></feComponentTransfer></filter>
+  <rect width="520" height="640" filter="url(#noise)"/>
+  <rect x="42" y="34" width="436" height="572" fill="none" stroke="#000" stroke-width="10"/>
+  <path d="M124 534c26-104 78-145 136-145 62 0 112 41 137 145z" fill="#161616"/>
+  <path d="M170 280c-4-84 34-148 89-150 58-2 97 63 91 150-5 74-42 111-91 111-48 0-85-38-89-111z" fill="#111"/>
+  <rect x="146" y="170" width="226" height="176" fill="#f1f1f1" stroke="#000" stroke-width="6"/>
+  <path d="M154 185h210M154 224h210M154 263h210M154 302h210" stroke="#000" stroke-width="7"/>
+  <text x="174" y="255" font-family="monospace" font-size="26" fill="#000">REMOVED</text>
+  <path d="M86 112h350M84 478h352M120 82l280 482M407 78L112 566" stroke="#000" stroke-opacity=".22" stroke-width="4"/>
+  <text x="62" y="586" font-family="monospace" font-size="18" fill="#000">CASE 000 / DO NOT COMPLETE THE PERSON</text>
+</svg>

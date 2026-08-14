@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="640" viewBox="0 0 520 640" role="img" aria-labelledby="title desc">
+  <title id="title">Fictional degraded archive portrait silhouette for Milo Venn</title>
+  <desc id="desc">An original non-identifying grayscale silhouette with aquarium glass distortion and record damage.</desc>
+  <rect width="520" height="640" fill="#d2d5d8"/>
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="3"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .18"/></feComponentTransfer></filter>
+  <rect width="520" height="640" filter="url(#noise)"/>
+  <rect x="46" y="38" width="428" height="568" fill="none" stroke="#1b1b1b" stroke-width="9"/>
+  <path d="M120 526c18-102 76-139 140-139 68 0 125 38 143 139z" fill="#333"/>
+  <path d="M175 275c-4-80 32-143 85-146 58-3 94 58 88 146-5 73-41 111-88 111-48 0-82-39-85-111z" fill="#222"/>
+  <path d="M196 196c28-52 79-73 129-31 16 20 23 47 22 80-26-25-62-31-105-26-25 3-41-4-46-23z" fill="#070707"/>
+  <path d="M218 262h36M276 262h37" stroke="#e6e6e6" stroke-width="7" stroke-linecap="round"/>
+  <path d="M126 344c46-19 84-18 116 0 36 19 79 17 137-5" stroke="#fff" stroke-opacity=".3" stroke-width="9" fill="none"/>
+  <path d="M106 118c80 22 165 22 304 0M103 462c92-18 184-10 318 6" stroke="#000" stroke-opacity=".2" stroke-width="4" fill="none"/>
+  <text x="62" y="590" font-family="monospace" font-size="20" fill="#111">CASE 044 / SUBJECT REPLACED IN PRINTS</text>
+</svg>

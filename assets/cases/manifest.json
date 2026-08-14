@@ -1,0 +1,34 @@
+{
+  "provenance": "Original non-identifying SVG placeholders created for fictional Odd Frequency Archive case files. No real people, real missing-person imagery, real agencies, or scraped photographs are used.",
+  "assets": [
+    {
+      "file": "case-017.svg",
+      "caseId": "case-017",
+      "subject": "Elian Rook",
+      "type": "distorted silhouette placeholder",
+      "alt": "Fictional degraded archive portrait silhouette for Elian Rook."
+    },
+    {
+      "file": "case-031.svg",
+      "caseId": "case-031",
+      "subject": "Nessa Quill",
+      "type": "distorted silhouette placeholder",
+      "alt": "Fictional degraded archive portrait silhouette for Nessa Quill."
+    },
+    {
+      "file": "case-044.svg",
+      "caseId": "case-044",
+      "subject": "Milo Venn",
+      "type": "distorted silhouette placeholder",
+      "alt": "Fictional degraded archive portrait silhouette for Milo Venn."
+    },
+    {
+      "file": "case-000.svg",
+      "caseId": "case-000",
+      "subject": "Mara Vale",
+      "type": "restricted identity placeholder",
+      "alt": "Fictional restricted portrait placeholder for Mara Vale; identity intentionally unstable."
+    }
+  ],
+  "futureGenerationNotes": "If AI-generated degraded portraits are later produced, generate original fictional faces only. Do not reference celebrities, real people, real missing-person cases, or scraped photos. Preserve ambiguity for Mara Vale."
+}

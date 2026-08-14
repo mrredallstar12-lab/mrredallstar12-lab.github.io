@@ -1,0 +1,4 @@
+# Local development only. Copy to backend/.dev.vars and replace values locally.
+ADMIN_TOKEN=replace-with-long-local-admin-token
+TURNSTILE_SECRET_KEY=
+OFA_TURNSTILE_REQUIRED=false

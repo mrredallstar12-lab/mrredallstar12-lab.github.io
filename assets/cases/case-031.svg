@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="640" viewBox="0 0 520 640" role="img" aria-labelledby="title desc">
+  <title id="title">Fictional degraded archive portrait silhouette for Nessa Quill</title>
+  <desc id="desc">An original non-identifying grayscale silhouette with school-record damage and inconsistent reflection marks.</desc>
+  <rect width="520" height="640" fill="#ececec"/>
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="4"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .13"/></feComponentTransfer></filter>
+  <rect width="520" height="640" filter="url(#noise)"/>
+  <rect x="50" y="42" width="420" height="558" fill="none" stroke="#222" stroke-width="8"/>
+  <path d="M121 523c22-92 74-130 141-130 62 0 111 37 139 130z" fill="#292929"/>
+  <path d="M166 274c-8-92 42-150 98-150 62 0 105 63 94 150-9 71-44 116-98 116s-88-45-94-116z" fill="#202020"/>
+  <path d="M166 232c38-48 90-67 169-38 18 42 18 79 8 109-18-33-38-49-71-50-48-1-78 15-106-21z" fill="#080808"/>
+  <path d="M218 260h34M280 260h34" stroke="#e8e8e8" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="331" cy="345" r="8" fill="#ddd"/>
+  <circle cx="192" cy="338" r="5" fill="#ddd" opacity=".5"/>
+  <path d="M88 112h340M86 486h350M140 70l28 500M392 67l-34 506" stroke="#000" stroke-opacity=".18" stroke-width="4"/>
+  <text x="68" y="590" font-family="monospace" font-size="19" fill="#111">CASE 031 / SCHOOL RECORD CONTRADICTION</text>
+</svg>

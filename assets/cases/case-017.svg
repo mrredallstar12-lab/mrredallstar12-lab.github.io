@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="640" viewBox="0 0 520 640" role="img" aria-labelledby="title desc">
+  <title id="title">Fictional degraded archive portrait silhouette for Elian Rook</title>
+  <desc id="desc">An original non-identifying grayscale silhouette with film scratches and archival damage.</desc>
+  <rect width="520" height="640" fill="#d9d9d9"/>
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .16"/></feComponentTransfer></filter>
+  <rect width="520" height="640" filter="url(#noise)"/>
+  <rect x="44" y="36" width="432" height="568" fill="none" stroke="#111" stroke-width="10"/>
+  <path d="M142 510c16-88 66-116 118-116s103 28 118 116z" fill="#343434"/>
+  <path d="M177 274c0-76 34-136 86-136 54 0 86 60 84 136-2 72-40 112-87 112s-83-41-83-112z" fill="#242424"/>
+  <path d="M218 252h38M277 252h31" stroke="#dadada" stroke-width="7" stroke-linecap="round"/>
+  <path d="M256 304c20 12 37 10 52-1" stroke="#ddd" stroke-width="5" fill="none"/>
+  <path d="M72 118h376M84 421h358M112 82v462M424 70v492" stroke="#000" stroke-opacity=".2" stroke-width="3"/>
+  <path d="M330 92c25 31 38 84 13 117M169 445c64-28 119-22 175 8" stroke="#fff" stroke-opacity=".22" stroke-width="8" fill="none"/>
+  <text x="62" y="590" font-family="monospace" font-size="20" fill="#111">CASE 017 / SUBJECT NOT PHOTOGRAPHICALLY VERIFIED</text>
+</svg>

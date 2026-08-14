@@ -671,7 +671,13 @@ const inventoryCatalog = {
   "Impossible Popup Receipt":{rarity:"impossible",flavor:"popup",desc:"A receipt for a popup that never spawned."},
   "Mirrorless Reflection":{rarity:"impossible",flavor:"mirror",desc:"Reflects only the parts of the archive that escaped."},
   "One-of-One Archive Heart":{rarity:"oneOfOne",flavor:"heart",desc:"The archive insists this is both inventory and organ."},
-  "Final Close Button Halo":{rarity:"oneOfOne",flavor:"button",desc:"A white ring from the last fake rectangle at the end of time."}
+  "Final Close Button Halo":{rarity:"oneOfOne",flavor:"button",desc:"A white ring from the last fake rectangle at the end of time."},
+  "Shared Signal Stub":{rarity:"odd",flavor:"shared",desc:"A local fallback stub from the server-backed Signal of the Day."},
+  "Case Smudge":{rarity:"haunted",flavor:"case",desc:"A gray mark from a restricted file that should not become clearer."},
+  "Community Static Needle":{rarity:"rare",flavor:"shared",desc:"A needle for tuning shared static without agreeing too much."},
+  "Contaminated Coupon Witness":{rarity:"forbidden",flavor:"case",desc:"A coupon-shaped testimony that changes when filed."},
+  "Rectangle Rain Check":{rarity:"uncommon",flavor:"popup",desc:"A shared objective receipt for future rectangle weather."},
+  "Creature Thank-You Receipt":{rarity:"strange",flavor:"creature",desc:"A damp receipt from the shared Archive Creature."}
 };
 
 const achievementCatalog = {
@@ -1340,7 +1346,7 @@ function setChaosLevel(level){
   if(next === 4) unlockAchievement("chaosTechnician");
   updateChaosControls();
   updateArchiveDashboard();
-  if(document.body && !archiveIsMirrorLocked()) scheduleNextCouponDrop(true);
+  if(document.body && !archiveIsMirrorLocked() && !archiveIsIsolatedStoryPage()) scheduleNextCouponDrop(true);
 }
 
 function updateChaosControls(){
@@ -1665,6 +1671,11 @@ function archiveIsMirrorLocked(){
   return !!document.body && document.body.classList.contains("mirror-lockdown");
 }
 
+function archiveIsIsolatedStoryPage(){
+  if(!document.body) return false;
+  return document.body.classList.contains("unlisted-wing");
+}
+
 function removeMirrorDynamicEffects(){
   const selectors = [
     ".popup-ad",
@@ -1853,6 +1864,7 @@ function latestEvent(text){
 
 function signalBanner(text){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   const banner = document.createElement("div");
   banner.className = "signal-banner";
   banner.textContent = text;
@@ -1976,6 +1988,7 @@ function recordRareFallingCoupon(variant){
 
 function spawnFallingCoupon(){
   if(archiveIsMirrorLocked()) return null;
+  if(archiveIsIsolatedStoryPage()) return null;
   const maxCoupons = 5;
   if(document.querySelectorAll(".falling-coupon").length >= maxCoupons) return null;
   const variant = pickFallingCouponVariant();
@@ -2010,7 +2023,7 @@ function spawnFallingCoupon(){
 function scheduleNextCouponDrop(initial=false){
   clearTimeout(couponTimer);
 
-  if(archiveIsMirrorLocked()){
+  if(archiveIsMirrorLocked() || archiveIsIsolatedStoryPage()){
     couponTimer = 0;
     return;
   }
@@ -2035,7 +2048,7 @@ function scheduleNextCouponDrop(initial=false){
 
   couponTimer = setTimeout(()=>{
     couponTimer = 0;
-    if(!archiveIsMirrorLocked()){
+    if(!archiveIsMirrorLocked() && !archiveIsIsolatedStoryPage()){
       spawnFallingCoupon();
       if(Math.random() < .08 + chaos * .03){
         setTimeout(()=>spawnFallingCoupon(),500 + Math.random() * 1400);
@@ -2723,6 +2736,7 @@ function renderRooms(){
 
 function triggerRandomEvent(){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   const events = [
     ()=>{document.body.classList.add("static-burst");setTimeout(()=>document.body.classList.remove("static-burst"),1800);latestEvent("Static burst rattled the archive.");},
     ()=>{document.body.classList.add("page-shake");setTimeout(()=>document.body.classList.remove("page-shake"),900);latestEvent("Page shake from unstable table layout.");},
@@ -2751,10 +2765,11 @@ function triggerRandomEvent(){
 
 function startRandomEventEngine(){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   const delay = Math.max(9000,80000 - getChaosLevel()*15000) + Math.random() * Math.max(12000,30000 - getChaosLevel()*4000);
   randomEventTimer = setTimeout(()=>{
     randomEventTimer = 0;
-    if(archiveIsMirrorLocked()) return;
+    if(archiveIsMirrorLocked() || archiveIsIsolatedStoryPage()) return;
     triggerRandomEvent();
     startRandomEventEngine();
   },delay);
@@ -2762,6 +2777,7 @@ function startRandomEventEngine(){
 
 function spawnDesktopPet(type){
   if(archiveIsMirrorLocked()) return null;
+  if(archiveIsIsolatedStoryPage()) return null;
   const types = {
     crab:{label:"(V)V",item:"Desktop Crab Shell",msg:"pixel crab clicks in square brackets"},
     modem:{label:"56K",item:"Tiny Modem",msg:"tiny modem whispers carrier tone"},
@@ -3493,6 +3509,7 @@ function installMaintenanceScrews(){
 
 function clickPuff(x,y){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   const count = 4 + getChaosLevel() * 2;
   for(let i=0;i<count;i++){
     const bit = document.createElement("span");
@@ -3571,6 +3588,7 @@ function resolveSoundType(target){
 }
 
 function attachGlobalClickEffects(){
+  if(archiveIsIsolatedStoryPage()) return;
   document.addEventListener("click",(e)=>{
     if(archiveIsMirrorLocked()) return;
     const target = e.target;
@@ -3678,6 +3696,7 @@ function randomQuote(){
 
 function spawnConfetti(){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   for(let i = 0; i < 85; i++){
     const d = document.createElement("div");
     d.className = "confetti-bit";
@@ -3706,6 +3725,7 @@ function spawnConfetti(){
 
 function spawnSticker(){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   const d = document.createElement("div");
   d.className = "sticker";
   d.textContent = stickerBits[Math.floor(Math.random() * stickerBits.length)];
@@ -4358,6 +4378,7 @@ ad.innerHTML = `       <div class="ad-title">         <span>! FALLBACK FAKE AD</
 
 function spawnAd(manual=false,source=manual ? "manual" : "random"){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   if(popupsAreMuted()){
     if(manual) signalBanner("POPUPS MUTED: quiet signal is active.");
     return;
@@ -4395,6 +4416,7 @@ function spawnAd(manual=false,source=manual ? "manual" : "random"){
 
 function spawnAdBurst(count,source="random"){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   if(popupsAreMuted()) return;
   for(let i = 0; i < count; i++){
     if(document.querySelectorAll(".popup-ad").length >= getPopupCap()) break;
@@ -4404,7 +4426,7 @@ function spawnAdBurst(count,source="random"){
 
 function scheduleNextRandomAd(initial=false){
   clearTimeout(randomAdTimer);
-  if(archiveIsMirrorLocked()){
+  if(archiveIsMirrorLocked() || archiveIsIsolatedStoryPage()){
     randomAdTimer = 0;
     return;
   }
@@ -4431,7 +4453,7 @@ function scheduleNextRandomAd(initial=false){
   const delay = min + Math.random() * (max - min);
   randomAdTimer = setTimeout(()=>{
     randomAdTimer = 0;
-    if(archiveIsMirrorLocked()) return;
+    if(archiveIsMirrorLocked() || archiveIsIsolatedStoryPage()) return;
     if(!popupsAreMuted() && !adStorm){
       const chaos = getChaosLevel();
       const burstCounts = [1,1,2,3,4];
@@ -4442,6 +4464,7 @@ function scheduleNextRandomAd(initial=false){
 }
 
 function startRandomAdScheduler(){
+  if(archiveIsIsolatedStoryPage()) return;
   scheduleNextRandomAd(true);
 }
 
@@ -4458,7 +4481,7 @@ function updateAdStormButton(){
 function runAdStorm(){
   clearTimeout(adStormTimer);
   adStormTimer = 0;
-  if(archiveIsMirrorLocked()){
+  if(archiveIsMirrorLocked() || archiveIsIsolatedStoryPage()){
     adStorm = false;
     updateAdStormButton();
     return;
@@ -4487,6 +4510,7 @@ function runAdStorm(){
 
 function toggleAdStorm(){
   if(archiveIsMirrorLocked()) return;
+  if(archiveIsIsolatedStoryPage()) return;
   if(popupsAreMuted()){
     adStorm = false;
     clearTimeout(adStormTimer);
@@ -4548,6 +4572,7 @@ function makeDraggable(el,handle){
 }
 
 function bouncingLogo(){
+  if(archiveIsIsolatedStoryPage()) return;
   if($(".bounce-logo")) return;
   const logo = document.createElement("div");
   logo.className = "bounce-logo";
@@ -7813,6 +7838,7 @@ addEventListener("DOMContentLoaded",()=>{
   window.startRandomAdScheduler = startRandomAdScheduler;
   window.checkArchiveHost = checkArchiveHost;
   window.archiveIsMirrorLocked = archiveIsMirrorLocked;
+  window.archiveIsIsolatedStoryPage = archiveIsIsolatedStoryPage;
   window.renderCanonicalSidebar = renderCanonicalSidebar;
   window.toggleNavGroup = toggleNavGroup;
   window.setAllNavGroups = setAllNavGroups;

@@ -1,0 +1,9 @@
+.dev.vars
+backend/.dev.vars
+backend/.wrangler/
+backend/node_modules/
+backend/dist/
+backend/coverage/
+*.log
+*.local
+wrangler.toml

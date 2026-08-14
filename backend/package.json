@@ -1,0 +1,17 @@
+{
+  "name": "odd-frequency-archive-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.toml",
+    "deploy": "wrangler deploy --config wrangler.toml",
+    "migrate:local": "wrangler d1 migrations apply odd-frequency-archive --local --config wrangler.toml",
+    "migrate:remote": "wrangler d1 migrations apply odd-frequency-archive --remote --config wrangler.toml",
+    "seed:local": "wrangler d1 execute odd-frequency-archive --local --file seed.sql --config wrangler.toml",
+    "test": "node tests/run-tests.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

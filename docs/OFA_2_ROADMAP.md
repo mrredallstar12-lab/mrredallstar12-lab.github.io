@@ -171,3 +171,27 @@ These can happen before touching production behavior:
 - add backend tests for CORS, admin rejection, archive-state fallback, and catalog reads
 - add staging-only API base injection
 - add server deployment documentation with externalized env vars, logging, backups, and rollback steps
+
+## Physical Server Validation Checkpoint
+
+Status: passed.
+
+Validated environment:
+
+- Windows 11 Pro x64
+- Node 24.19.0
+- branch: `ofa-2-phase-0-1-planning`
+- commit: `cfe111728a826d9e2e2d096467779c302f5f7784`
+- local bind: `127.0.0.1:8787`
+
+Confirmed on Lucas's physical server:
+
+- backend tests pass
+- staging-server tests pass
+- `npm run dev:server` stays running
+- `ofa_staging_server_started` is logged
+- `GET /api/v1/health` returns `ok: true`, `version: v1`, and `db: true`
+- the existing OFA website loads through the Node staging server at `http://127.0.0.1:8787/`
+- staging remains local-only
+- nothing has been exposed publicly
+- production and `main` remain untouched

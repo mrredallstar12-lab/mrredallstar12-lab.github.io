@@ -203,3 +203,26 @@ For staging:
 For production:
 
 - no rollback action should be needed from this step because production is not changed.
+
+## Validation Checkpoint
+
+Physical-server staging validation passed.
+
+Environment:
+
+- Windows 11 Pro x64
+- Node 24.19.0
+- Git branch: `ofa-2-phase-0-1-planning`
+- Commit: `cfe111728a826d9e2e2d096467779c302f5f7784`
+- Bind: `127.0.0.1:8787`
+
+Confirmed:
+
+- backend tests pass
+- staging-server tests pass
+- `npm run dev:server` stays running
+- startup log contains `ofa_staging_server_started`
+- `GET /api/v1/health` returns `ok: true`, `version: v1`, and `db: true`
+- existing OFA static website loads at `http://127.0.0.1:8787/`
+- staging remains local-only
+- production and `main` remain untouched

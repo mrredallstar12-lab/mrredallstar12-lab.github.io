@@ -155,6 +155,8 @@ Copy-Item -LiteralPath C:\OFA\staging\data\ofa-staging.sqlite -Destination E:\OF
 
 If the SQLite file does not exist yet, start staging once and hit `/api/v1/health`, then stop it and retry.
 
+The automated restore validation command may restore into a temporary directory. That temporary restored database is only an isolated recoverability check. It does not replace `E:\OFA\backups\staging` as the planned staging backup destination.
+
 ## Configuration
 
 Use `backend/.env.server` or process environment variables.

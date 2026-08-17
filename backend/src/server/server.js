@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
+import { resolve } from "node:path";
 import { Readable } from "node:stream";
+import { fileURLToPath } from "node:url";
 import { router } from "../index.js";
 import { SQLiteD1Adapter } from "../db/sqlite-adapter.js";
 import { loadServerConfig } from "./config.js";
@@ -101,7 +103,15 @@ export function startOFAStagingServer(options = {}) {
   return runtime;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  startOFAStagingServer();
+export function isDirectRun(metaUrl, argvPath = process.argv[1]) {
+  if (!argvPath) return false;
+  try {
+    return resolve(fileURLToPath(metaUrl)) === resolve(argvPath);
+  } catch {
+    return false;
+  }
 }
 
+if (isDirectRun(import.meta.url)) {
+  startOFAStagingServer();
+}

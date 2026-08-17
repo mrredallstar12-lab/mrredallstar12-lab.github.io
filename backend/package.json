@@ -10,9 +10,12 @@
     "migrate:local": "wrangler d1 migrations apply odd-frequency-archive --local --config wrangler.toml",
     "migrate:remote": "wrangler d1 migrations apply odd-frequency-archive --remote --config wrangler.toml",
     "seed:local": "wrangler d1 execute odd-frequency-archive --local --file seed.sql --config wrangler.toml",
-    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs",
+    "migrate:server": "node src/db/run-migrations.js",
+    "backup:server:check": "node src/backup/run-backup-restore-check.js",
+    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-phase2-tests.mjs",
     "test:worker": "node tests/run-tests.mjs",
-    "test:server": "node tests/run-server-tests.mjs"
+    "test:server": "node tests/run-server-tests.mjs",
+    "test:phase2": "node tests/run-phase2-tests.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

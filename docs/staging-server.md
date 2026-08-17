@@ -107,6 +107,7 @@ From `C:\OFA\staging\repo\backend`:
 ```powershell
 node tests/run-tests.mjs
 node tests/run-server-tests.mjs
+node tests/run-phase2-tests.mjs
 ```
 
 Expected:
@@ -114,6 +115,7 @@ Expected:
 ```text
 5 backend validation tests passed
 server staging skeleton tests passed
+phase 2 foundation tests passed
 ```
 
 ### 6. Start Local Staging

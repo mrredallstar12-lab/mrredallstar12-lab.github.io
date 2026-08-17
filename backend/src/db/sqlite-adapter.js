@@ -45,8 +45,23 @@ export class SQLiteD1Adapter {
     return new SQLiteStatement(this.database.prepare(sql));
   }
 
+  exec(sql) {
+    this.database.exec(sql);
+  }
+
+  transaction(fn) {
+    this.database.exec("BEGIN");
+    try {
+      const result = fn();
+      this.database.exec("COMMIT");
+      return result;
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   close() {
     this.database.close();
   }
 }
-

@@ -1,5 +1,7 @@
 .dev.vars
 backend/.dev.vars
+backend/.env.server
+backend/data/
 backend/.wrangler/
 backend/node_modules/
 backend/dist/

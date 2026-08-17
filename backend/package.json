@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --config wrangler.toml",
+    "dev:server": "node src/server/server.js",
     "deploy": "wrangler deploy --config wrangler.toml",
     "migrate:local": "wrangler d1 migrations apply odd-frequency-archive --local --config wrangler.toml",
     "migrate:remote": "wrangler d1 migrations apply odd-frequency-archive --remote --config wrangler.toml",
     "seed:local": "wrangler d1 execute odd-frequency-archive --local --file seed.sql --config wrangler.toml",
-    "test": "node tests/run-tests.mjs"
+    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs",
+    "test:worker": "node tests/run-tests.mjs",
+    "test:server": "node tests/run-server-tests.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

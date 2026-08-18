@@ -100,6 +100,26 @@ export class ProgressionDefinitionRepository {
     `).all();
     return rows.results || [];
   }
+
+  async byEventKey(eventKey) {
+    const rows = await this.db.prepare(`
+      SELECT e.id AS authored_event_id, e.event_key, e.event_type, e.scope_type, e.status AS event_status,
+        v.*
+      FROM authored_events e
+      JOIN authored_event_versions v ON v.authored_event_id = e.id
+      WHERE e.event_key = ?
+      ORDER BY v.version DESC
+    `).bind(eventKey).all();
+    const versions = [];
+    for (const row of rows.results || []) {
+      versions.push({
+        ...row,
+        condition: parseJson(row.condition_json, {}),
+        effects: await this.effects(row.id)
+      });
+    }
+    return versions;
+  }
 }
 
 function validKey(value) {

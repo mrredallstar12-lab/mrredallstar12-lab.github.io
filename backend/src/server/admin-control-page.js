@@ -2,6 +2,9 @@ export function adminControlPage(config = {}) {
   const stagingHelper = ["development", "staging", "test"].includes(config.envName)
     ? '<button onclick="stagingFreshAuth()">staging fresh-auth helper</button>'
     : "";
+  const stagingProgression = ["development", "staging", "test"].includes(config.envName)
+    ? '<button onclick="triggerProgression()">trigger staging event</button>'
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -64,6 +67,7 @@ export function adminControlPage(config = {}) {
         <option value="registrations_disabled">registrations_disabled</option>
         <option value="auth_initiation_disabled">auth_initiation_disabled</option>
         <option value="player_mutations_disabled">player_mutations_disabled</option>
+        <option value="authored_events_disabled">authored_events_disabled</option>
       </select>
       <select id="modeEnabled">
         <option value="true">enabled</option>
@@ -72,6 +76,20 @@ export function adminControlPage(config = {}) {
       <button onclick="setMode()">set mode</button>
       <button onclick="modes()">list modes</button>
       <button onclick="revokeAllSessions()">emergency revoke global sessions</button>
+    </div>
+  </section>
+  <section>
+    <h2>Progression Engine</h2>
+    <div class="row">
+      <input id="progressionEventType" value="phase6.staging.observation" aria-label="progression event type">
+      <input id="progressionSignalKey" value="phase6-signal" aria-label="signal key">
+      <input id="progressionSequence" value="1" aria-label="sequence">
+    </div>
+    <div class="row">
+      <button onclick="progressionDefinitions()">list definitions</button>
+      <button onclick="progressionHistory()">player event history</button>
+      <button onclick="simulateProgression()">dry-run selected player</button>
+      ${stagingProgression}
     </div>
   </section>
   <section>
@@ -114,6 +132,11 @@ function revokeSessions(){api("/api/v1/admin/players/"+encodeURIComponent(target
 function modes(){api("/api/v1/admin/operations/modes")}
 function setMode(){api("/api/v1/admin/operations/modes/set",{method:"POST",body:{confirm:"SET_OPERATIONAL_MODE",modeKey:modeKey.value,enabled:modeEnabled.value==="true",reason:"control-center"}})}
 function revokeAllSessions(){api("/api/v1/admin/sessions/revoke-all",{method:"POST",body:{confirm:"REVOKE_ALL_SESSIONS",reason:"control-center"}})}
+function progressionPayload(){return progressionEventType.value === "phase6.staging.observation" ? {signalKey:progressionSignalKey.value,sequence:Number(progressionSequence.value||0)} : {}}
+function progressionDefinitions(){api("/api/v1/admin/progression/definitions")}
+function progressionHistory(){api("/api/v1/admin/progression/events?username="+encodeURIComponent(username.value))}
+function simulateProgression(){api("/api/v1/admin/progression/simulate",{method:"POST",body:{confirm:"SIMULATE_PROGRESSION",username:username.value,eventType:progressionEventType.value,payload:progressionPayload()}})}
+function triggerProgression(){api("/api/v1/admin/staging/progression/trigger",{method:"POST",body:{confirm:"TRIGGER_PROGRESSION_EVENT",username:username.value,eventType:progressionEventType.value,idempotencyKey:"control-center-"+Date.now(),payload:progressionPayload()}})}
 function previewContent(){api("/api/v1/admin/content/preview",{method:"POST",body:{slug:slug.value,as:previewAs.value,username:username.value}})}
 adminMe();
 </script>

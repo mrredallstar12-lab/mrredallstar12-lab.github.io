@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -9,10 +10,12 @@ import { SQLiteD1Adapter } from "../src/db/sqlite-adapter.js";
 import { ProgressionEngine } from "../src/progression/engine.js";
 import { evaluateCondition, validateCondition } from "../src/progression/rule-evaluator.js";
 import { ArchiveStateRepository } from "../src/repositories/archive-state-repository.js";
+import { AdminRepository } from "../src/repositories/admin-repository.js";
 import { AuthRepository } from "../src/repositories/auth-repository.js";
 import { InventoryRepository } from "../src/repositories/inventory-repository.js";
 import { PlayerStateRepository } from "../src/repositories/player-state-repository.js";
 import { ProgressionDefinitionRepository } from "../src/repositories/progression-definition-repository.js";
+import { createOFAStagingServer } from "../src/server/server.js";
 
 const backendDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const sqlitePath = join(mkdtempSync(join(tmpdir(), "ofa-phase6-")), "phase6.sqlite");
@@ -260,6 +263,136 @@ try {
 
   await db.prepare("UPDATE operational_modes SET enabled = 1, reason = 'phase6_default_disabled_until_physical_validation' WHERE mode_key = 'authored_events_disabled'").run();
   assert.equal((await db.prepare("SELECT enabled FROM operational_modes WHERE mode_key = 'authored_events_disabled'").first()).enabled, 1);
+
+  await db.prepare("INSERT INTO account_profiles (account_id, username_display, username_normalized) VALUES (?, 'Phase6Player', 'phase6player')").bind(accountId).run();
+  const adminAccount = await createPlayer("ADMIN");
+  await db.prepare("INSERT INTO account_profiles (account_id, username_display, username_normalized) VALUES (?, 'Phase6Admin', 'phase6admin')").bind(adminAccount).run();
+  await auth.grantRole(adminAccount, "system_admin", "global", "phase6-test");
+  const adminSession = await auth.createSession({ accountId: adminAccount, metadata: { source: "phase6-test" } });
+  const playerSession = await auth.createSession({ accountId, metadata: { source: "phase6-test" } });
+
+  const config = {
+    envName: "test",
+    host: "127.0.0.1",
+    port: 0,
+    staticRoot: mkdtempSync(join(tmpdir(), "ofa-phase6-static-")),
+    logLevel: "error",
+    sqlitePath,
+    sessionPepper: "phase6-test",
+    identityPepper: "phase6-identity",
+    fieldEncryptionKey: Buffer.alloc(32, 23).toString("base64"),
+    fieldEncryptionKeyId: "test:v1",
+    sessionTtlSeconds: 3600,
+    cookieSecure: false,
+    localEmailLinksEnabled: true,
+    workerEnv: { OFA_ALLOWED_ORIGINS: "" }
+  };
+  const logger = { debug() {}, info() {}, warn() {}, error() {} };
+  const runtime = createOFAStagingServer({ config, logger });
+  runtime.server.listen(0, "127.0.0.1");
+  await once(runtime.server, "listening");
+  const base = `http://127.0.0.1:${runtime.server.address().port}`;
+  const adminCookie = `ofa_session=${adminSession.token}`;
+  const playerCookie = `ofa_session=${playerSession.token}`;
+
+  async function api(path, options = {}) {
+    const response = await fetch(`${base}${path}`, {
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.cookie ? { Cookie: options.cookie } : {}),
+        ...(options.csrf ? { "X-OFA-CSRF": options.csrf } : {})
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+    return { response, body: await response.json().catch(() => ({})) };
+  }
+
+  try {
+    assert.equal((await api("/api/v1/admin/progression/definitions", { cookie: playerCookie })).response.status, 403);
+    const definitionsResponse = await api("/api/v1/admin/progression/definitions", { cookie: adminCookie });
+    assert.equal(definitionsResponse.response.status, 200);
+    assert.equal(definitionsResponse.body.definitions.length > 0, true);
+
+    const noElevation = await api("/api/v1/admin/progression/simulate", {
+      method: "POST", cookie: adminCookie, csrf: adminSession.csrfToken,
+      body: { confirm: "SIMULATE_PROGRESSION", username: "Phase6Player", eventType: "phase6.staging.observation", payload: { signalKey: "alpha", sequence: 99 } }
+    });
+    assert.equal(noElevation.response.status, 403);
+    await new AdminRepository(db).createElevation({ sessionId: adminSession.id, accountId: adminAccount, ttlSeconds: 600, requestId: "phase6-api-test" });
+
+    const beforeDryRun = (await db.prepare("SELECT COUNT(*) AS count FROM progression_events").first()).count;
+    const dryRun = await api("/api/v1/admin/progression/simulate", {
+      method: "POST", cookie: adminCookie, csrf: adminSession.csrfToken,
+      body: { confirm: "SIMULATE_PROGRESSION", username: "Phase6Player", eventType: "phase6.staging.observation", payload: { signalKey: "alpha", sequence: 99 } }
+    });
+    assert.equal(dryRun.response.status, 200);
+    assert.equal(dryRun.body.simulation.committed, false);
+    assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM progression_events").first()).count, beforeDryRun);
+
+    const disabledTrigger = await api("/api/v1/admin/staging/progression/trigger", {
+      method: "POST", cookie: adminCookie, csrf: adminSession.csrfToken,
+      body: { confirm: "TRIGGER_PROGRESSION_EVENT", username: "Phase6Player", eventType: "phase6.staging.observation", idempotencyKey: "phase6-api-trigger-0001", payload: { signalKey: "alpha", sequence: 99 } }
+    });
+    assert.equal(disabledTrigger.response.status, 503);
+
+    await db.prepare("UPDATE operational_modes SET enabled = 0, reason = 'phase6 API test' WHERE mode_key = 'authored_events_disabled'").run();
+    const triggered = await api("/api/v1/admin/staging/progression/trigger", {
+      method: "POST", cookie: adminCookie, csrf: adminSession.csrfToken,
+      body: { confirm: "TRIGGER_PROGRESSION_EVENT", username: "Phase6Player", eventType: "phase6.staging.observation", idempotencyKey: "phase6-api-trigger-0001", payload: { signalKey: "alpha", sequence: 99 } }
+    });
+    assert.equal(triggered.response.status, 201);
+    const replayed = await api("/api/v1/admin/staging/progression/trigger", {
+      method: "POST", cookie: adminCookie, csrf: adminSession.csrfToken,
+      body: { confirm: "TRIGGER_PROGRESSION_EVENT", username: "Phase6Player", eventType: "phase6.staging.observation", idempotencyKey: "phase6-api-trigger-0001", payload: { signalKey: "alpha", sequence: 99 } }
+    });
+    assert.equal(replayed.response.status, 200);
+    assert.equal(replayed.body.progression.duplicate, true);
+    const conflict = await api("/api/v1/admin/staging/progression/trigger", {
+      method: "POST", cookie: adminCookie, csrf: adminSession.csrfToken,
+      body: { confirm: "TRIGGER_PROGRESSION_EVENT", username: "Phase6Player", eventType: "phase6.staging.observation", idempotencyKey: "phase6-api-trigger-0001", payload: { signalKey: "alpha", sequence: 100 } }
+    });
+    assert.equal(conflict.response.status, 409);
+
+    const eventsResponse = await api("/api/v1/admin/progression/events?username=Phase6Player", { cookie: adminCookie });
+    assert.equal(eventsResponse.response.status, 200);
+    assert.equal(eventsResponse.body.events.length > 0, true);
+    const detailResponse = await api(`/api/v1/admin/progression/events/${triggered.body.progression.rootEventId}`, { cookie: adminCookie });
+    assert.equal(detailResponse.response.status, 200);
+
+    const normalMe = await api("/api/v1/me", { cookie: adminCookie });
+    assert.equal(JSON.stringify(normalMe.body).includes("system_admin"), false);
+    assert.equal(JSON.stringify(normalMe.body).includes(adminAccount), false);
+
+    const audits = await db.prepare("SELECT action, context_json FROM audit_events WHERE action LIKE 'admin.progression.%'").all();
+    const auditText = JSON.stringify(audits.results);
+    assert.equal(auditText.includes("admin.progression.simulate"), true);
+    assert.equal(auditText.includes("admin.progression.staging_trigger"), true);
+    assert.equal(auditText.includes(adminSession.token), false);
+
+    const productionRuntime = createOFAStagingServer({ config: { ...config, envName: "production", localEmailLinksEnabled: false }, logger });
+    productionRuntime.server.listen(0, "127.0.0.1");
+    await once(productionRuntime.server, "listening");
+    try {
+      const productionBase = `http://127.0.0.1:${productionRuntime.server.address().port}`;
+      const productionTrigger = await fetch(`${productionBase}/api/v1/admin/staging/progression/trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie, "X-OFA-CSRF": adminSession.csrfToken },
+        body: JSON.stringify({ confirm: "TRIGGER_PROGRESSION_EVENT", username: "Phase6Player", eventType: "phase6.staging.observation", payload: { signalKey: "alpha", sequence: 1 } })
+      });
+      assert.equal(productionTrigger.status, 404);
+      const productionPage = await fetch(`${productionBase}/admin/control-center.html`, { headers: { Cookie: adminCookie } });
+      assert.equal((await productionPage.text()).includes("trigger staging event"), false);
+    } finally {
+      productionRuntime.server.close();
+      productionRuntime.workerEnv.DB.close();
+    }
+  } finally {
+    runtime.server.close();
+    runtime.workerEnv.DB.close();
+  }
+
+  await db.prepare("UPDATE operational_modes SET enabled = 1, reason = 'phase6_default_disabled_until_physical_validation' WHERE mode_key = 'authored_events_disabled'").run();
 
   console.log("phase 6 progression event engine tests passed");
 } finally {

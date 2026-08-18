@@ -6,6 +6,9 @@ import { AuthRepository } from "../repositories/auth-repository.js";
 import { InventoryRepository } from "../repositories/inventory-repository.js";
 import { MeInventoryRepository } from "../repositories/me-inventory-repository.js";
 import { OperationalModeRepository } from "../repositories/operational-mode-repository.js";
+import { ProgressionDefinitionRepository } from "../repositories/progression-definition-repository.js";
+import { ProgressionRepository } from "../repositories/progression-repository.js";
+import { ProgressionEngine } from "../progression/engine.js";
 import { buildActorContext, filterRecord } from "../archive/visibility-service.js";
 import { jsonResponse, parseCookies, readJson, sessionCookie } from "../security/http.js";
 
@@ -28,7 +31,9 @@ function repos(env, config) {
     auth: new AuthRepository(env.DB, { sessionPepper: config.sessionPepper }),
     inventory: new InventoryRepository(env.DB),
     meInventory: new MeInventoryRepository(env.DB),
-    modes: new OperationalModeRepository(env.DB)
+    modes: new OperationalModeRepository(env.DB),
+    progressionDefinitions: new ProgressionDefinitionRepository(env.DB),
+    progression: new ProgressionRepository(env.DB)
   };
 }
 
@@ -161,6 +166,107 @@ export async function handleAdminApi(request, env, config) {
     const snapshot = await r.admin.playerSnapshot(player.id);
     const inventory = await r.meInventory.list(player.id);
     return jsonResponse({ ok: true, player: { ...snapshot, inventory } }, 200, noStore());
+  }
+
+  if (path === "/api/v1/admin/progression/definitions" && request.method === "GET") {
+    const required = await adminActor(request, env, config, "progression.definitions.read");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const definitions = await r.progressionDefinitions.list();
+    await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.definitions.read", result: "allowed", requestId, context: { count: definitions.length } });
+    return jsonResponse({ ok: true, definitions }, 200, noStore());
+  }
+
+  if (path.startsWith("/api/v1/admin/progression/definitions/") && request.method === "GET") {
+    const required = await adminActor(request, env, config, "progression.definitions.read");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const eventKey = decodeURIComponent(path.slice("/api/v1/admin/progression/definitions/".length));
+    const versions = await r.progressionDefinitions.byEventKey(eventKey);
+    await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.definition.read", resourceType: "authored_event", resourceId: eventKey, result: versions.length ? "allowed" : "not_found", requestId });
+    if (!versions.length) return bodyError("progression_definition_not_found", "Progression definition not found.", 404);
+    return jsonResponse({ ok: true, eventKey, versions }, 200, noStore());
+  }
+
+  if (path === "/api/v1/admin/progression/events" && request.method === "GET") {
+    const required = await adminActor(request, env, config, "progression.players.read");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const player = await r.admin.playerByUsername(url.searchParams.get("username") || "");
+    if (!player) return bodyError("player_not_found", "Player not found.", 404);
+    const events = await r.progression.eventsForAccount(player.id, url.searchParams.get("limit") || 50);
+    await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.events.read", resourceType: "account", resourceId: player.id, result: "allowed", requestId, context: { count: events.length } });
+    return jsonResponse({ ok: true, player: { username: player.username_display }, events }, 200, noStore());
+  }
+
+  if (path.startsWith("/api/v1/admin/progression/events/") && request.method === "GET") {
+    const required = await adminActor(request, env, config, "progression.players.read");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const eventId = decodeURIComponent(path.slice("/api/v1/admin/progression/events/".length));
+    const detail = await r.progression.eventDetail(eventId);
+    await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.event.read", resourceType: "progression_event", resourceId: eventId, result: detail ? "allowed" : "not_found", requestId });
+    if (!detail) return bodyError("progression_event_not_found", "Progression event not found.", 404);
+    return jsonResponse({ ok: true, detail }, 200, noStore());
+  }
+
+  if (path === "/api/v1/admin/progression/simulate" && request.method === "POST") {
+    const required = await adminActor(request, env, config, "progression.simulate");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const gated = await dangerousGate({ request, actor, r, confirm: "SIMULATE_PROGRESSION", operation: "progression.simulate", limit: 60 });
+    if (gated instanceof Response) return gated;
+    const player = await r.admin.playerByUsername(gated.body.username || "");
+    if (!player) return bodyError("player_not_found", "Player not found.", 404);
+    const eventType = String(gated.body.eventType || "");
+    const sourceType = eventType.startsWith("phase6.staging.") ? "staging_admin" : "server";
+    try {
+      const simulation = await new ProgressionEngine(env.DB, { environment: config.envName }).simulate({
+        eventType,
+        sourceType,
+        sourceSubject: `admin-simulation:${actor.accountId}:${player.id}`,
+        accountId: player.id,
+        idempotencyKey: `simulation-${requestId}`,
+        payload: gated.body.payload || {},
+        provenance: { source: "admin_simulation", actorId: actor.accountId },
+        requestId
+      });
+      await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.simulate", resourceType: "account", resourceId: player.id, result: "allowed", requestId, context: { eventType, eventCount: simulation.eventCount, effectCount: simulation.effectCount, committed: false } });
+      return jsonResponse({ ok: true, simulation }, 200, noStore());
+    } catch (error) {
+      await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.simulate", resourceType: "account", resourceId: player.id, result: "denied", requestId, context: { eventType, code: error.code || "simulation_failed" } });
+      return progressionApiError(error);
+    }
+  }
+
+  if (path === "/api/v1/admin/staging/progression/trigger" && request.method === "POST") {
+    if (!isStagingAdminHelperEnabled(config)) return bodyError("not_found", "Not found.", 404);
+    const required = await adminActor(request, env, config, "progression.staging.trigger");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const gated = await dangerousGate({ request, actor, r, confirm: "TRIGGER_PROGRESSION_EVENT", operation: "progression.staging.trigger", limit: 200 });
+    if (gated instanceof Response) return gated;
+    const player = await r.admin.playerByUsername(gated.body.username || "");
+    if (!player) return bodyError("player_not_found", "Player not found.", 404);
+    const eventType = String(gated.body.eventType || "");
+    if (!STAGING_PROGRESSION_EVENT_TYPES.has(eventType)) return bodyError("staging_event_not_allowed", "Staging progression event is not allowlisted.", 400);
+    try {
+      const result = await new ProgressionEngine(env.DB, { environment: config.envName }).ingest({
+        eventType,
+        sourceType: "staging_admin",
+        sourceSubject: `${actor.accountId}:${player.id}`,
+        accountId: player.id,
+        idempotencyKey: gated.body.idempotencyKey || `staging-${requestId}`,
+        payload: gated.body.payload || {},
+        provenance: { source: "admin_staging_trigger", actorId: actor.accountId },
+        requestId
+      });
+      await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.staging_trigger", resourceType: "account", resourceId: player.id, result: "allowed", requestId, context: { eventType, duplicate: result.duplicate, rootEventId: result.rootEventId } });
+      return jsonResponse({ ok: true, progression: result }, result.duplicate ? 200 : 201, noStore());
+    } catch (error) {
+      await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.staging_trigger", resourceType: "account", resourceId: player.id, result: "denied", requestId, context: { eventType, code: error.code || "execution_failed" } });
+      return progressionApiError(error);
+    }
   }
 
   if (path.startsWith("/api/v1/admin/content/records/") && request.method === "GET") {
@@ -316,4 +422,20 @@ export async function handleAdminApi(request, env, config) {
   }
 
   return null;
+}
+
+const STAGING_PROGRESSION_EVENT_TYPES = new Set([
+  "phase6.staging.observation",
+  "phase6.staging.chain.1",
+  "phase6.staging.rollback"
+]);
+
+function progressionApiError(error) {
+  const code = error.code || "progression_execution_failed";
+  if (code === "authored_events_disabled") return bodyError(code, "Authored event execution is disabled.", 503);
+  if (code === "idempotency_conflict") return bodyError(code, "Idempotency key conflicts with an existing event.", 409);
+  if (["unknown_event_type", "event_source_forbidden", "event_environment_forbidden", "invalid_event_payload", "unknown_event_payload_field", "missing_event_payload_field", "invalid_event_payload_field", "idempotency_key_invalid"].includes(code)) {
+    return bodyError(code, "Progression event request is invalid.", 400);
+  }
+  return bodyError(code, "Progression execution failed atomically.", 422);
 }

@@ -221,20 +221,46 @@ The harness must report PASS for all existing Phase 1-6 checks plus:
 
 It verifies allowlist projection, omitted unknown state, stable and changing revisions, ETag behavior, staging discovery-route hardening, canonical event provenance, server-derived review identity, hidden-resource behavior, replay idempotency, safe inventory and relationship projection, OWNER gameplay parity, audit presence, and static bridge storage/mutation boundaries. Fixtures use random namespaces and disposable accounts only. Cleanup removes accounts, sessions, roles, records, policies, protected fields, relationships, projection definitions, inventory, progression state, audit rows, and rate-limit rows after success or failure, then restores the exact operational-mode snapshot.
 
+Physical automated staging checkpoint: the actual Windows staging server ran the six-migration harness successfully at implementation HEAD `1d567c8dc14dafac03fb19ab1df70fbb15a8009d`. Every automated Phase 1-7 check passed, including all seven Phase 7 checks, and privileged audit verification found 62 request-linked entries. Emergency global session revocation, privileged browser UX, and production-only behavior remained explicitly skipped. This checkpoint does not satisfy or replace the browser lifecycle validation below.
+
 ### Required Browser Checks
 
-Temporarily disable `player_surfaces_disabled` and `authored_events_disabled` only while using disposable validation content/accounts. Confirm:
+The browser workflow uses a persistent disposable fixture. It is available only in staging/test on a loopback host and uses the same Phase 7 fixture constructor as `RunValidation`. Setup creates one ordinary account with no real role, snapshots all operational modes, creates the Phase 7 vertical slice, and temporarily sets `player_surfaces_disabled=false` and `authored_events_disabled=false`.
 
-- authenticated home shows ordinary Archive identity with no role or OWNER indication
-- inventory shows a separate Archive Custody section without changing the legacy inventory grid
-- cases shows the additive canonical catalog and performs the typed review
-- a legitimate review reveals the authored field and updates projected discovery, credential, relationship, inventory, receipt, and revision
-- replay does not duplicate consequences
-- anonymous, offline, unconfigured API, and disabled-surface states leave legacy pages usable and hide the canonical sections
-- browser localStorage is semantically unchanged before and after canonical loading/review
-- page refresh/restart reproduces the same canonical projection from server state
+Setup writes lifecycle state and a safe manifest beside the staging SQLite database. The printed/file manifest contains only the disposable username, email, review slug, expected states, and cleanup command. It never contains a session token, CSRF token, protected secret, or reusable credential.
 
-Do not use `noobuus` for progression-changing checks. Restore `player_surfaces_disabled=true` and `authored_events_disabled=true` after browser validation and verify both through the Control Center or read-only database inspection.
+1. Keep the staging server running through the DPAPI-protected launcher. In a second fresh PowerShell session:
+
+   ```powershell
+   cd C:\OFA\staging\repo\backend
+   .\tools\windows-staging-secrets.ps1 -Action SetupBrowserValidation
+   ```
+
+2. Record the disposable username, email, review record slug, and expected states printed from the manifest. Do not register another account with these values.
+3. Use a separate browser profile/private window so the disposable session cannot be confused with `noobuus`. Open `http://127.0.0.1:8787/staging/account-test.html`, start an email link for the disposable email, and complete the link using the existing local staging token shown in the server log.
+4. Before review, open `http://127.0.0.1:8787/api/v1/me/state` in another tab and record the opaque `revision`. Confirm the projected Phase 7 discovery, credential, relationship, inventory receipt, and progression receipts are absent. Unknown internal fixture state must also remain absent.
+5. Record a semantic snapshot of localStorage before the canonical interaction. Do not clear or import it.
+6. Open `http://127.0.0.1:8787/`. Confirm the ordinary account-backed Archive identity appears with no role, OWNER, permission, internal ID, or elevation indication.
+7. Open `http://127.0.0.1:8787/pages/inventory.html`. Confirm Archive Custody is visibly separate from the unchanged legacy local inventory and has no Phase 7 review receipt yet.
+8. Open `http://127.0.0.1:8787/pages/cases.html`. Locate the manifest's review slug/title. Before review, its protected finding must be represented as `[REVIEW REQUIRED]` when the record detail is inspected.
+9. Use the case's `review record` button exactly once. Confirm the revealed finding is `THE VALIDATION ENVELOPE REMEMBERED THE REVIEW.`
+10. Reload `/api/v1/me/state`. Confirm the revision changed and the projection now contains `Validation Finding`, `Validation Review Acknowledgement`, exactly one `documents` relationship for the fixture records, one Phase 7 Review Receipt in Archive Custody, and four bounded player-safe receipts.
+11. Reload home/inventory/cases and confirm the server-backed state survives navigation/reload. Repeat the same record review. Confirm `stateChanged` is false, the revision remains stable, inventory quantity remains one, the relationship remains singular, and receipts are not duplicated.
+12. Compare localStorage with the pre-review snapshot. It must be byte-for-byte or semantically unchanged by the canonical bridge. Existing legacy pages, inventory, and local progression must remain intact.
+13. In a separate anonymous/private context, load home, inventory, and cases. Canonical account sections must remain hidden while legacy pages remain usable. Offline/API-unavailable behavior may be checked through browser offline mode; canonical sections must disappear without damaging legacy state.
+14. Always clean up, including after an interrupted or failed browser check:
+
+   ```powershell
+   cd C:\OFA\staging\repo\backend
+   .\tools\windows-staging-secrets.ps1 -Action CleanupBrowserValidation
+   ```
+
+15. Run cleanup a second time to confirm it is idempotent. Verify it reports that cleanup is already complete.
+16. Verify `player_surfaces_disabled=true` and `authored_events_disabled=true` through the Control Center or read-only database inspection. With those modes restored, a safe page load from an existing ordinary account such as `noobuus` may confirm disabled-surface fallback, but must not perform a review or any progression-changing action.
+
+Cleanup removes the disposable account, sessions, challenges, account state, discoveries, fictional credentials, inventory and ledger state, progression events/history/evaluations, rate-limit buckets, fixture-linked audit rows, content, policies, protected fields, relationships, projection definitions, item definition, and authored progression definition. It restores the exact pre-setup operational-mode snapshot. Cleanup is idempotent and setup performs the same cleanup automatically after an injected or ordinary setup failure.
+
+Do not use `noobuus` for progression-changing checks. Phase 7 remains open until this browser lifecycle and its cleanup/mode restoration are physically exercised.
 
 ## Rollback
 

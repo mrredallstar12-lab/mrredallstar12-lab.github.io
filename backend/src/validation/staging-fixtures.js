@@ -45,17 +45,7 @@ export async function createValidationFixtures(db, config) {
       followupClearance: `phase6.validation.followup.${suffix}`,
       siblingClearance: `phase6.validation.sibling.${suffix}`
     },
-    phase7: {
-      namespace: `staging-validation-phase7-${suffix}`,
-      reviewSlug: `phase7-review-${suffix}`,
-      hiddenSlug: `phase7-hidden-${suffix}`,
-      relatedSlug: `phase7-related-${suffix}`,
-      discoveryKey: `phase7.validation.finding.${suffix}`,
-      credentialKey: `phase7.validation.reviewed.${suffix}`,
-      unknownDiscoveryKey: `phase7.validation.unknown-discovery.${suffix}`,
-      unknownCredentialKey: `phase7.validation.unknown-credential.${suffix}`,
-      itemKey: `phase7_validation_receipt_${suffix}`
-    }
+    phase7: buildPhase7FixtureDescriptor(suffix)
   };
   try {
     await createPhase6Fixtures(db, fixture);
@@ -67,7 +57,21 @@ export async function createValidationFixtures(db, config) {
   }
 }
 
-async function createPhase7Fixtures(db, fixture, config) {
+export function buildPhase7FixtureDescriptor(suffix) {
+  return {
+    namespace: `staging-validation-phase7-${suffix}`,
+    reviewSlug: `phase7-review-${suffix}`,
+    hiddenSlug: `phase7-hidden-${suffix}`,
+    relatedSlug: `phase7-related-${suffix}`,
+    discoveryKey: `phase7.validation.finding.${suffix}`,
+    credentialKey: `phase7.validation.reviewed.${suffix}`,
+    unknownDiscoveryKey: `phase7.validation.unknown-discovery.${suffix}`,
+    unknownCredentialKey: `phase7.validation.unknown-credential.${suffix}`,
+    itemKey: `phase7_validation_receipt_${suffix}`
+  };
+}
+
+export async function createPhase7Fixtures(db, fixture, config) {
   const { phase7, player } = fixture;
   const content = new ContentRepository(db);
   const surface = new ArchiveSurfaceRepository(db);
@@ -185,7 +189,7 @@ async function createPhase7Fixtures(db, fixture, config) {
     priority: 100,
     condition: { event_payload: { field: "catalogId", equals: phase7.reviewSlug } },
     fixtureNamespace: phase7.namespace,
-    createdBy: fixture.admin.accountId,
+    createdBy: fixture.definitionCreatorAccountId || fixture.admin.accountId,
     playerSafeLabel: "Record review processed",
     playerSafeSummary: "Canonical Archive state changed after a validated review.",
     effects: [

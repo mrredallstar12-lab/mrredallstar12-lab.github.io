@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet("SaveFromEnvironment", "Verify", "RunServer", "RunValidation", "AssertNoPlaintext")]
+  [ValidateSet("SaveFromEnvironment", "Verify", "RunServer", "RunValidation", "SetupBrowserValidation", "CleanupBrowserValidation", "AssertNoPlaintext")]
   [string]$Action,
 
   [string]$SecretPath = "C:\OFA\staging\secrets\ofa-staging-secrets.json",
@@ -158,6 +158,31 @@ switch ($Action) {
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = "node.exe"
     $startInfo.Arguments = "src/validation/run-staging-validation.js"
+    $startInfo.WorkingDirectory = $BackendPath
+    $startInfo.UseShellExecute = $false
+    foreach ($name in $StagingRuntimeEnvironment.Keys) {
+      $startInfo.EnvironmentVariables[$name] = $StagingRuntimeEnvironment[$name]
+    }
+    foreach ($name in $RequiredSecretNames) {
+      $startInfo.EnvironmentVariables[$name] = $secretMap[$name]
+    }
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    $process.WaitForExit()
+    exit $process.ExitCode
+  }
+
+  { $_ -in @("SetupBrowserValidation", "CleanupBrowserValidation") } {
+    $secretMap = Get-SecretEnvironmentMap
+    foreach ($name in $RequiredSecretNames) {
+      if ([string]::IsNullOrWhiteSpace($secretMap[$name])) {
+        throw "Secret store produced an empty value for $name"
+      }
+    }
+
+    $fixtureAction = if ($Action -eq "SetupBrowserValidation") { "setup" } else { "cleanup" }
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = "node.exe"
+    $startInfo.Arguments = "src/validation/browser-validation-fixtures.js $fixtureAction"
     $startInfo.WorkingDirectory = $BackendPath
     $startInfo.UseShellExecute = $false
     foreach ($name in $StagingRuntimeEnvironment.Keys) {

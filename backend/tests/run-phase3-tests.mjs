@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -238,6 +238,12 @@ try {
   cleanupDb.close();
   const cleanupRegisterAgain = await api("/api/v1/auth/register", { method: "POST", body: { username: "CleanupOnly", email: "cleanup@example.invalid" } });
   assert.equal(cleanupRegisterAgain.res.status, 201);
+
+  const launcherScript = readFileSync(join(backendDir, "tools", "windows-staging-secrets.ps1"), "utf8");
+  assert.match(launcherScript, /\$startInfo\.FileName = "node\.exe"/);
+  assert.match(launcherScript, /\$startInfo\.Arguments = "src\/server\/server\.js"/);
+  assert.equal(launcherScript.includes("$startInfo.FileName = \"npm.cmd\""), false);
+  assert.equal(launcherScript.includes("$startInfo.Arguments = \"run dev:server\""), false);
 
   const auditDb = new SQLiteD1Adapter(sqlitePath);
   const audits = await auditDb.prepare("SELECT action, result, context_json FROM audit_events ORDER BY created_at").all();

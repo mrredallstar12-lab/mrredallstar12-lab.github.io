@@ -124,8 +124,8 @@ switch ($Action) {
     }
 
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = "npm.cmd"
-    $startInfo.Arguments = "run dev:server"
+    $startInfo.FileName = "node.exe"
+    $startInfo.Arguments = "src/server/server.js"
     $startInfo.WorkingDirectory = $BackendPath
     $startInfo.UseShellExecute = $false
     foreach ($name in $RequiredSecretNames) {

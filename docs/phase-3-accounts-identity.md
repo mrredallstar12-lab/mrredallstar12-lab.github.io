@@ -218,7 +218,7 @@ cd C:\OFA\staging\repo\backend
 .\tools\windows-staging-secrets.ps1 -Action RunServer
 ```
 
-The helper decrypts values into process environment variables immediately before `npm run dev:server`. It does not print secret values.
+The helper decrypts values into the child process environment and starts `node.exe src/server/server.js` directly. It does not require project-local `npm`, does not print secret values, and preserves the same server entrypoint used by `npm run dev:server`.
 
 ## Relocatable Storage
 

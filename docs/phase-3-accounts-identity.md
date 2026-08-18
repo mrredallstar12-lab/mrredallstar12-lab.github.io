@@ -166,46 +166,59 @@ Do not use this command for future real accounts unless a separate deliberate re
 
 Temporary PowerShell `$env:` values are acceptable for disposable testing only. Before Lucas creates the real `noobuus` account or runs owner bootstrap, staging should use reboot-safe secrets that are outside Git and outside plaintext project files.
 
-Recommended Windows 11 Pro staging approach for the current manual-process deployment:
+Corrected Windows 11 Pro staging approach for the current manual-process deployment:
 
-1. Create `C:\OFA\staging\secrets` with NTFS permissions limited to Lucas's Windows account.
-2. Generate `OFA_SESSION_PEPPER`, `OFA_IDENTITY_PEPPER`, and `OFA_FIELD_ENCRYPTION_KEY_B64` once.
-3. Store them in a DPAPI-protected PowerShell CliXml file outside the repository.
-4. Start the staging server through a local PowerShell launch script that decrypts those secrets into process environment variables immediately before running OFA.
+1. Preserve the exact validated Phase 3 secret values already loaded in the active PowerShell process.
+2. Store those values outside the repository at `C:\OFA\staging\secrets`.
+3. Use Windows DPAPI CurrentUser protection through PowerShell `SecureString` conversion.
+4. Store only DPAPI ciphertext in the secret file.
+5. Start staging through a helper that decrypts secrets only into the OFA child process environment immediately before startup.
 
-This keeps secrets out of Git and out of plaintext project files while still surviving reboot and process restart. The encrypted file is bound to the Windows user/machine context that created it, so it is suitable for staging but should be revisited before public production exposure.
+Do not use CLIXML or JSON containing ordinary plaintext string properties for these values. Plain strings are not automatically protected merely because they are serialized. The helper stores DPAPI-protected ciphertext strings, not plaintext values.
 
-Example one-time secret creation:
+The encrypted file is bound to the Windows user/machine context that created it. This is appropriate for manual local-only staging, but it should be revisited before public production exposure.
 
-```powershell
-New-Item -ItemType Directory -Force C:\OFA\staging\secrets | Out-Null
-$acl = Get-Acl C:\OFA\staging\secrets
-$acl.SetAccessRuleProtection($true, $false)
-$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($identity, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
-$acl.SetAccessRule($rule)
-Set-Acl C:\OFA\staging\secrets $acl
-
-$secrets = [pscustomobject]@{
-  OFA_SESSION_PEPPER = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-  OFA_IDENTITY_PEPPER = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-  OFA_FIELD_ENCRYPTION_KEY_B64 = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-  OFA_FIELD_ENCRYPTION_KEY_ID = "staging:v1"
-}
-$secrets | Export-Clixml C:\OFA\staging\secrets\ofa-staging-secrets.clixml
-```
-
-Example manual launch:
+One-time capture of the currently loaded validated secrets:
 
 ```powershell
 cd C:\OFA\staging\repo\backend
-$secrets = Import-Clixml C:\OFA\staging\secrets\ofa-staging-secrets.clixml
-$env:OFA_SESSION_PEPPER = $secrets.OFA_SESSION_PEPPER
-$env:OFA_IDENTITY_PEPPER = $secrets.OFA_IDENTITY_PEPPER
-$env:OFA_FIELD_ENCRYPTION_KEY_B64 = $secrets.OFA_FIELD_ENCRYPTION_KEY_B64
-$env:OFA_FIELD_ENCRYPTION_KEY_ID = $secrets.OFA_FIELD_ENCRYPTION_KEY_ID
-npm run dev:server
+.\tools\windows-staging-secrets.ps1 -Action SaveFromEnvironment
+.\tools\windows-staging-secrets.ps1 -Action AssertNoPlaintext
 ```
+
+The helper:
+
+- requires `OFA_SESSION_PEPPER`, `OFA_IDENTITY_PEPPER`, `OFA_FIELD_ENCRYPTION_KEY_B64`, and `OFA_FIELD_ENCRYPTION_KEY_ID` to already exist in the current process environment
+- does not generate replacement secrets
+- never prints decrypted values
+- creates `C:\OFA\staging\secrets`
+- locks the secret directory ACL to the current Windows user, local Administrators, and SYSTEM
+- writes the encrypted store to `C:\OFA\staging\secrets\ofa-staging-secrets.json`
+- uses DPAPI CurrentUser protection via `ConvertFrom-SecureString`
+
+Verification after a reboot or fresh PowerShell session:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action Verify
+```
+
+Expected output:
+
+```text
+Required OFA staging secrets loaded: true
+```
+
+That confirms the required secrets can be loaded without displaying them.
+
+Manual staging launch with protected secrets:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action RunServer
+```
+
+The helper decrypts values into process environment variables immediately before `npm run dev:server`. It does not print secret values.
 
 ## Relocatable Storage
 

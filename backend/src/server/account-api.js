@@ -4,6 +4,7 @@ import { AuditRepository } from "../repositories/audit-repository.js";
 import { AuthRepository } from "../repositories/auth-repository.js";
 import { InventoryRepository } from "../repositories/inventory-repository.js";
 import { MeInventoryRepository } from "../repositories/me-inventory-repository.js";
+import { OperationalModeRepository } from "../repositories/operational-mode-repository.js";
 import { PlayerStateRepository } from "../repositories/player-state-repository.js";
 import { RateLimitRepository } from "../repositories/rate-limit-repository.js";
 import { digestSensitiveValue } from "../security/field-crypto.js";
@@ -27,6 +28,7 @@ function repos(env, config) {
     audit: new AuditRepository(env.DB),
     inventory: new InventoryRepository(env.DB),
     meInventory: new MeInventoryRepository(env.DB),
+    modes: new OperationalModeRepository(env.DB),
     player: new PlayerStateRepository(env.DB),
     rateLimit: new RateLimitRepository(env.DB)
   };
@@ -89,6 +91,7 @@ export async function handleAccountApi(request, env, config, logger) {
   const requestId = request.headers.get("X-Request-Id") || randomUUID();
 
   if (path === "/api/v1/auth/register" && request.method === "POST") {
+    if (await r.modes.enabled("registrations_disabled")) return jsonResponse({ ok: false, error: { code: "registrations_disabled", message: "Registration is temporarily unavailable." } }, 503, noStore());
     const body = await readJson(request);
     const checked = validateUsername(body.username);
     if (!checked.ok) return jsonResponse({ ok: false, error: { code: checked.code, message: checked.message } }, 400);
@@ -102,6 +105,7 @@ export async function handleAccountApi(request, env, config, logger) {
   }
 
   if (path === "/api/v1/auth/email/start" && request.method === "POST") {
+    if (await r.modes.enabled("auth_initiation_disabled")) return jsonResponse({ ok: false, error: { code: "auth_initiation_disabled", message: "Authentication initiation is temporarily unavailable." } }, 503, noStore());
     const body = await readJson(request);
     const emailDigest = r.account.emailDigest(body.email || "");
     const limited = await r.rateLimit.check(`email-start:${emailDigest}`, 8, 3600);
@@ -156,6 +160,7 @@ export async function handleAccountApi(request, env, config, logger) {
   }
 
   if (path === "/api/v1/me/discoveries" && request.method === "POST") {
+    if (await r.modes.enabled("player_mutations_disabled")) return jsonResponse({ ok: false, error: { code: "player_mutations_disabled", message: "Player mutations are temporarily disabled." } }, 503, noStore());
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
     if (!(await requireCsrf(request, required.actor, env, config))) return jsonResponse({ ok: false, error: { code: "csrf_required", message: "CSRF validation failed." } }, 403);
@@ -177,6 +182,7 @@ export async function handleAccountApi(request, env, config, logger) {
 
   if (path === "/api/v1/staging/grant-test-item" && request.method === "POST") {
     if (!isStagingEnabled(config)) return jsonResponse({ ok: false, error: { code: "staging_only", message: "Unavailable." } }, 404);
+    if (await r.modes.enabled("player_mutations_disabled")) return jsonResponse({ ok: false, error: { code: "player_mutations_disabled", message: "Player mutations are temporarily disabled." } }, 503, noStore());
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
     if (!(await requireCsrf(request, required.actor, env, config))) return jsonResponse({ ok: false, error: { code: "csrf_required", message: "CSRF validation failed." } }, 403);

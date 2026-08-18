@@ -8,6 +8,8 @@ import { loadServerConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import { serveStatic } from "./static-files.js";
 import { handleAccountApi, isStagingEnabled } from "./account-api.js";
+import { adminControlPage } from "./admin-control-page.js";
+import { handleAdminApi, isAdminPageAllowed } from "./admin-api.js";
 import { handleArchiveApi } from "./archive-api.js";
 import { stagingArchivePage } from "./staging-archive-page.js";
 import { stagingAccountPage } from "./staging-account-page.js";
@@ -66,6 +68,14 @@ export function createOFAStagingServer(options = {}) {
         const fetchRequest = toFetchRequest(request, config);
         const fetchResponse = await router(fetchRequest, workerEnv);
         await writeFetchResponse(response, fetchResponse);
+      } else if (url.pathname.startsWith("/api/v1/admin/")) {
+        const fetchRequest = toFetchRequest(request, config);
+        const fetchResponse = await handleAdminApi(fetchRequest, workerEnv, config, logger);
+        if (fetchResponse) await writeFetchResponse(response, fetchResponse);
+        else {
+          response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+          response.end(JSON.stringify({ ok: false, error: { code: "admin_route_not_found", message: "Admin route not found." } }));
+        }
       } else if (url.pathname.startsWith("/api/v1/archive/")) {
         const fetchRequest = toFetchRequest(request, config);
         const fetchResponse = await handleArchiveApi(fetchRequest, workerEnv, config, logger);
@@ -97,6 +107,15 @@ export function createOFAStagingServer(options = {}) {
         } else {
           response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
           response.end(stagingArchivePage());
+        }
+      } else if (url.pathname === "/admin/control-center.html") {
+        const fetchRequest = toFetchRequest(request, config);
+        if (!(await isAdminPageAllowed(fetchRequest, workerEnv, config))) {
+          response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+          response.end("Not found");
+        } else {
+          response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+          response.end(adminControlPage());
         }
       } else if (url.pathname.startsWith("/api/")) {
         response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });

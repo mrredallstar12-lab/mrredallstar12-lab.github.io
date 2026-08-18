@@ -23,6 +23,7 @@ Phase 3 turns the Phase 2 account/session foundations into the first usable auth
 - Authenticated Inventory 2.0 proof with account-bound item grant, ledger provenance, idempotency, and private inventory reads.
 - Staging-only account test page at `/staging/account-test.html`.
 - Explicit owner bootstrap CLI gated by environment variables and audited.
+- Staging-only account cleanup CLI gated by environment variables and exact username/email matching.
 - Configurable storage roots for database, media, uploads, runtime, logs, and backups.
 - Copy-and-verify SQLite storage migration helper that never deletes source data.
 
@@ -124,6 +125,88 @@ Rules:
 - writes audit events for refused and successful attempts
 - real owner/admin authorization remains separate from fictional Archive identity or clearance
 
+Owner visibility rule:
+
+- the real owner account must look like an ordinary OFA account from every normal, public, and in-universe surface
+- Lucas intends to use the normal public username `noobuus`
+- owner status must not be exposed through username styling, badges, Archive designation, ordinary `/api/v1/me` responses, public profile metadata, account creation order, or internal IDs
+- `owner` remains a hidden real authorization role
+- owner-only tools and permissions are visible only inside explicitly privileged administration surfaces after authorization
+- normal OFA use by the owner account should be indistinguishable from normal user behavior
+
+Do not create or bootstrap the real `noobuus` owner account until persistent staging secrets are provisioned.
+
+## Staging Account Cleanup
+
+Disposable physical-server validation accounts should be removed with the supported cleanup command, not ad hoc SQL deletion.
+
+For the Phase 3 disposable validation account:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+$env:OFA_STAGING_CLEANUP_CONFIRM="DELETE_STAGING_TEST_ACCOUNT"
+npm run cleanup:staging-account -- --username=LuKe-Test --email=luke-test@example.invalid
+Remove-Item Env:\OFA_STAGING_CLEANUP_CONFIRM
+```
+
+Run this with the same `OFA_IDENTITY_PEPPER` that was active when the disposable test account was created, because the command verifies the email by digest instead of reading plaintext email.
+
+Rules:
+
+- only runs when `OFA_ENV` is `development`, `staging`, or `test`
+- requires both username and email to match the same account
+- requires `OFA_STAGING_CLEANUP_CONFIRM=DELETE_STAGING_TEST_ACCOUNT`
+- refuses accounts with active real roles, including a bootstrapped owner
+- removes sessions, CSRF records, email challenges, rate-limit buckets for that email, discoveries, private state, account-authored relationship/annotation state, and account-bound inventory proof state
+- preserves security audit records and writes a cleanup audit event without plaintext email
+
+Do not use this command for future real accounts unless a separate deliberate recovery/deletion policy has been approved.
+
+## Persistent Staging Secret Provisioning
+
+Temporary PowerShell `$env:` values are acceptable for disposable testing only. Before Lucas creates the real `noobuus` account or runs owner bootstrap, staging should use reboot-safe secrets that are outside Git and outside plaintext project files.
+
+Recommended Windows 11 Pro staging approach for the current manual-process deployment:
+
+1. Create `C:\OFA\staging\secrets` with NTFS permissions limited to Lucas's Windows account.
+2. Generate `OFA_SESSION_PEPPER`, `OFA_IDENTITY_PEPPER`, and `OFA_FIELD_ENCRYPTION_KEY_B64` once.
+3. Store them in a DPAPI-protected PowerShell CliXml file outside the repository.
+4. Start the staging server through a local PowerShell launch script that decrypts those secrets into process environment variables immediately before running OFA.
+
+This keeps secrets out of Git and out of plaintext project files while still surviving reboot and process restart. The encrypted file is bound to the Windows user/machine context that created it, so it is suitable for staging but should be revisited before public production exposure.
+
+Example one-time secret creation:
+
+```powershell
+New-Item -ItemType Directory -Force C:\OFA\staging\secrets | Out-Null
+$acl = Get-Acl C:\OFA\staging\secrets
+$acl.SetAccessRuleProtection($true, $false)
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($identity, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+$acl.SetAccessRule($rule)
+Set-Acl C:\OFA\staging\secrets $acl
+
+$secrets = [pscustomobject]@{
+  OFA_SESSION_PEPPER = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+  OFA_IDENTITY_PEPPER = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+  OFA_FIELD_ENCRYPTION_KEY_B64 = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+  OFA_FIELD_ENCRYPTION_KEY_ID = "staging:v1"
+}
+$secrets | Export-Clixml C:\OFA\staging\secrets\ofa-staging-secrets.clixml
+```
+
+Example manual launch:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+$secrets = Import-Clixml C:\OFA\staging\secrets\ofa-staging-secrets.clixml
+$env:OFA_SESSION_PEPPER = $secrets.OFA_SESSION_PEPPER
+$env:OFA_IDENTITY_PEPPER = $secrets.OFA_IDENTITY_PEPPER
+$env:OFA_FIELD_ENCRYPTION_KEY_B64 = $secrets.OFA_FIELD_ENCRYPTION_KEY_B64
+$env:OFA_FIELD_ENCRYPTION_KEY_ID = $secrets.OFA_FIELD_ENCRYPTION_KEY_ID
+npm run dev:server
+```
+
 ## Relocatable Storage
 
 Configurable roots:
@@ -182,3 +265,31 @@ Manual account-flow validation:
 
 Staging remains local-only.
 
+## Physical Server Validation Checkpoint
+
+Phase 3 physical-server validation succeeded on the actual OFA staging server.
+
+Confirmed manually:
+
+- Phase 3 migration applied successfully
+- all existing backend validation tests passed
+- server staging tests passed
+- Phase 2 tests passed
+- Phase 3 tests passed
+- backup/restore verification passed with both migrations present
+- registration succeeds on the physical server
+- username display casing is preserved
+- username uniqueness is case-insensitive
+- fictional Archive identity is generated
+- ordinary `/api/v1/me` response does not expose internal account ID, email, roles, session internals, or credential data
+- staging email-link authentication works
+- authenticated session works
+- `/api/v1/me` derives account identity from the session
+- persistent discoveries work
+- account-bound Inventory 2.0 proof works
+- inventory response exposes only permitted/public item metadata
+- logout invalidates the session
+- private routes return `401 auth_required` after logout
+- staging remained local-only
+
+Phase 3 acceptance criteria are complete as of this checkpoint.

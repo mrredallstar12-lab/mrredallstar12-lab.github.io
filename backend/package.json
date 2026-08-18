@@ -14,6 +14,7 @@
     "backup:server:check": "node src/backup/run-backup-restore-check.js",
     "storage:copy-check": "node src/storage/run-storage-copy-check.js",
     "bootstrap:owner": "node src/admin/bootstrap-owner.js",
+    "cleanup:staging-account": "node src/admin/cleanup-staging-account.js",
     "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-phase2-tests.mjs && node tests/run-phase3-tests.mjs",
     "test:worker": "node tests/run-tests.mjs",
     "test:server": "node tests/run-server-tests.mjs",

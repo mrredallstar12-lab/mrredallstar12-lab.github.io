@@ -199,6 +199,46 @@ try {
   });
   assert.equal(bootstrapSecond, 3);
 
+  const ownerStart = await api("/api/v1/auth/email/start", { method: "POST", body: { email: "luke@example.invalid" } });
+  assert.equal(ownerStart.res.status, 202);
+  const ownerTokenLog = logs.filter((entry) => entry.message === "local_staging_email_link").at(-1);
+  const ownerCompleted = await api("/api/v1/auth/email/complete", { method: "POST", body: { token: ownerTokenLog.detail.token } });
+  assert.equal(ownerCompleted.res.status, 200);
+  const ownerCookie = ownerCompleted.res.headers.get("set-cookie").split(";")[0];
+  const ownerMe = await api("/api/v1/me", { cookie: ownerCookie });
+  assert.equal(ownerMe.res.status, 200);
+  assert.deepEqual(Object.keys(ownerMe.body.account).sort(), ["archiveIdentity", "username"]);
+  assert.equal(JSON.stringify(ownerMe.body).includes("owner"), false);
+
+  const cleanupRegistered = await api("/api/v1/auth/register", { method: "POST", body: { username: "CleanupOnly", email: "cleanup@example.invalid" } });
+  assert.equal(cleanupRegistered.res.status, 201);
+  await api("/api/v1/auth/email/start", { method: "POST", body: { email: "cleanup@example.invalid" } });
+  const cleanupTokenLog = logs.filter((entry) => entry.message === "local_staging_email_link").at(-1);
+  const cleanupCompleted = await api("/api/v1/auth/email/complete", { method: "POST", body: { token: cleanupTokenLog.detail.token } });
+  const cleanupCookie = cleanupCompleted.res.headers.get("set-cookie").split(";")[0];
+  const cleanupCsrf = cleanupCompleted.res.headers.get("x-ofa-csrf");
+  await api("/api/v1/me/discoveries", { method: "POST", cookie: cleanupCookie, csrf: cleanupCsrf, body: { discoveryType: "flag", discoveryKey: "cleanup-proof" } });
+  await api("/api/v1/staging/grant-test-item", { method: "POST", cookie: cleanupCookie, csrf: cleanupCsrf, body: {} });
+
+  const cleanupExit = await new Promise((resolve) => {
+    const child = spawn(process.execPath, [join(backendDir, "src", "admin", "cleanup-staging-account.js"), "--username=CleanupOnly", "--email=cleanup@example.invalid"], {
+      cwd: backendDir,
+      env: { ...process.env, OFA_SQLITE_PATH: sqlitePath, OFA_FIELD_ENCRYPTION_KEY_B64: fieldKey, OFA_SESSION_PEPPER: "phase3-session-pepper", OFA_IDENTITY_PEPPER: "phase3-identity-pepper", OFA_STAGING_CLEANUP_CONFIRM: "DELETE_STAGING_TEST_ACCOUNT" }
+    });
+    child.on("exit", (code) => resolve(code));
+  });
+  assert.equal(cleanupExit, 0);
+  const cleanupDb = new SQLiteD1Adapter(sqlitePath);
+  const cleanupLeft = await cleanupDb.prepare(`
+    SELECT COUNT(*) AS count
+    FROM account_profiles
+    WHERE username_normalized = 'cleanuponly'
+  `).first();
+  assert.equal(cleanupLeft.count, 0);
+  cleanupDb.close();
+  const cleanupRegisterAgain = await api("/api/v1/auth/register", { method: "POST", body: { username: "CleanupOnly", email: "cleanup@example.invalid" } });
+  assert.equal(cleanupRegisterAgain.res.status, 201);
+
   const auditDb = new SQLiteD1Adapter(sqlitePath);
   const audits = await auditDb.prepare("SELECT action, result, context_json FROM audit_events ORDER BY created_at").all();
   const auditText = JSON.stringify(audits.results);

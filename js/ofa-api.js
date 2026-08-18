@@ -425,6 +425,138 @@
     renderSubmissionVault();
   }
 
+  let canonicalPlayerState = null;
+  let canonicalStateEtag = "";
+  let canonicalCsrf = "";
+
+  function canonicalSlots(){
+    return $$('[data-ofa-canonical-identity],[data-ofa-canonical-inventory],[data-ofa-canonical-cases]');
+  }
+
+  function hideCanonicalSurfaces(){
+    canonicalSlots().forEach((slot)=>{ slot.hidden = true; });
+  }
+
+  async function canonicalRequest(path,options={}){
+    const url = apiPath(path);
+    if(!url) throw Object.assign(new Error("api_not_configured"),{code:"api_not_configured"});
+    const response = await fetch(url,{
+      method:options.method || "GET",
+      credentials:"include",
+      headers:Object.assign({"Content-Type":"application/json"},canonicalCsrf ? {"X-OFA-CSRF":canonicalCsrf}:{},options.headers || {}),
+      body:options.body ? JSON.stringify(options.body):undefined
+    });
+    const nextCsrf = response.headers.get("X-OFA-CSRF");
+    if(nextCsrf) canonicalCsrf = nextCsrf;
+    if(response.status === 304) return {notModified:true,response};
+    const data = await response.json().catch(()=>({ok:false,error:{code:"invalid_json"}}));
+    if(!response.ok || data.ok === false){
+      const error = new Error(data.error?.message || `API ${response.status}`);
+      error.code = data.error?.code || "api_error";
+      error.status = response.status;
+      throw error;
+    }
+    return {data,response};
+  }
+
+  async function ensureCanonicalCsrf(){
+    if(canonicalCsrf) return canonicalCsrf;
+    await canonicalRequest("/me");
+    if(!canonicalCsrf) throw Object.assign(new Error("csrf_unavailable"),{code:"csrf_unavailable"});
+    return canonicalCsrf;
+  }
+
+  async function loadCanonicalPlayerState(options={}){
+    if(!getApiBase()){
+      hideCanonicalSurfaces();
+      return null;
+    }
+    try{
+      const headers = canonicalStateEtag && !options.force ? {"If-None-Match":canonicalStateEtag}:{};
+      const result = await canonicalRequest("/me/state",{headers});
+      if(!result.notModified){
+        canonicalPlayerState = result.data.state;
+        canonicalStateEtag = result.response.headers.get("ETag") || "";
+      }
+      if(!canonicalPlayerState) return null;
+      renderCanonicalIdentity(canonicalPlayerState);
+      renderCanonicalInventory(canonicalPlayerState);
+      await renderCanonicalCases();
+      return canonicalPlayerState;
+    }catch{
+      canonicalPlayerState = null;
+      canonicalStateEtag = "";
+      canonicalCsrf = "";
+      hideCanonicalSurfaces();
+      return null;
+    }
+  }
+
+  function renderCanonicalIdentity(state){
+    $$('[data-ofa-canonical-identity]').forEach((slot)=>{
+      const designation = state.account?.archiveIdentity?.designation || "unassigned";
+      slot.innerHTML = `<hr><p><b>${clean(state.account?.username || "Archive account")}</b></p><p class="mini-status">Account-backed designation: ${clean(designation)}</p>`;
+      slot.hidden = false;
+    });
+  }
+
+  function renderCanonicalInventory(state){
+    $$('[data-ofa-canonical-inventory]').forEach((section)=>{
+      const target = $('[data-ofa-canonical-inventory-items]',section);
+      if(!target) return;
+      const balances = state.inventory?.balances || [];
+      const instances = state.inventory?.instances || [];
+      const cards = [
+        ...balances.map((item)=>`<article class="inventory-card owned"><b>${clean(item.name)}</b><p>${clean(item.itemType || "property")}</p><p>quantity: ${Number(item.quantity || 0)}</p></article>`),
+        ...instances.map((item)=>`<article class="inventory-card owned"><b>${clean(item.name)}</b><p>${clean(item.itemType || "individual property")}</p><p>individual custody record</p></article>`)
+      ];
+      target.innerHTML = cards.length ? cards.join("") : "<p>No canonical Archive property is assigned to this account.</p>";
+      section.hidden = false;
+    });
+  }
+
+  async function renderCanonicalCases(){
+    const sections = $$('[data-ofa-canonical-cases]');
+    if(!sections.length) return;
+    try{
+      const {data} = await canonicalRequest("/archive/cases");
+      for(const section of sections){
+        const target = $('[data-ofa-canonical-case-list]',section);
+        if(!target) continue;
+        const records = data.records || [];
+        target.innerHTML = records.length ? records.map((record)=>`
+          <article class="unlisted-record" data-canonical-record="${cleanAttr(record.slug)}">
+            <h3>${clean(record.title)}</h3>
+            <p>${clean(record.summary || "Catalog summary withheld.")}</p>
+            <button type="button" data-canonical-review="${cleanAttr(record.slug)}">review record</button>
+            <div class="mini-status" data-canonical-review-output></div>
+          </article>
+        `).join("") : "<p>No canonical case records are currently available.</p>";
+        $$('[data-canonical-review]',target).forEach((button)=>button.addEventListener("click",()=>reviewCanonicalRecord(button.dataset.canonicalReview,button.closest("[data-canonical-record]"))));
+        section.hidden = false;
+      }
+    }catch{
+      sections.forEach((section)=>{section.hidden = true;});
+    }
+  }
+
+  async function reviewCanonicalRecord(slug,card){
+    let out = card ? $('[data-canonical-review-output]',card):null;
+    if(out) out.textContent = "reviewing canonical record...";
+    try{
+      await ensureCanonicalCsrf();
+      const {data} = await canonicalRequest(`/archive/records/${encodeURIComponent(slug)}/review`,{method:"POST"});
+      await loadCanonicalPlayerState({force:true});
+      const refreshedCard = $$('[data-canonical-record]').find((candidate)=>candidate.dataset.canonicalRecord === slug);
+      out = refreshedCard ? $('[data-canonical-review-output]',refreshedCard):out;
+      const detail = await canonicalRequest(`/archive/records/${encodeURIComponent(slug)}`);
+      const fields = detail.data.record?.fields || {};
+      if(out) out.innerHTML = `<b>review recorded</b>${Object.entries(fields).map(([key,value])=>`<p><b>${clean(key)}:</b> ${clean(typeof value === "string" ? value : JSON.stringify(value))}</p>`).join("")}<p>state changed: ${data.review?.stateChanged ? "yes":"no"}</p>`;
+    }catch(error){
+      if(out) out.textContent = error.code === "authored_events_disabled" ? "record review is currently disabled." : "record review was not accepted.";
+    }
+  }
+
   function pageIsPublicNormal(){
     const body = document.body;
     return body && !body.classList.contains("unlisted-wing") && !body.classList.contains("case-records") && !body.classList.contains("employee-terminal-page") && !body.classList.contains("corrupt-zone") && !body.classList.contains("beyond-zone");
@@ -549,8 +681,9 @@
     flushPendingEvents();
     wrapExistingHandlers();
     attachSecretEntryBuffer();
+    loadCanonicalPlayerState();
     if(getSettings().apiPolling){
-      setInterval(()=>{loadSharedState(); flushPendingEvents();},90000);
+      setInterval(()=>{loadSharedState(); flushPendingEvents(); loadCanonicalPlayerState();},90000);
     }
   }
 
@@ -577,6 +710,7 @@
     renderSubmissionVault,
     submitCommunityArtifact,
     enterUnlistedWing,
+    loadCanonicalPlayerState,
     fallbackSignal,
     OFFICIAL_HOSTS
   });

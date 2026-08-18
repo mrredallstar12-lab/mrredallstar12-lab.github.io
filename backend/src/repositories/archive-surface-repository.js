@@ -97,8 +97,8 @@ export class ArchiveSurfaceRepository {
       provenance: parseJson(row.provenance_json, {}),
       policy: {
         existenceBehavior: row.existence_behavior || "not_found",
-        catalogRule: parseJson(row.catalog_rule_json, { access: "public" }),
-        relationshipRule: parseJson(row.relationship_rule_json, { access: "public" })
+        catalogRule: parsePolicy(row.catalog_rule_json, { access: "public" }),
+        relationshipRule: parsePolicy(row.relationship_rule_json, { access: "public" })
       }
     }));
   }
@@ -134,10 +134,15 @@ function hydrateRecord(row) {
     currentRevisionId: row.current_revision_id,
     policy: {
       existenceBehavior: row.existence_behavior || "not_found",
-      catalogRule: parseJson(row.catalog_rule_json, defaultCatalogRule(row.visibility)),
-      fieldRules: parseJson(row.field_rules_json, {})
+      catalogRule: parsePolicy(row.catalog_rule_json, defaultCatalogRule(row.visibility)),
+      fieldRules: parsePolicy(row.field_rules_json, {})
     }
   };
+}
+
+function parsePolicy(value, fallback) {
+  const parsed = parseJson(value, fallback);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : fallback;
 }
 
 function defaultCatalogRule(visibility) {

@@ -11,9 +11,10 @@ import { createOFAStagingServer } from "../src/server/server.js";
 import { runStagingValidation } from "../src/validation/run-staging-validation.js";
 
 const backendDir = dirname(dirname(fileURLToPath(import.meta.url)));
+const repoDir = dirname(backendDir);
 const tempDir = mkdtempSync(join(tmpdir(), "ofa-staging-validation-"));
 const sqlitePath = join(tempDir, "validation.sqlite");
-const staticRoot = mkdtempSync(join(tmpdir(), "ofa-staging-validation-static-"));
+const staticRoot = repoDir;
 const fieldKey = Buffer.alloc(32, 19).toString("base64");
 const logger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -59,7 +60,14 @@ try {
     "replay and idempotency conflict",
     "atomic rollback and chain limits",
     "serialized concurrent writes",
-    "fictional and real authorization separation after progression"
+    "fictional and real authorization separation after progression",
+    "Phase 7 rollout kill switches",
+    "Phase 7 player-safe projection",
+    "Phase 7 review authorization boundary",
+    "Phase 7 authoritative record review",
+    "Phase 7 review replay and OWNER parity",
+    "Phase 7 frontend bridge boundary",
+    "Phase 7 rollout switches restored"
   ]) {
     assert.equal(results.some((result) => result.name === name && result.status === "PASS"), true, `${name} did not pass`);
   }
@@ -71,11 +79,15 @@ try {
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM account_profiles WHERE username_normalized LIKE 'valadmin%' OR username_normalized LIKE 'valplayer%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM inventory_item_definitions WHERE item_key LIKE 'staging_validation_item_%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM inventory_item_definitions WHERE item_key LIKE 'phase6_validation_ticket_%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM inventory_item_definitions WHERE item_key LIKE 'phase7_validation_receipt_%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM authored_event_versions WHERE fixture_namespace LIKE 'staging-validation-%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM authored_events WHERE event_key LIKE 'staging-validation-%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM progression_events WHERE source_subject LIKE 'validation:%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM archive_state_scopes WHERE scope_key LIKE 'phase6-validation-%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM entity_relationships WHERE id LIKE 'rel_phase6_validation_%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM records WHERE slug LIKE 'phase7-review-%' OR slug LIKE 'phase7-hidden-%' OR slug LIKE 'phase7-related-%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM player_state_projection_definitions WHERE subject_key LIKE 'phase7.validation.%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM progression_events WHERE event_type = 'archive.record.reviewed' AND source_subject LIKE 'acct_%'").get().count, 0);
     assert.deepEqual(checkDb.database.prepare("SELECT mode_key, enabled, reason, updated_by, updated_at FROM operational_modes ORDER BY mode_key").all(), originalModes);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM audit_events WHERE request_id LIKE 'staging-validation-%'").get().count, 0);
   } finally {
@@ -99,6 +111,9 @@ try {
     assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM account_profiles WHERE username_normalized LIKE 'valadmin%' OR username_normalized LIKE 'valplayer%'").get().count, 0);
     assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM authored_event_versions WHERE fixture_namespace LIKE 'staging-validation-%'").get().count, 0);
     assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM archive_state_scopes WHERE scope_key LIKE 'phase6-validation-%'").get().count, 0);
+    assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM records WHERE slug LIKE 'phase7-review-%' OR slug LIKE 'phase7-hidden-%' OR slug LIKE 'phase7-related-%'").get().count, 0);
+    assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM inventory_item_definitions WHERE item_key LIKE 'phase7_validation_receipt_%'").get().count, 0);
+    assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM player_state_projection_definitions WHERE subject_key LIKE 'phase7.validation.%'").get().count, 0);
     assert.deepEqual(failedRunDb.database.prepare("SELECT mode_key, enabled, reason, updated_by, updated_at FROM operational_modes ORDER BY mode_key").all(), originalModes);
   } finally {
     failedRunDb.close();

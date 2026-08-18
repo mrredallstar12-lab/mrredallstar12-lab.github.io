@@ -2,6 +2,8 @@
 
 Status: approved for implementation. Phase 7 remains open until physical Windows staging validation is reviewed and accepted.
 
+Implementation status: complete in the Phase 7 development branch; automated validation passes. Physical staging migration, `RunValidation`, browser checks, backup/restore verification, and explicit acceptance remain required before closure.
+
 ## Branch Record
 
 - Branch: `ofa-2-phase-7-player-state-integration`
@@ -70,6 +72,25 @@ Always omitted:
 
 Unknown state is omitted. The revision is opaque, stable when the visible projection is unchanged, changes when visible canonical state changes, and may be used only for cache validation.
 
+Implemented response shape:
+
+```json
+{
+  "ok": true,
+  "state": {
+    "account": { "username": "...", "archiveIdentity": { "designation": "..." } },
+    "discoveries": [{ "label": "...", "summary": "...", "publicMetadata": {}, "discoveredAt": "..." }],
+    "credentials": [{ "label": "...", "summary": "...", "publicMetadata": {} }],
+    "relationships": [{ "source": {}, "relationship": "...", "target": {}, "confidence": null }],
+    "inventory": { "balances": [], "instances": [] },
+    "recentReceipts": [{ "label": "...", "summary": "...", "occurredAt": "..." }],
+    "revision": "opaque-digest"
+  }
+}
+```
+
+Only discovery and fictional-credential keys registered in `player_state_projection_definitions` can become projected labels. Keys themselves are not returned. Inventory uses public item metadata only. Recent receipts are limited to 12 by the server. Responses use `Cache-Control: no-store`; a matching `If-None-Match` receives `304`.
+
 ## Record Review Boundary
 
 `POST /api/v1/archive/records/:slug/review`:
@@ -85,6 +106,8 @@ Unknown state is omitted. The revision is opaque, stable when the visible projec
 - returns only a safe review receipt and updated opaque state revision
 
 Repeated review of the same canonical revision is idempotent. Repeatable future mechanics require distinct authored event semantics.
+
+The implemented idempotency key is derived only on the server from the internal account actor, canonical record identity, and current canonical revision. The event payload contains only the server-resolved public catalog ID and revision. The response contains `catalogId`, `duplicate`, `stateChanged`, and the updated opaque `stateRevision`; it does not return rule, effect, account, or internal resource identifiers.
 
 ## Discovery Route Hardening
 
@@ -118,6 +141,8 @@ Validation may temporarily disable modes using disposable fixtures. Physical sta
 Migration `0006` is additive. New repositories own projection definitions, deterministic projection construction, visible relationship filtering, safe receipts, revision digesting, and review coordination. Application logic remains adapter-portable and does not introduce direct SQLite-only behavior outside the database adapter/repository boundary.
 
 No real authored campaign or account progression is seeded by migration. Validation definitions/content/items are namespaced fixtures and removed afterward.
+
+Migration `0006_phase7_player_state_integration.sql` creates projection definitions, adds the bounded receipt lookup index, and inserts `player_surfaces_disabled=true` with reason `phase7_default_disabled_until_physical_validation`. It does not seed player progression or alter existing accounts. The visibility repository also now treats nullable legacy policy columns as their authored defaults so older canonical rows cannot crash the new projection.
 
 ## Test Strategy
 
@@ -153,6 +178,63 @@ Automated tests must cover:
 10. Restore `player_surfaces_disabled=true` and `authored_events_disabled=true`.
 
 Destructive/manual checks remain separate from safe automation. Production-only behavior is not claimed from loopback staging.
+
+### Deployment And Backup Sequence
+
+From `C:\OFA\staging\repo` in a fresh Windows PowerShell session:
+
+```powershell
+git fetch origin
+git switch ofa-2-phase-7-player-state-integration
+git pull --ff-only origin ofa-2-phase-7-player-state-integration
+
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action Verify
+Copy-Item C:\OFA\staging\data\ofa-staging.sqlite E:\OFA\backups\staging\ofa-staging-pre-phase7.sqlite
+Get-FileHash E:\OFA\backups\staging\ofa-staging-pre-phase7.sqlite -Algorithm SHA256
+npm test
+npm run migrate:server
+npm run backup:server:check
+.\tools\windows-staging-secrets.ps1 -Action RunServer
+```
+
+In a second fresh PowerShell session, run validation through the established DPAPI helper:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action RunValidation
+```
+
+The migration runner must report six applied migrations. The restore check must restore into a separate validation database and pass. The staging restore-check location remains temporary validation storage and does not replace `E:\OFA\backups\staging`.
+
+### Expected RunValidation Checks
+
+The harness must report PASS for all existing Phase 1-6 checks plus:
+
+- `Phase 7 rollout kill switches`
+- `Phase 7 player-safe projection`
+- `Phase 7 review authorization boundary`
+- `Phase 7 authoritative record review`
+- `Phase 7 review replay and OWNER parity`
+- `Phase 7 frontend bridge boundary`
+- `Phase 7 rollout switches restored`
+
+It verifies allowlist projection, omitted unknown state, stable and changing revisions, ETag behavior, staging discovery-route hardening, canonical event provenance, server-derived review identity, hidden-resource behavior, replay idempotency, safe inventory and relationship projection, OWNER gameplay parity, audit presence, and static bridge storage/mutation boundaries. Fixtures use random namespaces and disposable accounts only. Cleanup removes accounts, sessions, roles, records, policies, protected fields, relationships, projection definitions, inventory, progression state, audit rows, and rate-limit rows after success or failure, then restores the exact operational-mode snapshot.
+
+### Required Browser Checks
+
+Temporarily disable `player_surfaces_disabled` and `authored_events_disabled` only while using disposable validation content/accounts. Confirm:
+
+- authenticated home shows ordinary Archive identity with no role or OWNER indication
+- inventory shows a separate Archive Custody section without changing the legacy inventory grid
+- cases shows the additive canonical catalog and performs the typed review
+- a legitimate review reveals the authored field and updates projected discovery, credential, relationship, inventory, receipt, and revision
+- replay does not duplicate consequences
+- anonymous, offline, unconfigured API, and disabled-surface states leave legacy pages usable and hide the canonical sections
+- browser localStorage is semantically unchanged before and after canonical loading/review
+- page refresh/restart reproduces the same canonical projection from server state
+
+Do not use `noobuus` for progression-changing checks. Restore `player_surfaces_disabled=true` and `authored_events_disabled=true` after browser validation and verify both through the Control Center or read-only database inspection.
 
 ## Rollback
 

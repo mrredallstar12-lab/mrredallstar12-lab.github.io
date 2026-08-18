@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,7 @@ import { ProgressionDefinitionRepository } from "../src/repositories/progression
 import { createOFAStagingServer } from "../src/server/server.js";
 
 const backendDir = dirname(dirname(fileURLToPath(import.meta.url)));
+const repoDir = dirname(backendDir);
 const sqlitePath = join(mkdtempSync(join(tmpdir(), "ofa-phase7-")), "phase7.sqlite");
 const staticRoot = mkdtempSync(join(tmpdir(), "ofa-phase7-static-"));
 const fieldKey = Buffer.alloc(32, 29).toString("base64");
@@ -168,6 +169,18 @@ async function api(path, options = {}) {
 }
 
 try {
+  const bridgeSource = readFileSync(join(repoDir, "js", "ofa-api.js"), "utf8");
+  const canonicalBridge = bridgeSource.slice(bridgeSource.indexOf("let canonicalPlayerState"), bridgeSource.indexOf("function pageIsPublicNormal"));
+  assert.equal(canonicalBridge.includes('credentials:"include"'), true);
+  assert.equal(canonicalBridge.includes('canonicalRequest("/me/state"'), true);
+  assert.equal(canonicalBridge.includes('/review`'), true);
+  assert.equal(canonicalBridge.includes("localStorage"), false);
+  assert.equal(canonicalBridge.includes("oddInventory"), false);
+  assert.equal(canonicalBridge.includes("discoveryKey"), false);
+  assert.equal(readFileSync(join(repoDir, "index.html"), "utf8").includes("data-ofa-canonical-identity hidden"), true);
+  assert.equal(readFileSync(join(repoDir, "pages", "inventory.html"), "utf8").includes("data-ofa-canonical-inventory hidden"), true);
+  assert.equal(readFileSync(join(repoDir, "pages", "cases.html"), "utf8").includes("data-ofa-canonical-cases hidden"), true);
+
   assert.deepEqual((await db.prepare("SELECT version FROM schema_migrations ORDER BY version").all()).results.map((row) => row.version), ["0001", "0002", "0003", "0004", "0005", "0006"]);
   assert.equal((await db.prepare("SELECT enabled FROM operational_modes WHERE mode_key = 'player_surfaces_disabled'").first()).enabled, 1);
   assert.equal((await api("/api/v1/me/state", { cookie: player.cookie })).response.status, 503);

@@ -2,8 +2,11 @@ import { randomUUID } from "node:crypto";
 import { AccountRepository } from "../repositories/account-repository.js";
 import { ArchiveStateRepository } from "../repositories/archive-state-repository.js";
 import { AuthRepository } from "../repositories/auth-repository.js";
+import { ArchiveSurfaceRepository } from "../repositories/archive-surface-repository.js";
+import { ContentRepository } from "../repositories/content-repository.js";
 import { InventoryRepository } from "../repositories/inventory-repository.js";
 import { PlayerStateRepository } from "../repositories/player-state-repository.js";
+import { PlayerStateProjectionRepository } from "../repositories/player-state-projection-repository.js";
 import { ProgressionDefinitionRepository } from "../repositories/progression-definition-repository.js";
 
 export async function createValidationFixtures(db, config) {
@@ -22,6 +25,7 @@ export async function createValidationFixtures(db, config) {
   if (!admin.ok || !player.ok) throw new Error("validation_fixture_creation_failed");
 
   await auth.grantRole(admin.accountId, "system_admin", "global", "staging-validation-harness");
+  await auth.grantRole(admin.accountId, "owner", "global", "staging-validation-harness");
   const adminSession = await auth.createSession({ accountId: admin.accountId, metadata: { source: "staging-validation-harness" } });
   const playerSession = await auth.createSession({ accountId: player.accountId, metadata: { source: "staging-validation-harness" } });
 
@@ -40,15 +44,157 @@ export async function createValidationFixtures(db, config) {
       grantedClearance: `phase6.validation.granted.${suffix}`,
       followupClearance: `phase6.validation.followup.${suffix}`,
       siblingClearance: `phase6.validation.sibling.${suffix}`
+    },
+    phase7: {
+      namespace: `staging-validation-phase7-${suffix}`,
+      reviewSlug: `phase7-review-${suffix}`,
+      hiddenSlug: `phase7-hidden-${suffix}`,
+      relatedSlug: `phase7-related-${suffix}`,
+      discoveryKey: `phase7.validation.finding.${suffix}`,
+      credentialKey: `phase7.validation.reviewed.${suffix}`,
+      unknownDiscoveryKey: `phase7.validation.unknown-discovery.${suffix}`,
+      unknownCredentialKey: `phase7.validation.unknown-credential.${suffix}`,
+      itemKey: `phase7_validation_receipt_${suffix}`
     }
   };
   try {
     await createPhase6Fixtures(db, fixture);
+    await createPhase7Fixtures(db, fixture, config);
     return fixture;
   } catch (error) {
     await cleanupValidationFixtures(db, fixture, "staging-validation-setup-failed-");
     throw error;
   }
+}
+
+async function createPhase7Fixtures(db, fixture, config) {
+  const { phase7, player } = fixture;
+  const content = new ContentRepository(db);
+  const surface = new ArchiveSurfaceRepository(db);
+  const inventory = new InventoryRepository(db);
+  const discoveries = new PlayerStateRepository(db);
+  const projections = new PlayerStateProjectionRepository(db, {
+    identityPepper: config.identityPepper,
+    fieldEncryptionKey: config.fieldEncryptionKey,
+    fieldEncryptionKeyId: config.fieldEncryptionKeyId
+  });
+  const definitions = new ProgressionDefinitionRepository(db);
+
+  phase7.reviewRecordId = await content.createRecord({
+    slug: phase7.reviewSlug,
+    recordType: "case",
+    title: "Phase 7 Validation Review",
+    summary: "Disposable canonical player integration fixture.",
+    status: "published",
+    visibility: "authenticated",
+    body: "This validation envelope is available to authenticated Archive personnel."
+  });
+  await surface.setProtectedField({
+    recordId: phase7.reviewRecordId,
+    fieldKey: "reviewFinding",
+    value: "THE VALIDATION ENVELOPE REMEMBERED THE REVIEW."
+  });
+  await surface.setPolicy({
+    resourceType: "record",
+    resourceId: phase7.reviewRecordId,
+    existenceBehavior: "known_restricted",
+    catalogRule: { access: "authenticated" },
+    fieldRules: {
+      body: { access: "authenticated" },
+      reviewFinding: { access: "discovered", discoveryKey: phase7.discoveryKey, redactedValue: "[REVIEW REQUIRED]" }
+    }
+  });
+
+  phase7.relatedRecordId = await content.createRecord({
+    slug: phase7.relatedSlug,
+    recordType: "record",
+    title: "Phase 7 Validation Corollary",
+    summary: "Disposable relationship target.",
+    status: "published",
+    visibility: "authenticated",
+    body: "Corollary retained for validation."
+  });
+  phase7.hiddenRecordId = await content.createRecord({
+    slug: phase7.hiddenSlug,
+    recordType: "record",
+    title: "Phase 7 Withheld Validation Record",
+    summary: "Existence must remain withheld.",
+    status: "published",
+    visibility: "restricted",
+    body: "This material must not leak before discovery."
+  });
+  await surface.setPolicy({
+    resourceType: "record",
+    resourceId: phase7.hiddenRecordId,
+    existenceBehavior: "not_found",
+    catalogRule: { access: "discovered", discoveryKey: `phase7.validation.hidden.${fixture.suffix}` },
+    fieldRules: { body: { access: "discovered", discoveryKey: `phase7.validation.hidden.${fixture.suffix}` } }
+  });
+
+  phase7.relationshipId = await content.addRelationship({
+    sourceType: "record",
+    sourceId: phase7.reviewRecordId,
+    relationshipType: "documents",
+    targetType: "record",
+    targetId: phase7.relatedRecordId,
+    canonical: true,
+    provenance: { source: "staging_validation_harness" }
+  });
+  await surface.setPolicy({
+    resourceType: "relationship",
+    resourceId: phase7.relationshipId,
+    existenceBehavior: "not_found",
+    relationshipRule: { access: "discovered", discoveryKey: phase7.discoveryKey }
+  });
+
+  phase7.itemDefinitionId = await inventory.createDefinition({
+    itemKey: phase7.itemKey,
+    name: "Phase 7 Review Receipt",
+    itemType: "archive_property",
+    stackable: true,
+    publicMetadata: { classification: "routine", fixture: true },
+    secretMetadata: { neverExpose: `phase7-secret-${fixture.suffix}` }
+  });
+  await projections.upsertDefinition({
+    subjectType: "discovery",
+    subjectKey: phase7.discoveryKey,
+    label: "Validation Finding",
+    summary: "The reviewed envelope disclosed an additional finding."
+  });
+  await projections.upsertDefinition({
+    subjectType: "fictional_credential",
+    subjectKey: phase7.credentialKey,
+    label: "Validation Review Acknowledgement",
+    summary: "Archive review acknowledgement is active."
+  });
+  await discoveries.addDiscovery({
+    accountId: player.accountId,
+    discoveryType: "internal",
+    discoveryKey: phase7.unknownDiscoveryKey,
+    provenance: { source: "staging_validation_harness" }
+  });
+  const identity = await db.prepare("SELECT clearance_state_json FROM archive_identities WHERE account_id = ?").bind(player.accountId).first();
+  const clearanceState = JSON.parse(identity?.clearance_state_json || "{}");
+  clearanceState.clearances = [...new Set([...(clearanceState.clearances || []), phase7.unknownCredentialKey])];
+  await db.prepare("UPDATE archive_identities SET clearance_state_json = ? WHERE account_id = ?")
+    .bind(JSON.stringify(clearanceState), player.accountId).run();
+
+  await definitions.createVersion({
+    eventKey: `${phase7.namespace}.record-review`,
+    triggerEventType: "archive.record.reviewed",
+    priority: 100,
+    condition: { event_payload: { field: "catalogId", equals: phase7.reviewSlug } },
+    fixtureNamespace: phase7.namespace,
+    createdBy: fixture.admin.accountId,
+    playerSafeLabel: "Record review processed",
+    playerSafeSummary: "Canonical Archive state changed after a validated review.",
+    effects: [
+      { key: "finding", type: "discovery.set", config: { key: phase7.discoveryKey, present: true } },
+      { key: "receipt", type: "inventory.quantity", config: { itemKey: phase7.itemKey, delta: 1 } },
+      { key: "credential", type: "fictional_clearance.set", config: { key: phase7.credentialKey, present: true } },
+      { key: "relationship", type: "relationship.set", config: { relationshipId: phase7.relationshipId, present: true } }
+    ]
+  });
 }
 
 async function createPhase6Fixtures(db, fixture) {
@@ -190,10 +336,21 @@ export async function cleanupValidationFixtures(db, fixture, requestPrefix) {
     raw.prepare("DELETE FROM authored_event_version_effects WHERE definition_version_id IN (SELECT id FROM authored_event_versions WHERE fixture_namespace = ?)").run(fixture.phase6.namespace);
     raw.prepare("DELETE FROM authored_event_versions WHERE fixture_namespace = ?").run(fixture.phase6.namespace);
     raw.prepare("DELETE FROM authored_events WHERE event_key LIKE ?").run(`${fixture.phase6.namespace}.%`);
+    raw.prepare("DELETE FROM authored_event_version_effects WHERE definition_version_id IN (SELECT id FROM authored_event_versions WHERE fixture_namespace = ?)").run(fixture.phase7.namespace);
+    raw.prepare("DELETE FROM authored_event_versions WHERE fixture_namespace = ?").run(fixture.phase7.namespace);
+    raw.prepare("DELETE FROM authored_events WHERE event_key LIKE ?").run(`${fixture.phase7.namespace}.%`);
     raw.prepare("DELETE FROM archive_state_history WHERE scope_id IN (SELECT id FROM archive_state_scopes WHERE scope_type = 'global' AND scope_key = ?)").run(fixture.phase6.stateScopeKey);
     raw.prepare("DELETE FROM archive_state_scopes WHERE scope_type = 'global' AND scope_key = ?").run(fixture.phase6.stateScopeKey);
     raw.prepare("DELETE FROM account_relationship_discoveries WHERE account_id IN (?, ?) OR relationship_id = ?").run(...accountIds, fixture.phase6.relationshipId);
     raw.prepare("DELETE FROM entity_relationships WHERE id = ?").run(fixture.phase6.relationshipId);
+    raw.prepare("DELETE FROM account_relationship_discoveries WHERE relationship_id = ?").run(fixture.phase7.relationshipId);
+    raw.prepare("DELETE FROM archive_visibility_policies WHERE resource_type = 'relationship' AND resource_id = ?").run(fixture.phase7.relationshipId);
+    raw.prepare("DELETE FROM entity_relationships WHERE id = ?").run(fixture.phase7.relationshipId);
+    raw.prepare("DELETE FROM player_state_projection_definitions WHERE subject_key IN (?, ?)").run(fixture.phase7.discoveryKey, fixture.phase7.credentialKey);
+    raw.prepare("DELETE FROM record_protected_fields WHERE record_id IN (?, ?, ?)").run(fixture.phase7.reviewRecordId, fixture.phase7.relatedRecordId, fixture.phase7.hiddenRecordId);
+    raw.prepare("DELETE FROM archive_visibility_policies WHERE resource_type = 'record' AND resource_id IN (?, ?, ?)").run(fixture.phase7.reviewRecordId, fixture.phase7.relatedRecordId, fixture.phase7.hiddenRecordId);
+    raw.prepare("DELETE FROM record_revisions WHERE record_id IN (?, ?, ?)").run(fixture.phase7.reviewRecordId, fixture.phase7.relatedRecordId, fixture.phase7.hiddenRecordId);
+    raw.prepare("DELETE FROM records WHERE id IN (?, ?, ?)").run(fixture.phase7.reviewRecordId, fixture.phase7.relatedRecordId, fixture.phase7.hiddenRecordId);
     raw.prepare("DELETE FROM audit_events WHERE request_id LIKE ? OR actor_id IN (?, ?) OR resource_id IN (?, ?)")
       .run(`${requestPrefix}%`, ...accountIds, ...accountIds);
     raw.prepare("DELETE FROM admin_elevations WHERE account_id IN (?, ?)").run(...accountIds);
@@ -210,6 +367,7 @@ export async function cleanupValidationFixtures(db, fixture, requestPrefix) {
     raw.prepare("DELETE FROM inventory_item_instances WHERE owner_account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM inventory_item_definitions WHERE item_key = ?").run(fixture.itemKey);
     raw.prepare("DELETE FROM inventory_item_definitions WHERE item_key = ?").run(fixture.phase6.itemKey);
+    raw.prepare("DELETE FROM inventory_item_definitions WHERE item_key = ?").run(fixture.phase7.itemKey);
     raw.prepare("DELETE FROM account_discoveries WHERE account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM account_relationships WHERE account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM account_annotations WHERE account_id IN (?, ?)").run(...accountIds);

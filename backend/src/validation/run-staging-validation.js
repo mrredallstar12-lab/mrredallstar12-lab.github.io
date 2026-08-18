@@ -188,7 +188,11 @@ export async function runStagingValidation(options = {}) {
     await check("fictional clearance typed operation", async () => {
       const changed = await api(`/api/v1/admin/players/${fixture.player.accountId}/fictional-clearance/set`, {
         method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
-        body: { confirm: "SET_CLEARANCE", clearanceState: { clearances: ["phase5.validation", "phase6.validation.prerequisite"] }, reason: "staging validation harness" }
+        body: {
+          confirm: "SET_CLEARANCE",
+          clearanceState: { clearances: ["phase5.validation", "phase6.validation.prerequisite", fixture.phase7.unknownCredentialKey] },
+          reason: "staging validation harness"
+        }
       });
       assertCondition(changed.response.status === 200, `clearance change received ${changed.response.status}`);
       const stored = db.database.prepare("SELECT clearance_state_json FROM archive_identities WHERE account_id = ?").get(fixture.player.accountId);
@@ -235,6 +239,74 @@ export async function runStagingValidation(options = {}) {
       assertCondition(anonymousPreview.response.status === 200 && playerPreview.response.status === 200, "preview request failed");
       assertCondition(JSON.stringify(anonymousPreview.body).includes("WE WERE NEVER ONLY RECEIVING.") === false, "anonymous preview exposed transcript");
       assertCondition(JSON.stringify(playerPreview.body).includes("WE WERE NEVER ONLY RECEIVING."), "discovered player preview omitted transcript");
+    });
+
+    let initialPhase7State;
+    await check("Phase 7 rollout kill switches", async () => {
+      const surfaceMode = modeSnapshot.find((row) => row.mode_key === "player_surfaces_disabled");
+      const eventMode = modeSnapshot.find((row) => row.mode_key === "authored_events_disabled");
+      assertCondition(surfaceMode?.enabled === 1 && eventMode?.enabled === 1, "Phase 7 validation must begin with both rollout switches enabled");
+      const stateBlocked = await api("/api/v1/me/state", { cookie: playerCookie });
+      const reviewBlocked = await api(`/api/v1/archive/records/${fixture.phase7.reviewSlug}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(stateBlocked.response.status === 503 && stateBlocked.body.error?.code === "player_surfaces_disabled", "player surface switch did not block projection");
+      assertCondition(reviewBlocked.response.status === 503 && reviewBlocked.body.error?.code === "player_surfaces_disabled", "player surface switch did not block review");
+    });
+
+    await check("Phase 7 player-safe projection", async () => {
+      const enabled = await api("/api/v1/admin/operations/modes/set", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: { confirm: "SET_OPERATIONAL_MODE", modeKey: "player_surfaces_disabled", enabled: false, reason: "staging validation harness" }
+      });
+      assertCondition(enabled.response.status === 200, `surface mode change returned ${enabled.response.status}`);
+      const anonymous = await api("/api/v1/me/state");
+      assertCondition(anonymous.response.status === 401, `anonymous state projection returned ${anonymous.response.status}`);
+      const first = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(first.response.status === 200, `player state projection returned ${first.response.status}`);
+      initialPhase7State = first.body.state;
+      const unknownDiscovery = db.database.prepare("SELECT id FROM account_discoveries WHERE account_id = ? AND discovery_key = ?").get(fixture.player.accountId, fixture.phase7.unknownDiscoveryKey);
+      const unknownCredentials = db.database.prepare("SELECT clearance_state_json FROM archive_identities WHERE account_id = ?").get(fixture.player.accountId);
+      assertCondition(!!unknownDiscovery && JSON.parse(unknownCredentials.clearance_state_json).clearances.includes(fixture.phase7.unknownCredentialKey), "unknown projection fixtures were not present in canonical state");
+      const serialized = JSON.stringify(initialPhase7State);
+      for (const forbidden of [
+        fixture.player.accountId, fixture.phase7.discoveryKey, fixture.phase7.credentialKey,
+        fixture.phase7.unknownDiscoveryKey, fixture.phase7.unknownCredentialKey,
+        "owner", "system_admin", "permissions", "condition_json", `phase7-secret-${fixture.suffix}`
+      ]) assertCondition(!serialized.includes(forbidden), `player projection exposed ${forbidden}`);
+      assertCondition(initialPhase7State.discoveries.length === 0 && initialPhase7State.credentials.length === 0, "unknown state was projected");
+      assertCondition(initialPhase7State.inventory.balances.every((item) => item.itemKey !== fixture.phase7.itemKey), "unearned Phase 7 inventory was projected");
+      const etag = first.response.headers.get("etag");
+      assertCondition(!!etag, "player projection omitted ETag");
+      const unchanged = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(unchanged.body.state.revision === initialPhase7State.revision, "unchanged projection revision was unstable");
+      const cached = await fetch(`${base}/api/v1/me/state`, { headers: { Cookie: playerCookie, "If-None-Match": etag } });
+      assertCondition(cached.status === 304, `matching state ETag returned ${cached.status}`);
+      const fixtureOnly = await api("/api/v1/me/discoveries", {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf,
+        body: { discoveryType: "staging", discoveryKey: "phase3-account-page" }
+      });
+      assertCondition(fixtureOnly.response.status === 201, `allowlisted staging discovery returned ${fixtureOnly.response.status}`);
+      const arbitrary = await api("/api/v1/me/discoveries", {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf,
+        body: { discoveryType: "progression", discoveryKey: fixture.phase7.discoveryKey }
+      });
+      assertCondition(arbitrary.response.status === 400 && arbitrary.body.error?.code === "unsupported_discovery", "arbitrary discovery mutation was accepted");
+      const afterUnprojected = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(afterUnprojected.body.state.revision === initialPhase7State.revision, "unprojected canonical state changed the visible revision");
+    });
+
+    await check("Phase 7 review authorization boundary", async () => {
+      const cases = await api("/api/v1/archive/cases", { cookie: playerCookie });
+      assertCondition(cases.response.status === 200 && cases.body.records?.some((record) => record.slug === fixture.phase7.reviewSlug), "authenticated validation case was not listed");
+      const byInternalId = await api(`/api/v1/archive/records/${fixture.phase7.reviewRecordId}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      const hidden = await api(`/api/v1/archive/records/${fixture.phase7.hiddenSlug}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(byInternalId.response.status === 503, "authored event switch should precede identifier probing while disabled");
+      assertCondition(hidden.response.status === 503, "authored event switch should precede existence probing while disabled");
     });
 
     await check("Phase 6 kill switch", async () => {
@@ -380,10 +452,102 @@ export async function runStagingValidation(options = {}) {
       assertCondition(db.database.prepare("SELECT COUNT(*) AS count FROM account_roles WHERE account_id = ?").get(fixture.player.accountId).count === 0, "progression changed a real role");
     });
 
+    await check("Phase 7 authoritative record review", async () => {
+      const before = await api("/api/v1/me/state", { cookie: playerCookie });
+      const internalId = await api(`/api/v1/archive/records/${fixture.phase7.reviewRecordId}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      const hidden = await api(`/api/v1/archive/records/${fixture.phase7.hiddenSlug}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(internalId.response.status === 404 && internalId.body.error?.code === "not_found", `internal identifier review returned ${internalId.response.status}`);
+      assertCondition(hidden.response.status === 404 && hidden.body.error?.code === "not_found", `withheld slug review returned ${hidden.response.status}`);
+      const reviewed = await api(`/api/v1/archive/records/${fixture.phase7.reviewSlug}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(reviewed.response.status === 200 && reviewed.body.review?.duplicate === false, `record review returned ${reviewed.response.status}`);
+      assertCondition(reviewed.body.review?.stateChanged === true, "record review did not report visible state change");
+      const event = db.database.prepare("SELECT * FROM progression_events WHERE account_id = ? AND event_type = 'archive.record.reviewed'").get(fixture.player.accountId);
+      assertCondition(event?.source_type === "browser_session" && event.source_subject === fixture.player.accountId, "record review did not derive canonical actor/source");
+      assertCondition(JSON.parse(event.payload_json).catalogId === fixture.phase7.reviewSlug, "record review did not derive canonical resource payload");
+      assertCondition(JSON.parse(event.provenance_json).source === "authenticated_record_review" && !!event.request_id, "record review provenance was incomplete");
+      const after = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(after.body.state.revision !== before.body.state.revision, "visible state revision did not change after review");
+      assertCondition(after.body.state.revision === reviewed.body.review.stateRevision, "review receipt revision did not match projection");
+      assertCondition(after.body.state.discoveries.some((entry) => entry.label === "Validation Finding"), "projected discovery missing");
+      assertCondition(after.body.state.credentials.some((entry) => entry.label === "Validation Review Acknowledgement"), "projected credential missing");
+      assertCondition(after.body.state.inventory.balances.some((entry) => entry.itemKey === fixture.phase7.itemKey && entry.quantity === 1), "projected inventory receipt missing");
+      const projectedRelationship = after.body.state.relationships.filter((entry) =>
+        entry.source?.catalogId === fixture.phase7.reviewSlug && entry.target?.catalogId === fixture.phase7.relatedSlug
+      );
+      assertCondition(projectedRelationship.length === 1, "intended discovered relationship was not projected exactly once");
+      assertCondition(after.body.state.relationships.length === initialPhase7State.relationships.length + 1, "review exposed relationships beyond the authored discovery");
+      assertCondition(after.body.state.recentReceipts.length === 4 && after.body.state.recentReceipts.length <= 12, "bounded player-safe progression receipts were incorrect");
+      const projectionText = JSON.stringify(after.body.state);
+      for (const forbidden of [fixture.phase7.discoveryKey, fixture.phase7.credentialKey, fixture.phase7.unknownDiscoveryKey, fixture.phase7.unknownCredentialKey, `phase7-secret-${fixture.suffix}`]) {
+        assertCondition(!projectionText.includes(forbidden), `post-review projection exposed ${forbidden}`);
+      }
+      const revealed = await api(`/api/v1/archive/records/${fixture.phase7.reviewSlug}`, { cookie: playerCookie });
+      assertCondition(revealed.body.record?.fields?.reviewFinding === "THE VALIDATION ENVELOPE REMEMBERED THE REVIEW.", "progression-driven field reveal was missing");
+    });
+
+    await check("Phase 7 review replay and OWNER parity", async () => {
+      const beforeReplay = await api("/api/v1/me/state", { cookie: playerCookie });
+      const replay = await api(`/api/v1/archive/records/${fixture.phase7.reviewSlug}/review`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      const afterReplay = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(replay.response.status === 200 && replay.body.review?.duplicate === true && replay.body.review?.stateChanged === false, "review replay was not idempotent");
+      assertCondition(afterReplay.body.state.revision === beforeReplay.body.state.revision, "replay changed visible state revision");
+      const playerBalance = afterReplay.body.state.inventory.balances.find((entry) => entry.itemKey === fixture.phase7.itemKey);
+      assertCondition(playerBalance?.quantity === 1, "review replay duplicated inventory");
+
+      const adminMe = await api("/api/v1/me", { cookie: elevatedCookie });
+      assertCondition(!JSON.stringify(adminMe.body).includes("owner"), "ordinary /me exposed temporary fixture OWNER role");
+      for (let index = 0; index < 30; index += 1) {
+        const response = await api(`/api/v1/archive/records/${fixture.phase7.reviewSlug}/review`, {
+          method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf
+        });
+        assertCondition(response.response.status === 200, `OWNER ordinary review ${index + 1} returned ${response.response.status}`);
+      }
+      const limited = await api(`/api/v1/archive/records/${fixture.phase7.reviewSlug}/review`, {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf
+      });
+      assertCondition(limited.response.status === 429, `OWNER received gameplay rate advantage (${limited.response.status})`);
+      const ownerState = await api("/api/v1/me/state", { cookie: elevatedCookie });
+      assertCondition(ownerState.response.status === 200 && !JSON.stringify(ownerState.body).includes("owner"), "player projection exposed OWNER state");
+    });
+
+    await check("Phase 7 frontend bridge boundary", async () => {
+      const sourceResponse = await fetch(`${base}/js/ofa-api.js`);
+      const source = await sourceResponse.text();
+      assertCondition(sourceResponse.status === 200, `frontend bridge returned ${sourceResponse.status}`);
+      const start = source.indexOf("let canonicalPlayerState");
+      const end = source.indexOf("function pageIsPublicNormal");
+      const bridge = source.slice(start, end);
+      assertCondition(start >= 0 && end > start, "canonical bridge section was not found");
+      assertCondition(bridge.includes('canonicalRequest("/me/state"') && bridge.includes("/review`"), "canonical bridge endpoints missing");
+      for (const forbidden of ["localStorage", "oddInventory", "discoveryKey", "/me/discoveries"]) {
+        assertCondition(!bridge.includes(forbidden), `canonical bridge contains forbidden client mutation/storage path ${forbidden}`);
+      }
+    });
+
+    await check("Phase 7 rollout switches restored", async () => {
+      for (const modeKey of ["player_surfaces_disabled", "authored_events_disabled"]) {
+        const restored = await api("/api/v1/admin/operations/modes/set", {
+          method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+          body: { confirm: "SET_OPERATIONAL_MODE", modeKey, enabled: true, reason: "phase7_validation_complete_default_disabled" }
+        });
+        assertCondition(restored.response.status === 200, `${modeKey} restore returned ${restored.response.status}`);
+      }
+      const surfaceBlocked = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(surfaceBlocked.response.status === 503 && surfaceBlocked.body.error?.code === "player_surfaces_disabled", "player surface switch was not restored");
+    });
+
     await check("privileged audit history", async () => {
       const rows = db.database.prepare("SELECT action, context_json FROM audit_events WHERE request_id LIKE ?").all(`${requestPrefix}%`);
       const actions = new Set(rows.map((row) => row.action));
-      for (const action of ["admin.discovery.grant", "admin.discovery.revoke", "admin.inventory.grant", "admin.inventory.revoke", "admin.fictional_clearance.set", "admin.operations.mode.set", "admin.content.preview", "admin.progression.simulate", "admin.progression.staging_trigger"]) {
+      for (const action of ["admin.discovery.grant", "admin.discovery.revoke", "admin.inventory.grant", "admin.inventory.revoke", "admin.fictional_clearance.set", "admin.operations.mode.set", "admin.content.preview", "admin.progression.simulate", "admin.progression.staging_trigger", "archive.record.review"]) {
         assertCondition(actions.has(action), `missing audit action ${action}`);
       }
       const auditText = JSON.stringify(rows);

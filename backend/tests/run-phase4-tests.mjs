@@ -112,6 +112,16 @@ try {
 
   const stagingPage = await fetch(`${base}/staging/archive-test.html`);
   assert.equal(stagingPage.status, 200);
+  const accountPage = await fetch(`${base}/staging/account-test.html`);
+  assert.equal(accountPage.status, 200);
+  const accountPageText = await accountPage.text();
+  for (const discoveryKey of ["phase4.signal001.transcript", "phase4.caseecho.personnel", "phase4.relationship.echo", "phase4.withheld.null"]) {
+    assert.equal(accountPageText.includes(`grantPhase4Discovery('${discoveryKey}')`), true);
+    assert.equal(accountPageText.includes(discoveryKey), true);
+  }
+  assert.equal(accountPageText.includes("discoveryKey.value"), false);
+  assert.equal(accountPageText.includes('discoveryType:"phase4_staging"'), true);
+  assert.equal(accountPageText.includes('discoveryKey:"phase3-account-page"'), true);
 
   const auth = await signIn();
   const authedSignal = await api("/api/v1/archive/records/phase4-signal-001", { cookie: auth.cookie });
@@ -130,7 +140,7 @@ try {
   const stillWithheld = await api("/api/v1/archive/records/phase4-withheld-null", { cookie: auth.cookie });
   assert.equal(stillWithheld.res.status, 404);
 
-  for (const discoveryKey of ["phase4.signal001.transcript", "phase4.caseecho.personnel", "phase4.relationship.echo"]) {
+  for (const discoveryKey of ["phase4.signal001.transcript", "phase4.caseecho.personnel", "phase4.relationship.echo", "phase4.withheld.null"]) {
     const added = await api("/api/v1/me/discoveries", { method: "POST", cookie: auth.cookie, csrf: auth.csrf, body: { discoveryType: "phase4_staging", discoveryKey } });
     assert.equal(added.res.status, 201);
   }
@@ -148,11 +158,23 @@ try {
   assert.equal(discoveredRelationships.body.relationships[0].source.catalogId, "phase4-signal-001");
   assert.equal(discoveredRelationships.body.relationships[0].source.id, undefined);
 
+  const discoveredWithheld = await api("/api/v1/archive/records/phase4-withheld-null", { cookie: auth.cookie });
+  assert.equal(discoveredWithheld.res.status, 200);
+  assert.equal(discoveredWithheld.body.record.slug, "phase4-withheld-null");
+
   const prodRuntime = createOFAStagingServer({ config: { ...config, envName: "production", port: 0 }, logger });
   prodRuntime.server.listen(0, "127.0.0.1");
   await once(prodRuntime.server, "listening");
   const prodPage = await fetch(`http://127.0.0.1:${prodRuntime.server.address().port}/staging/archive-test.html`);
   assert.equal(prodPage.status, 404);
+  const prodAccountPage = await fetch(`http://127.0.0.1:${prodRuntime.server.address().port}/staging/account-test.html`);
+  assert.equal(prodAccountPage.status, 404);
+  const prodGrant = await fetch(`http://127.0.0.1:${prodRuntime.server.address().port}/api/v1/me/discoveries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ discoveryType: "phase4_staging", discoveryKey: "phase4.signal001.transcript" })
+  });
+  assert.equal(prodGrant.status, 401);
   prodRuntime.server.close();
 
   console.log("phase 4 archive surface tests passed");

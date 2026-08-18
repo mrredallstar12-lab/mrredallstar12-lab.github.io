@@ -16,6 +16,7 @@ Phase 4 creates the first server-filtered Archive reading surfaces. This phase d
 - Ordinary Archive responses avoid opaque internal database IDs.
 - Relationship API returns only relationships appropriate to the actor's current knowledge.
 - Staging-only Archive browser at `/staging/archive-test.html`.
+- Staging-only account tester controls for granting approved Phase 4 discovery keys one at a time.
 - Staging seed data proving public catalog, authenticated detail, discovery-gated fields, withheld content, and discovery-gated relationships.
 - Narrow Phase 4 staging discovery keys rather than arbitrary Phase 4 unlocks.
 
@@ -50,6 +51,15 @@ Read-only Archive routes:
 Existing account/discovery routes remain under `/api/v1/me/...`.
 
 Phase 4 adds a narrow staging unlock policy for `POST /api/v1/me/discoveries` when `discoveryType` is `phase4_staging`. Only authored Phase 4 staging keys are accepted.
+
+The staging-only account tester at `/staging/account-test.html` exposes one explicit button per approved Phase 4 discovery key:
+
+- `phase4.signal001.transcript`
+- `phase4.caseecho.personnel`
+- `phase4.relationship.echo`
+- `phase4.withheld.null`
+
+It does not expose a generic arbitrary Phase 4 discovery textbox.
 
 ## Visibility Model
 
@@ -88,6 +98,12 @@ Discoveries may reveal:
 - entirely new resources
 
 Discovery state remains server-authoritative.
+
+## Future Admin Control Surface
+
+Later phases need a dedicated privileged owner/admin control surface where authorized operators can deliberately grant inventory items, discoveries, fictional permissions/clearances, event/test state, and related operational state.
+
+That future surface must use real authorization checks, audit logging, clear confirmation flows, reauthentication for dangerous actions where appropriate, and strict separation from ordinary player-facing APIs. Phase 4 does not implement that surface.
 
 ## Staging Seed
 

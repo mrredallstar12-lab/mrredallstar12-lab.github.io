@@ -33,11 +33,19 @@ export function stagingAccountPage() {
   <section>
     <h2>Authenticated Checks</h2>
     <button onclick="me()">GET /me</button>
-    <button onclick="addDiscovery()">add discovery</button>
+    <button onclick="addPhase3Discovery()">add Phase 3 test discovery</button>
     <button onclick="discoveries()">list discoveries</button>
     <button onclick="grantItem()">grant staging test item</button>
     <button onclick="inventory()">inventory</button>
     <button onclick="logout()">logout</button>
+  </section>
+  <section>
+    <h2>Phase 4 Archive Discoveries</h2>
+    <p>Grant one approved Phase 4 staging discovery at a time.</p>
+    <button onclick="grantPhase4Discovery('phase4.signal001.transcript')">grant phase4.signal001.transcript</button>
+    <button onclick="grantPhase4Discovery('phase4.caseecho.personnel')">grant phase4.caseecho.personnel</button>
+    <button onclick="grantPhase4Discovery('phase4.relationship.echo')">grant phase4.relationship.echo</button>
+    <button onclick="grantPhase4Discovery('phase4.withheld.null')">grant phase4.withheld.null</button>
   </section>
   <pre id="out">Waiting.</pre>
   <script>
@@ -55,7 +63,8 @@ export function stagingAccountPage() {
     function startEmail(){api("/api/v1/auth/email/start",{method:"POST",body:{email:loginEmail.value}})}
     function completeEmail(){api("/api/v1/auth/email/complete",{method:"POST",body:{token:emailToken.value}})}
     function me(){api("/api/v1/me")}
-    function addDiscovery(){api("/api/v1/me/discoveries",{method:"POST",body:{discoveryType:"staging",discoveryKey:"phase3-account-page"}})}
+    function addPhase3Discovery(){api("/api/v1/me/discoveries",{method:"POST",body:{discoveryType:"staging",discoveryKey:"phase3-account-page"}})}
+    function grantPhase4Discovery(discoveryKey){api("/api/v1/me/discoveries",{method:"POST",body:{discoveryType:"phase4_staging",discoveryKey}})}
     function discoveries(){api("/api/v1/me/discoveries")}
     function grantItem(){api("/api/v1/staging/grant-test-item",{method:"POST",body:{}})}
     function inventory(){api("/api/v1/me/inventory")}
@@ -64,4 +73,3 @@ export function stagingAccountPage() {
 </body>
 </html>`;
 }
-

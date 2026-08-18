@@ -1,8 +1,8 @@
 # Phase 7: Player State Integration
 
-Status: approved for implementation. Phase 7 remains open until physical Windows staging validation is reviewed and accepted.
+Status: formally closed and frozen after successful physical Windows staging validation on August 18, 2026. Reopen only for an explicitly approved Phase 7 bug or security fix.
 
-Implementation status: complete in the Phase 7 development branch; automated validation passes. Physical staging migration, `RunValidation`, browser checks, backup/restore verification, and explicit acceptance remain required before closure.
+Implementation status: complete. Automated regression, migration, backup/restore, disposable fixture, physical `RunValidation`, browser integration, cleanup, and operational-mode restoration requirements have been accepted.
 
 ## Branch Record
 
@@ -260,7 +260,24 @@ Setup writes lifecycle state and a safe manifest beside the staging SQLite datab
 
 Cleanup removes the disposable account, sessions, challenges, account state, discoveries, fictional credentials, inventory and ledger state, progression events/history/evaluations, rate-limit buckets, fixture-linked audit rows, content, policies, protected fields, relationships, projection definitions, item definition, and authored progression definition. It restores the exact pre-setup operational-mode snapshot. Cleanup is idempotent and setup performs the same cleanup automatically after an injected or ordinary setup failure.
 
-Do not use `noobuus` for progression-changing checks. Phase 7 remains open until this browser lifecycle and its cleanup/mode restoration are physically exercised.
+Do not use `noobuus` for progression-changing checks.
+
+### Physical Browser Closure Checkpoint
+
+The disposable browser-validation lifecycle was exercised successfully on the actual Windows staging server:
+
+- the disposable ordinary account authenticated through the existing local staging email-link flow
+- pre-review canonical projected state contained none of the authored Phase 7 consequences
+- one authorized record review produced the expected player-safe discovery, fictional credential, single relationship, Inventory 2.0 custody entry, four safe receipts, protected-field reveal, and changed opaque revision
+- repeated review remained idempotent and did not duplicate inventory, relationships, receipts, or other consequences
+- canonical account state remained independent from legacy localStorage and local progression
+- anonymous/InPrivate home, inventory, and cases retained their existing legacy behavior without exposing authenticated canonical state
+- cleanup removed the disposable account, authentication/session state, progression state, content, definitions, relationships, inventory, audit/rate-limit state, and lifecycle files
+- cleanup restored the exact pre-setup operational-mode snapshot
+- a second cleanup invocation confirmed idempotency
+- final Control Center inspection confirmed `authored_events_disabled=true` and `player_surfaces_disabled=true`
+
+No progression-changing validation was performed on `noobuus`. The hidden OWNER role remained separate from fictional progression and ordinary player presentation. Production exposure and production-only security validation remain deferred rather than implicitly accepted from loopback staging.
 
 ## Rollback
 
@@ -286,4 +303,16 @@ Do not use `noobuus` for progression-changing checks. Phase 7 remains open until
 
 ## Acceptance Criteria
 
-Phase 7 may close only after implementation tests, full Phase 1-7 regressions, backup/restore, physical migration, expanded staging validation, browser integration checks, cleanup verification, exact mode restoration, and explicit review. It must remain open after automated implementation succeeds and must not begin Phase 8.
+Phase 7 acceptance criteria are complete:
+
+- implementation and full Phase 1-7 regression suites passed
+- migration `0006` and six-migration physical staging state were validated
+- staging backup/restore validation was accepted
+- expanded physical `RunValidation` passed, including all Phase 7 checks and fixture cleanup
+- disposable physical browser integration validated the complete record-review vertical slice
+- projection allowlisting, field reveal, revision behavior, replay idempotency, OWNER parity, legacy separation, and anonymous fallback were validated
+- browser fixture cleanup and repeated cleanup passed
+- exact operational-mode restoration was verified with both rollout switches enabled in their disabled-state posture
+- physical evidence was reviewed and explicitly accepted for closure
+
+Phase 7 is frozen at the closure checkpoint committed to `ofa-2-phase-7-player-state-integration`. Do not continue implementation on this branch and do not begin Phase 8 without separate authorization.

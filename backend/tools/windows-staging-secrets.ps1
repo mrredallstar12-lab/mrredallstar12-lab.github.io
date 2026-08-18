@@ -17,6 +17,14 @@ $RequiredSecretNames = @(
   "OFA_FIELD_ENCRYPTION_KEY_ID"
 )
 
+$StagingRuntimeEnvironment = @{
+  OFA_ENV = "staging"
+  OFA_HOST = "127.0.0.1"
+  OFA_PORT = "8787"
+  OFA_LOCAL_EMAIL_LINKS_ENABLED = "true"
+  OFA_COOKIE_SECURE = "false"
+}
+
 function Protect-SecretsDirectory {
   param([string]$DirectoryPath)
 
@@ -128,6 +136,9 @@ switch ($Action) {
     $startInfo.Arguments = "src/server/server.js"
     $startInfo.WorkingDirectory = $BackendPath
     $startInfo.UseShellExecute = $false
+    foreach ($name in $StagingRuntimeEnvironment.Keys) {
+      $startInfo.EnvironmentVariables[$name] = $StagingRuntimeEnvironment[$name]
+    }
     foreach ($name in $RequiredSecretNames) {
       $startInfo.EnvironmentVariables[$name] = $secretMap[$name]
     }

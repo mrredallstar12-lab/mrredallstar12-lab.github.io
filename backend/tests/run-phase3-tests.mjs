@@ -150,7 +150,7 @@ try {
   assert.equal(rateLimited.res.status, 429);
 
   const prodRuntime = createOFAStagingServer({
-    config: { ...config, envName: "production", port: 0, localEmailLinksEnabled: false },
+    config: { ...config, envName: "production", port: 0, localEmailLinksEnabled: true },
     logger: { ...logger, warn: (message, detail) => logs.push({ level: "prod-warn", message, detail }) }
   });
   prodRuntime.server.listen(0, "127.0.0.1");
@@ -242,6 +242,11 @@ try {
   const launcherScript = readFileSync(join(backendDir, "tools", "windows-staging-secrets.ps1"), "utf8");
   assert.match(launcherScript, /\$startInfo\.FileName = "node\.exe"/);
   assert.match(launcherScript, /\$startInfo\.Arguments = "src\/server\/server\.js"/);
+  assert.match(launcherScript, /OFA_ENV = "staging"/);
+  assert.match(launcherScript, /OFA_HOST = "127\.0\.0\.1"/);
+  assert.match(launcherScript, /OFA_PORT = "8787"/);
+  assert.match(launcherScript, /OFA_LOCAL_EMAIL_LINKS_ENABLED = "true"/);
+  assert.match(launcherScript, /OFA_COOKIE_SECURE = "false"/);
   assert.equal(launcherScript.includes("$startInfo.FileName = \"npm.cmd\""), false);
   assert.equal(launcherScript.includes("$startInfo.Arguments = \"run dev:server\""), false);
 

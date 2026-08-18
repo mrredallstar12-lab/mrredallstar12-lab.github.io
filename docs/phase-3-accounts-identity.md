@@ -220,6 +220,16 @@ cd C:\OFA\staging\repo\backend
 
 The helper decrypts values into the child process environment and starts `node.exe src/server/server.js` directly. It does not require project-local `npm`, does not print secret values, and preserves the same server entrypoint used by `npm run dev:server`.
 
+For the approved local-only staging launcher, the helper also supplies these non-secret runtime settings to the child process:
+
+- `OFA_ENV=staging`
+- `OFA_HOST=127.0.0.1`
+- `OFA_PORT=8787`
+- `OFA_LOCAL_EMAIL_LINKS_ENABLED=true`
+- `OFA_COOKIE_SECURE=false`
+
+These are not sensitive values. They may also be documented in `.env.server`, but the launcher provides them explicitly so the DPAPI launch path keeps local email-link testing and local non-secure cookies enabled. The server still refuses local email-link token logging outside `development`, `staging`, or `test`.
+
 ## Relocatable Storage
 
 Configurable roots:

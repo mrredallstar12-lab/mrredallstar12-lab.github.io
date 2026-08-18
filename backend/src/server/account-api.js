@@ -68,6 +68,13 @@ function noStore(headers = {}) {
   return { "Cache-Control": "no-store", ...headers };
 }
 
+const PHASE4_STAGING_DISCOVERY_KEYS = new Set([
+  "phase4.signal001.transcript",
+  "phase4.caseecho.personnel",
+  "phase4.relationship.echo",
+  "phase4.withheld.null"
+]);
+
 export async function handleAccountApi(request, env, config, logger) {
   if (!env.DB) return jsonResponse({ ok: false, error: { code: "db_unavailable", message: "Database unavailable." } }, 503);
   const url = new URL(request.url);
@@ -146,6 +153,9 @@ export async function handleAccountApi(request, env, config, logger) {
     if (required.response) return required.response;
     if (!(await requireCsrf(request, required.actor, env, config))) return jsonResponse({ ok: false, error: { code: "csrf_required", message: "CSRF validation failed." } }, 403);
     const body = await readJson(request);
+    if (body.discoveryType === "phase4_staging" && !PHASE4_STAGING_DISCOVERY_KEYS.has(body.discoveryKey)) {
+      return jsonResponse({ ok: false, error: { code: "unsupported_discovery", message: "Discovery is not available through this staging route." } }, 400, noStore());
+    }
     await r.player.addDiscovery({ accountId: required.actor.accountId, discoveryType: body.discoveryType || "flag", discoveryKey: body.discoveryKey || "", provenance: { source: "phase3_staging" } });
     return jsonResponse({ ok: true }, 201, noStore());
   }

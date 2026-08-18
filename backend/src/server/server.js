@@ -8,6 +8,8 @@ import { loadServerConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import { serveStatic } from "./static-files.js";
 import { handleAccountApi, isStagingEnabled } from "./account-api.js";
+import { handleArchiveApi } from "./archive-api.js";
+import { stagingArchivePage } from "./staging-archive-page.js";
 import { stagingAccountPage } from "./staging-account-page.js";
 
 function requestUrl(request, config) {
@@ -64,6 +66,14 @@ export function createOFAStagingServer(options = {}) {
         const fetchRequest = toFetchRequest(request, config);
         const fetchResponse = await router(fetchRequest, workerEnv);
         await writeFetchResponse(response, fetchResponse);
+      } else if (url.pathname.startsWith("/api/v1/archive/")) {
+        const fetchRequest = toFetchRequest(request, config);
+        const fetchResponse = await handleArchiveApi(fetchRequest, workerEnv, config, logger);
+        if (fetchResponse) await writeFetchResponse(response, fetchResponse);
+        else {
+          response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+          response.end(JSON.stringify({ ok: false, error: { code: "route_not_found", message: "Archive API route not found." } }));
+        }
       } else if (url.pathname.startsWith("/api/v1/auth/") || url.pathname.startsWith("/api/v1/me") || url.pathname.startsWith("/api/v1/staging/")) {
         const fetchRequest = toFetchRequest(request, config);
         const fetchResponse = await handleAccountApi(fetchRequest, workerEnv, config, logger);
@@ -79,6 +89,14 @@ export function createOFAStagingServer(options = {}) {
         } else {
           response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
           response.end(stagingAccountPage());
+        }
+      } else if (url.pathname === "/staging/archive-test.html") {
+        if (!isStagingEnabled(config)) {
+          response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+          response.end("Not found");
+        } else {
+          response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+          response.end(stagingArchivePage());
         }
       } else if (url.pathname.startsWith("/api/")) {
         response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });

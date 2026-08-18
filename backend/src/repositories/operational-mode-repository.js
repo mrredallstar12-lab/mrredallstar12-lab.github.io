@@ -9,7 +9,7 @@ export class OperationalModeRepository {
   }
 
   async set(modeKey, enabled, { actorId = null, reason = "" } = {}) {
-    if (!["registrations_disabled", "auth_initiation_disabled", "player_mutations_disabled", "authored_events_disabled"].includes(modeKey)) {
+    if (!["registrations_disabled", "auth_initiation_disabled", "player_mutations_disabled", "authored_events_disabled", "player_surfaces_disabled"].includes(modeKey)) {
       throw new Error("unknown_operational_mode");
     }
     await this.db.prepare(`

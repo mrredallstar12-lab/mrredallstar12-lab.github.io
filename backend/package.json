@@ -17,7 +17,7 @@
     "bootstrap:owner": "node src/admin/bootstrap-owner.js",
     "cleanup:staging-account": "node src/admin/cleanup-staging-account.js",
     "validate:staging": "node src/validation/run-staging-validation.js",
-    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-transaction-tests.mjs && node tests/run-phase2-tests.mjs && node tests/run-phase3-tests.mjs && node tests/run-phase4-tests.mjs && node tests/run-phase5-tests.mjs && node tests/run-phase6-tests.mjs && node tests/run-staging-validation-tests.mjs",
+    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-transaction-tests.mjs && node tests/run-phase2-tests.mjs && node tests/run-phase3-tests.mjs && node tests/run-phase4-tests.mjs && node tests/run-phase5-tests.mjs && node tests/run-phase6-tests.mjs && node tests/run-phase7-tests.mjs && node tests/run-staging-validation-tests.mjs",
     "test:worker": "node tests/run-tests.mjs",
     "test:server": "node tests/run-server-tests.mjs",
     "test:transactions": "node tests/run-transaction-tests.mjs",
@@ -26,6 +26,7 @@
     "test:phase4": "node tests/run-phase4-tests.mjs",
     "test:phase5": "node tests/run-phase5-tests.mjs",
     "test:phase6": "node tests/run-phase6-tests.mjs",
+    "test:phase7": "node tests/run-phase7-tests.mjs",
     "test:staging-validation": "node tests/run-staging-validation-tests.mjs"
   },
   "devDependencies": {

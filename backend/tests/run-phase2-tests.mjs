@@ -23,7 +23,7 @@ const db = new SQLiteD1Adapter(sqlitePath);
 
 try {
   const applied = await applyMigrations(db, migrationsDir);
-  assert.equal(applied.length, 5);
+  assert.equal(applied.length, 6);
   assert.equal(applied[0].name, "0001_phase2_foundation.sql");
   assert.equal(applied[1].name, "0002_phase3_accounts_identity.sql");
   assert.equal(applied[2].name, "0003_phase4_archive_surfaces.sql");

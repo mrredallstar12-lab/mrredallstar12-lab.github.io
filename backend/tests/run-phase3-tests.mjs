@@ -126,11 +126,11 @@ try {
   const recoveredCsrf = me.res.headers.get("x-ofa-csrf");
   assert.equal(!!recoveredCsrf, true);
 
-  const originalCsrfAfterRead = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf, body: { discoveryType: "flag", discoveryKey: "original-after-read" } });
+  const originalCsrfAfterRead = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   assert.equal(originalCsrfAfterRead.res.status, 201);
-  const noCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, body: { discoveryType: "flag", discoveryKey: "x" } });
+  const noCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   assert.equal(noCsrf.res.status, 403);
-  const yesCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf: recoveredCsrf, body: { discoveryType: "flag", discoveryKey: "x" } });
+  const yesCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf: recoveredCsrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   assert.equal(yesCsrf.res.status, 201);
 
   const grantOne = await api("/api/v1/staging/grant-test-item", { method: "POST", cookie, csrf: recoveredCsrf, body: {} });
@@ -223,7 +223,7 @@ try {
   const cleanupCompleted = await api("/api/v1/auth/email/complete", { method: "POST", body: { token: cleanupTokenLog.detail.token } });
   const cleanupCookie = cleanupCompleted.res.headers.get("set-cookie").split(";")[0];
   const cleanupCsrf = cleanupCompleted.res.headers.get("x-ofa-csrf");
-  await api("/api/v1/me/discoveries", { method: "POST", cookie: cleanupCookie, csrf: cleanupCsrf, body: { discoveryType: "flag", discoveryKey: "cleanup-proof" } });
+  await api("/api/v1/me/discoveries", { method: "POST", cookie: cleanupCookie, csrf: cleanupCsrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   await api("/api/v1/staging/grant-test-item", { method: "POST", cookie: cleanupCookie, csrf: cleanupCsrf, body: {} });
 
   const cleanupExit = await new Promise((resolve) => {

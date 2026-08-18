@@ -133,9 +133,9 @@ try {
   const tabBcsrf = tabBMe.res.headers.get("x-ofa-csrf");
   assert.equal(!!tabBcsrf, true);
   assert.equal(tabBcsrf, tabAcsrf);
-  const tabAStillValid = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinary.cookie, csrf: tabAcsrf, body: { discoveryType: "flag", discoveryKey: "phase5-tab-a-still-valid" } });
+  const tabAStillValid = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinary.cookie, csrf: tabAcsrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   assert.equal(tabAStillValid.res.status, 201);
-  const tabBValid = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinary.cookie, csrf: tabBcsrf, body: { discoveryType: "flag", discoveryKey: "phase5-tab-b-valid" } });
+  const tabBValid = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinary.cookie, csrf: tabBcsrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   assert.equal(tabBValid.res.status, 201);
   const ordinarySecondSession = await emailSignIn("Phase5User", "phase5-user@example.invalid");
   assert.notEqual(ordinarySecondSession.cookie, ordinary.cookie);

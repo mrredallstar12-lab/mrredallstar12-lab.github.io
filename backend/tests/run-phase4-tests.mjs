@@ -144,7 +144,7 @@ try {
   assert.equal(refreshedMe.res.status, 200);
   const recoveredCsrf = refreshedMe.res.headers.get("x-ofa-csrf");
   assert.equal(!!recoveredCsrf, true);
-  const oldCsrfAfterRefresh = await api("/api/v1/me/discoveries", { method: "POST", cookie: auth.cookie, csrf: auth.csrf, body: { discoveryType: "staging", discoveryKey: "old-csrf-after-refresh" } });
+  const oldCsrfAfterRefresh = await api("/api/v1/me/discoveries", { method: "POST", cookie: auth.cookie, csrf: auth.csrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   assert.equal(oldCsrfAfterRefresh.res.status, 201);
   auth.csrf = recoveredCsrf;
   const authedSignal = await api("/api/v1/archive/records/phase4-signal-001", { cookie: auth.cookie });
@@ -190,7 +190,7 @@ try {
   normalLimited.csrf = normalMe.res.headers.get("x-ofa-csrf");
   let normalRate;
   for (let i = 0; i < 21; i += 1) {
-    normalRate = await api("/api/v1/me/discoveries", { method: "POST", cookie: normalLimited.cookie, csrf: normalLimited.csrf, body: { discoveryType: "staging", discoveryKey: `normal-limit-${i}` } });
+    normalRate = await api("/api/v1/me/discoveries", { method: "POST", cookie: normalLimited.cookie, csrf: normalLimited.csrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
   }
   assert.equal(normalRate.res.status, 429);
 
@@ -208,7 +208,7 @@ try {
   assert.equal(JSON.stringify(ownerMe.body).includes("owner"), false);
   ownerAuth.csrf = ownerMe.res.headers.get("x-ofa-csrf");
   for (let i = 0; i < 25; i += 1) {
-    const ownerRate = await api("/api/v1/me/discoveries", { method: "POST", cookie: ownerAuth.cookie, csrf: ownerAuth.csrf, body: { discoveryType: "staging", discoveryKey: `owner-limit-${i}` } });
+    const ownerRate = await api("/api/v1/me/discoveries", { method: "POST", cookie: ownerAuth.cookie, csrf: ownerAuth.csrf, body: { discoveryType: "staging", discoveryKey: "phase3-account-page" } });
     assert.equal(ownerRate.res.status, 201);
   }
   let ownerAuthRate;
@@ -229,7 +229,7 @@ try {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ discoveryType: "phase4_staging", discoveryKey: "phase4.signal001.transcript" })
   });
-  assert.equal(prodGrant.status, 401);
+  assert.equal(prodGrant.status, 404);
   prodRuntime.server.close();
 
   console.log("phase 4 archive surface tests passed");

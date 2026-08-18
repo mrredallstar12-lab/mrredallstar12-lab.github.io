@@ -4,6 +4,14 @@ const EVENT_TYPES = new Map([
     environments: new Set(["development", "staging", "test", "production"]),
     fields: { catalogId: { type: "string", maxLength: 96 } }
   }],
+  ["archive.record.reviewed", {
+    sources: new Set(["browser_session"]),
+    environments: new Set(["development", "staging", "test", "production"]),
+    fields: {
+      catalogId: { type: "string", maxLength: 96 },
+      revision: { type: "string", maxLength: 128 }
+    }
+  }],
   ["phase6.staging.observation", stagingEvent({
     signalKey: { type: "string", maxLength: 64 },
     sequence: { type: "integer", min: 0, max: 1000000 }

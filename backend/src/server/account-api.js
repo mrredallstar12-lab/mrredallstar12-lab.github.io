@@ -6,6 +6,7 @@ import { InventoryRepository } from "../repositories/inventory-repository.js";
 import { MeInventoryRepository } from "../repositories/me-inventory-repository.js";
 import { OperationalModeRepository } from "../repositories/operational-mode-repository.js";
 import { PlayerStateRepository } from "../repositories/player-state-repository.js";
+import { PlayerStateProjectionRepository } from "../repositories/player-state-projection-repository.js";
 import { RateLimitRepository } from "../repositories/rate-limit-repository.js";
 import { digestSensitiveValue } from "../security/field-crypto.js";
 import { clearSessionCookie, jsonResponse, parseCookies, publicAccount, readJson, sessionCookie } from "../security/http.js";
@@ -30,6 +31,7 @@ function repos(env, config) {
     meInventory: new MeInventoryRepository(env.DB),
     modes: new OperationalModeRepository(env.DB),
     player: new PlayerStateRepository(env.DB),
+    projection: new PlayerStateProjectionRepository(env.DB, options),
     rateLimit: new RateLimitRepository(env.DB)
   };
 }
@@ -82,6 +84,11 @@ const PHASE4_STAGING_DISCOVERY_KEYS = new Set([
   "phase4.relationship.echo",
   "phase4.withheld.null"
 ]);
+
+function allowedStagingDiscovery(discoveryType, discoveryKey) {
+  if (discoveryType === "staging") return discoveryKey === "phase3-account-page";
+  return discoveryType === "phase4_staging" && PHASE4_STAGING_DISCOVERY_KEYS.has(discoveryKey);
+}
 
 export async function handleAccountApi(request, env, config, logger) {
   if (!env.DB) return jsonResponse({ ok: false, error: { code: "db_unavailable", message: "Database unavailable." } }, 503);
@@ -154,12 +161,14 @@ export async function handleAccountApi(request, env, config, logger) {
   }
 
   if (path === "/api/v1/me/discoveries" && request.method === "GET") {
+    if (!isStagingEnabled(config)) return jsonResponse({ ok: false, error: { code: "not_found", message: "Not found." } }, 404, noStore());
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
     return jsonResponse({ ok: true, discoveries: await r.player.discoveries(required.actor.accountId) }, 200, noStore());
   }
 
   if (path === "/api/v1/me/discoveries" && request.method === "POST") {
+    if (!isStagingEnabled(config)) return jsonResponse({ ok: false, error: { code: "not_found", message: "Not found." } }, 404, noStore());
     if (await r.modes.enabled("player_mutations_disabled")) return jsonResponse({ ok: false, error: { code: "player_mutations_disabled", message: "Player mutations are temporarily disabled." } }, 503, noStore());
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
@@ -167,11 +176,23 @@ export async function handleAccountApi(request, env, config, logger) {
     const limited = await rateLimitAuthenticatedOperation({ repos: r, actor: required.actor, operation: "me.discoveries.create", normalLimit: 20, ownerLimit: 500, windowSeconds: 3600 });
     if (!limited.ok) return jsonResponse({ ok: false, error: { code: "rate_limited", message: "Try again later." } }, 429, noStore());
     const body = await readJson(request);
-    if (body.discoveryType === "phase4_staging" && !PHASE4_STAGING_DISCOVERY_KEYS.has(body.discoveryKey)) {
+    if (!allowedStagingDiscovery(body.discoveryType, body.discoveryKey)) {
       return jsonResponse({ ok: false, error: { code: "unsupported_discovery", message: "Discovery is not available through this staging route." } }, 400, noStore());
     }
-    await r.player.addDiscovery({ accountId: required.actor.accountId, discoveryType: body.discoveryType || "flag", discoveryKey: body.discoveryKey || "", provenance: { source: "phase3_staging" } });
+    await r.player.addDiscovery({ accountId: required.actor.accountId, discoveryType: body.discoveryType, discoveryKey: body.discoveryKey, provenance: { source: "staging_validation" } });
     return jsonResponse({ ok: true }, 201, noStore());
+  }
+
+  if (path === "/api/v1/me/state" && request.method === "GET") {
+    if (await r.modes.enabled("player_surfaces_disabled")) return jsonResponse({ ok: false, error: { code: "player_surfaces_disabled", message: "Canonical player surfaces are temporarily unavailable." } }, 503, noStore());
+    const required = await requireActor(request, env, config);
+    if (required.response) return required.response;
+    const state = await r.projection.project(required.actor.accountId);
+    if (!state) return jsonResponse({ ok: false, error: { code: "account_not_found", message: "Account not found." } }, 404, noStore());
+    const headers = noStore({ ETag: state.etag });
+    if (request.headers.get("If-None-Match") === state.etag) return new Response(null, { status: 304, headers });
+    const { etag, ...safeState } = state;
+    return jsonResponse({ ok: true, state: safeState }, 200, headers);
   }
 
   if (path === "/api/v1/me/inventory" && request.method === "GET") {

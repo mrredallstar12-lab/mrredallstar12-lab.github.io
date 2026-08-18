@@ -379,7 +379,7 @@ export async function handleAdminApi(request, env, config) {
     const { actor, repos: r } = required;
     const gated = await dangerousGate({ request, actor, r, confirm: "SET_OPERATIONAL_MODE", operation: "operations.modes.set", limit: 10 });
     if (gated instanceof Response) return gated;
-    if (!["registrations_disabled", "auth_initiation_disabled", "player_mutations_disabled", "authored_events_disabled"].includes(gated.body.modeKey)) {
+    if (!["registrations_disabled", "auth_initiation_disabled", "player_mutations_disabled", "authored_events_disabled", "player_surfaces_disabled"].includes(gated.body.modeKey)) {
       return bodyError("unknown_operational_mode", "Operational mode is not supported.", 400);
     }
     await r.modes.set(gated.body.modeKey, !!gated.body.enabled, { actorId: actor.accountId, reason: gated.body.reason || "" });

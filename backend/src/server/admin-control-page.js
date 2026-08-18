@@ -68,6 +68,7 @@ export function adminControlPage(config = {}) {
         <option value="auth_initiation_disabled">auth_initiation_disabled</option>
         <option value="player_mutations_disabled">player_mutations_disabled</option>
         <option value="authored_events_disabled">authored_events_disabled</option>
+        <option value="player_surfaces_disabled">player_surfaces_disabled</option>
       </select>
       <select id="modeEnabled">
         <option value="true">enabled</option>

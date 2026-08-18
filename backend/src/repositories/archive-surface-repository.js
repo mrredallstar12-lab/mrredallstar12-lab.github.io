@@ -131,6 +131,7 @@ function hydrateRecord(row) {
     redactionState: row.redaction_state || "none",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    currentRevisionId: row.current_revision_id,
     policy: {
       existenceBehavior: row.existence_behavior || "not_found",
       catalogRule: parseJson(row.catalog_rule_json, defaultCatalogRule(row.visibility)),

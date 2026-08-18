@@ -316,3 +316,29 @@ Confirmed manually:
 - staging remained local-only
 
 Phase 3 acceptance criteria are complete as of this checkpoint.
+
+## Final Operational Checkpoint
+
+Final Phase 3 operational validation succeeded on the actual OFA physical staging server.
+
+Confirmed:
+
+- persistent DPAPI CurrentUser protected staging secrets are provisioned outside Git at `C:\OFA\staging\secrets`
+- protected-secret verification succeeds from a fresh PowerShell session
+- corrected protected-secret launcher starts the staging server with the approved local-only runtime settings
+- the real account `noobuus` was successfully created
+- `noobuus` was successfully authenticated
+- deliberate owner bootstrap succeeded for username `noobuus`
+- owner bootstrap environment flags were removed immediately after bootstrap
+- hidden real authorization role is `owner`
+- staging remains local-only
+
+Owner invisibility remains a locked product/security requirement:
+
+- normal, public, and in-universe account behavior for `noobuus` must remain indistinguishable from an ordinary user
+- ordinary `/api/v1/me` must expose only normal safe account information
+- ordinary `/api/v1/me` must never expose owner role, permissions, creator status, internal account ID, account creation order, bootstrap status, session internals, or credential data
+- owner-only tools and permissions are visible only inside explicitly privileged administration surfaces after authorization
+- real authorization remains separate from fictional Archive clearance and Archive identity
+
+This checkpoint closes Phase 3 operational validation.

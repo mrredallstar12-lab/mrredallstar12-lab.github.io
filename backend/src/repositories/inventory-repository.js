@@ -19,18 +19,18 @@ export class InventoryRepository {
     const existing = await this.db.prepare("SELECT id FROM inventory_ledger WHERE account_id = ? AND idempotency_key = ?").bind(accountId, idempotencyKey).first();
     if (existing) return { id: existing.id, idempotent: true };
     const id = newId("invled");
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         INSERT INTO inventory_ledger (id, account_id, item_definition_id, delta_quantity, operation, provenance_json, idempotency_key, fictional_custody_event_json)
         VALUES (?, ?, ?, ?, 'grant_quantity', ?, ?, ?)
-      `).run(id, accountId, itemDefinitionId, quantity, jsonString(provenance), idempotencyKey, jsonString(fictionalCustodyEvent));
-      this.db.database.prepare(`
+      `).bind(id, accountId, itemDefinitionId, quantity, jsonString(provenance), idempotencyKey, jsonString(fictionalCustodyEvent)).run();
+      await tx.prepare(`
         INSERT INTO inventory_balances (account_id, item_definition_id, quantity)
         VALUES (?, ?, ?)
         ON CONFLICT(account_id, item_definition_id) DO UPDATE SET
           quantity = quantity + excluded.quantity,
           updated_at = CURRENT_TIMESTAMP
-      `).run(accountId, itemDefinitionId, quantity);
+      `).bind(accountId, itemDefinitionId, quantity).run();
     });
     return { id, idempotent: false };
   }
@@ -41,19 +41,19 @@ export class InventoryRepository {
     if (existing) return { id: existing.item_instance_id, idempotent: true };
     const instanceId = newId("iteminst");
     const ledgerId = newId("invled");
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         INSERT INTO inventory_item_instances (id, item_definition_id, owner_account_id, backend_custody_state, fictional_custody_json, state_json)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run(instanceId, itemDefinitionId, accountId, backendCustodyState, jsonString(fictionalCustody), jsonString(state));
-      this.db.database.prepare(`
+      `).bind(instanceId, itemDefinitionId, accountId, backendCustodyState, jsonString(fictionalCustody), jsonString(state)).run();
+      await tx.prepare(`
         INSERT INTO inventory_ledger (id, account_id, item_definition_id, item_instance_id, operation, provenance_json, idempotency_key, backend_custody_change_json, fictional_custody_event_json)
         VALUES (?, ?, ?, ?, 'grant_instance', ?, ?, ?, ?)
-      `).run(ledgerId, accountId, itemDefinitionId, instanceId, jsonString(provenance), idempotencyKey, jsonString({ state: backendCustodyState }), jsonString(fictionalCustody));
-      this.db.database.prepare(`
+      `).bind(ledgerId, accountId, itemDefinitionId, instanceId, jsonString(provenance), idempotencyKey, jsonString({ state: backendCustodyState }), jsonString(fictionalCustody)).run();
+      await tx.prepare(`
         INSERT INTO inventory_item_history (id, item_instance_id, event_type, event_json)
         VALUES (?, ?, 'created', ?)
-      `).run(newId("ihist"), instanceId, jsonString({ provenance }));
+      `).bind(newId("ihist"), instanceId, jsonString({ provenance })).run();
     });
     return { id: instanceId, idempotent: false };
   }
@@ -63,4 +63,3 @@ export class InventoryRepository {
     return Number(row?.quantity || 0);
   }
 }
-

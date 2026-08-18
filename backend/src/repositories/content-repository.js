@@ -8,15 +8,15 @@ export class ContentRepository {
   async createRecord({ slug, recordType, title, summary = "", status = "draft", visibility = "public", body = "" }) {
     const recordId = newId("rec");
     const revisionId = newId("rev");
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         INSERT INTO records (id, slug, record_type, title, summary, status, visibility, current_revision_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(recordId, slug, recordType, title, summary, status, visibility, revisionId);
-      this.db.database.prepare(`
+      `).bind(recordId, slug, recordType, title, summary, status, visibility, revisionId).run();
+      await tx.prepare(`
         INSERT INTO record_revisions (id, record_id, revision_number, title, body)
         VALUES (?, ?, 1, ?, ?)
-      `).run(revisionId, recordId, title, body);
+      `).bind(revisionId, recordId, title, body).run();
     });
     return recordId;
   }
@@ -48,4 +48,3 @@ export class ContentRepository {
     return id;
   }
 }
-

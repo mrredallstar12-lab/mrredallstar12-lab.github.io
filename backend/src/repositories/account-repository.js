@@ -37,24 +37,24 @@ export class AccountRepository {
     const encryptedEmail = encryptSensitiveValue(email, this.fieldEncryptionKey, this.fieldEncryptionKeyId);
     const archiveDesignation = `VISITOR-${randomInt(100000, 1000000)}`;
 
-    await this.db.transaction(() => {
-      this.db.database.prepare("INSERT INTO accounts (id, status) VALUES (?, 'active')").run(accountId);
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare("INSERT INTO accounts (id, status) VALUES (?, 'active')").bind(accountId).run();
+      await tx.prepare(`
         INSERT INTO account_profiles (account_id, username_display, username_normalized)
         VALUES (?, ?, ?)
-      `).run(profileId, checked.display, checked.normalized);
-      this.db.database.prepare(`
+      `).bind(profileId, checked.display, checked.normalized).run();
+      await tx.prepare(`
         INSERT INTO external_identities (id, account_id, provider, provider_subject, email_digest, metadata_json)
         VALUES (?, ?, 'email', ?, ?, ?)
-      `).run(externalId, accountId, emailDigest, emailDigest, jsonString({ phase: 3 }));
-      this.db.database.prepare(`
+      `).bind(externalId, accountId, emailDigest, emailDigest, jsonString({ phase: 3 })).run();
+      await tx.prepare(`
         INSERT INTO sensitive_identity_data (id, account_id, data_type, data_digest, encrypted_value, encryption_key_id)
         VALUES (?, ?, 'email', ?, ?, ?)
-      `).run(sensitiveId, accountId, emailDigest, encryptedEmail, this.fieldEncryptionKeyId);
-      this.db.database.prepare(`
+      `).bind(sensitiveId, accountId, emailDigest, encryptedEmail, this.fieldEncryptionKeyId).run();
+      await tx.prepare(`
         INSERT INTO archive_identities (id, account_id, designation, clearance_state_json)
         VALUES (?, ?, ?, '{}')
-      `).run(archiveId, accountId, archiveDesignation);
+      `).bind(archiveId, accountId, archiveDesignation).run();
     });
     return { ok: true, accountId, username: checked.display, usernameNormalized: checked.normalized, archiveDesignation };
   }

@@ -206,16 +206,16 @@ export class AdminRepository {
     const before = Number(current?.quantity || 0);
     if (quantity <= 0 || before - quantity < 0) throw new Error("invalid_inventory_quantity");
     const ledgerId = newId("invled");
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         UPDATE inventory_balances
         SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP
         WHERE account_id = ? AND item_definition_id = ?
-      `).run(quantity, accountId, itemDefinitionId);
-      this.db.database.prepare(`
+      `).bind(quantity, accountId, itemDefinitionId).run();
+      await tx.prepare(`
         INSERT INTO inventory_ledger (id, account_id, item_definition_id, delta_quantity, operation, provenance_json, idempotency_key, backend_custody_change_json)
         VALUES (?, ?, ?, ?, 'admin_revoke_quantity', ?, ?, ?)
-      `).run(ledgerId, accountId, itemDefinitionId, -quantity, jsonString({ source: "admin", actorId, reason }), idempotencyKey, jsonString({ before, after: before - quantity }));
+      `).bind(ledgerId, accountId, itemDefinitionId, -quantity, jsonString({ source: "admin", actorId, reason }), idempotencyKey, jsonString({ before, after: before - quantity })).run();
     });
     return { id: ledgerId, before, after: before - quantity };
   }
@@ -229,20 +229,20 @@ export class AdminRepository {
     `).bind(itemInstanceId, accountId).first();
     if (!instance) throw new Error("item_instance_not_found");
     const ledgerId = newId("invled");
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         UPDATE inventory_item_instances
         SET backend_custody_state = 'revoked', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(itemInstanceId);
-      this.db.database.prepare(`
+      `).bind(itemInstanceId).run();
+      await tx.prepare(`
         INSERT INTO inventory_ledger (id, account_id, item_definition_id, item_instance_id, operation, provenance_json, idempotency_key, backend_custody_change_json)
         VALUES (?, ?, ?, ?, 'admin_revoke_instance', ?, ?, ?)
-      `).run(ledgerId, accountId, instance.item_definition_id, itemInstanceId, jsonString({ source: "admin", actorId, reason }), idempotencyKey, jsonString({ before: instance.backend_custody_state, after: "revoked" }));
-      this.db.database.prepare(`
+      `).bind(ledgerId, accountId, instance.item_definition_id, itemInstanceId, jsonString({ source: "admin", actorId, reason }), idempotencyKey, jsonString({ before: instance.backend_custody_state, after: "revoked" })).run();
+      await tx.prepare(`
         INSERT INTO inventory_item_history (id, item_instance_id, event_type, event_json)
         VALUES (?, ?, 'admin_custody_revoked', ?)
-      `).run(newId("ihist"), itemInstanceId, jsonString({ actorId, reason }));
+      `).bind(newId("ihist"), itemInstanceId, jsonString({ actorId, reason })).run();
     });
     return { id: ledgerId, itemInstanceId, before: instance.backend_custody_state, after: "revoked" };
   }

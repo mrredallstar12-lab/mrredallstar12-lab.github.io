@@ -20,14 +20,14 @@ export class ArchiveStateRepository {
     const scope = await this.getOrCreateScope(scopeType, scopeKey);
     const historyId = newId("statehist");
     const previousState = parseJson(scope.current_state_json, {});
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         INSERT INTO archive_state_history (id, scope_id, transition_type, previous_state_json, next_state_json, cause_type, cause_id, actor_type, actor_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(historyId, scope.id, transitionType, jsonString(previousState), jsonString(nextState), causeType, causeId, actorType, actorId);
-      this.db.database.prepare(`
+      `).bind(historyId, scope.id, transitionType, jsonString(previousState), jsonString(nextState), causeType, causeId, actorType, actorId).run();
+      await tx.prepare(`
         UPDATE archive_state_scopes SET current_state_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-      `).run(jsonString(nextState), scope.id);
+      `).bind(jsonString(nextState), scope.id).run();
     });
     return historyId;
   }
@@ -39,4 +39,3 @@ export class ArchiveStateRepository {
     return rows.results || [];
   }
 }
-

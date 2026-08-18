@@ -37,11 +37,11 @@ export class AuthRepository {
     const digest = digestSessionToken(token, this.sessionPepper);
     const csrfToken = csrfTokenForSession(id, this.sessionPepper);
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
-    await this.db.transaction(() => {
-      this.db.database.prepare(`
+    await this.db.withTransaction(async (tx) => {
+      await tx.prepare(`
         INSERT INTO sessions (id, account_id, token_digest, expires_at, metadata_json)
         VALUES (?, ?, ?, ?, ?)
-      `).run(id, accountId, digest, expiresAt, jsonString(metadata));
+      `).bind(id, accountId, digest, expiresAt, jsonString(metadata)).run();
     });
     return { id, token, csrfToken, expiresAt };
   }

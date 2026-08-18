@@ -1,4 +1,7 @@
-export function adminControlPage() {
+export function adminControlPage(config = {}) {
+  const stagingHelper = ["development", "staging", "test"].includes(config.envName)
+    ? '<button onclick="stagingFreshAuth()">staging fresh-auth helper</button>'
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -24,6 +27,7 @@ export function adminControlPage() {
     <div class="row">
       <button onclick="adminMe()">admin status</button>
       <button onclick="startElevation()">start elevation</button>
+      ${stagingHelper}
       <button onclick="confirmElevation()">confirm fresh elevation</button>
     </div>
   </section>
@@ -96,6 +100,7 @@ async function api(path, options={}){
 }
 function adminMe(){api("/api/v1/admin/me")}
 function startElevation(){api("/api/v1/admin/elevation/start",{method:"POST",body:{}})}
+function stagingFreshAuth(){api("/api/v1/admin/staging/fresh-auth-session",{method:"POST",body:{}})}
 function confirmElevation(){api("/api/v1/admin/elevation/confirm",{method:"POST",body:{confirm:"ELEVATE"}})}
 function inspectPlayer(){api("/api/v1/admin/players/by-username/"+encodeURIComponent(username.value))}
 function target(){return accountId.value || inspectedAccountId}

@@ -7,13 +7,17 @@ import { InventoryRepository } from "../repositories/inventory-repository.js";
 import { MeInventoryRepository } from "../repositories/me-inventory-repository.js";
 import { OperationalModeRepository } from "../repositories/operational-mode-repository.js";
 import { buildActorContext, filterRecord } from "../archive/visibility-service.js";
-import { jsonResponse, parseCookies, readJson } from "../security/http.js";
+import { jsonResponse, parseCookies, readJson, sessionCookie } from "../security/http.js";
 
 const ELEVATION_TTL_SECONDS = 600;
 const FRESH_AUTH_WINDOW_SECONDS = 300;
 
 function noStore(headers = {}) {
   return { "Cache-Control": "no-store", ...headers };
+}
+
+function isStagingAdminHelperEnabled(config) {
+  return ["development", "staging", "test"].includes(config.envName);
 }
 
 function repos(env, config) {
@@ -127,6 +131,23 @@ export async function handleAdminApi(request, env, config) {
     const elevation = await r.admin.createElevation({ sessionId: actor.session.id, accountId: actor.accountId, ttlSeconds: ELEVATION_TTL_SECONDS, requestId });
     await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.elevation.confirm", result: "allowed", requestId, context: { expiresAt: elevation.expiresAt } });
     return jsonResponse({ ok: true, elevation: { expiresAt: elevation.expiresAt } }, 200, noStore());
+  }
+
+  if (path === "/api/v1/admin/staging/fresh-auth-session" && request.method === "POST") {
+    if (!isStagingAdminHelperEnabled(config)) return bodyError("not_found", "Not found.", 404);
+    const required = await adminActor(request, env, config, "admin.access");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    if (!(await requireCsrf(request, actor, r))) return bodyError("csrf_required", "CSRF validation failed.", 403);
+    const limited = await checkAdminRate(r, actor, "staging.fresh_auth_session", 20, 3600);
+    if (!limited.ok) return bodyError("rate_limited", "Try again later.", 429);
+    const session = await r.auth.createSession({
+      accountId: actor.accountId,
+      ttlSeconds: config.sessionTtlSeconds,
+      metadata: { source: "admin_staging_fresh_auth_helper", previousSessionId: actor.session.id }
+    });
+    await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.staging.fresh_auth_session", result: "allowed", requestId, context: { previousSessionId: actor.session.id, newSessionId: session.id } });
+    return jsonResponse({ ok: true, message: "Staging fresh-auth session created. Confirm elevation from this session." }, 201, noStore({ "Set-Cookie": sessionCookie(session.token, config, config.sessionTtlSeconds), "X-OFA-CSRF": session.csrfToken }));
   }
 
   if (path.startsWith("/api/v1/admin/players/by-username/") && request.method === "GET") {

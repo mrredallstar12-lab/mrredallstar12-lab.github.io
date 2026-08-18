@@ -49,6 +49,7 @@ Implemented admin routes:
 - `GET /api/v1/admin/me`
 - `POST /api/v1/admin/elevation/start`
 - `POST /api/v1/admin/elevation/confirm`
+- `POST /api/v1/admin/staging/fresh-auth-session`
 - `GET /api/v1/admin/players/by-username/:username`
 - `GET /api/v1/admin/players/:accountId/inventory-ledger`
 - `POST /api/v1/admin/players/:accountId/discoveries/grant`
@@ -100,6 +101,25 @@ Privileged mutations require:
 Elevation lasts 10 minutes. Confirmation requires a fresh authentication ceremony. In current staging, that means completing a new local email-link sign-in for the same privileged account, then calling `POST /api/v1/admin/elevation/confirm` with `confirm: "ELEVATE"`.
 
 No permanent privileged cookie is issued. Elevation is stored server-side and tied to the current session.
+
+### Staging Fresh-Auth Helper
+
+`POST /api/v1/admin/staging/fresh-auth-session` exists only in development, staging, and test. It is a narrow validation helper for local Phase 5 testing when the staging operator has already exhausted normal email-link start limits.
+
+The helper:
+
+- requires an already-authenticated real admin role through the current `ofa_session`
+- requires `admin.access`
+- requires CSRF
+- accepts no account ID or username
+- creates a fresh server-side session for the same authenticated account only
+- returns the new session only through `Set-Cookie`
+- returns the new CSRF token only through `X-OFA-CSRF`
+- writes a real audit record
+- is rate-limited independently as `admin-op:staging.fresh_auth_session`
+- is unavailable in production
+
+This helper does not change or relax normal authentication limits. Production elevation still requires a real fresh authentication ceremony.
 
 ## Player Inspector
 
@@ -199,6 +219,7 @@ It supports:
 
 - admin status and CSRF recovery
 - elevation start/confirm
+- staging-only fresh-auth helper for local validation
 - player lookup
 - inventory ledger inspection
 - typed discovery grant/revoke
@@ -248,15 +269,16 @@ Manual validation:
 4. Confirm `/admin/control-center.html` returns 404 for ordinary accounts.
 5. Confirm `/admin/control-center.html` loads for `noobuus` only because of hidden real owner authorization.
 6. Start a fresh email-link authentication ceremony for `noobuus`.
-7. Confirm elevation from the fresh session and verify the 10-minute elevation state only inside `/api/v1/admin/me`.
-8. Inspect a test player by username.
-9. Grant and revoke a test discovery.
-10. Grant and revoke stackable test inventory without allowing negative quantity.
-11. Grant and revoke an individual instance item without deleting item identity/history.
-12. Toggle registration/auth/player-mutation operational modes and confirm they affect only the intended flows.
-13. Revoke one test account's sessions and confirm that account receives 401 afterward.
-14. Run emergency global session revocation and confirm the initiating admin session is preserved.
-15. Confirm staging remains bound to `127.0.0.1`.
+7. If the staging email-link start limit has already been reached during validation, use the Control Center's staging fresh-auth helper instead.
+8. Confirm elevation from the fresh session and verify the 10-minute elevation state only inside `/api/v1/admin/me`.
+9. Inspect a test player by username.
+10. Grant and revoke a test discovery.
+11. Grant and revoke stackable test inventory without allowing negative quantity.
+12. Grant and revoke an individual instance item without deleting item identity/history.
+13. Toggle registration/auth/player-mutation operational modes and confirm they affect only the intended flows.
+14. Revoke one test account's sessions and confirm that account receives 401 afterward.
+15. Run emergency global session revocation and confirm the initiating admin session is preserved.
+16. Confirm staging remains bound to `127.0.0.1`.
 
 ## Acceptance Criteria
 
@@ -272,6 +294,7 @@ Manual validation:
 - Developer/content/moderator roles cannot use full Player Inspector.
 - Username, fictional clearance, and client-supplied headers cannot escalate privileges.
 - Elevation requires fresh auth, CSRF, exact confirmation, server-side hidden permission, and expires after 10 minutes.
+- Staging fresh-auth helper is unavailable in production and cannot be used by ordinary users or fictional-clearance-only accounts.
 - Typed discovery/inventory/session/operational-mode mutations are audited.
 - Stack inventory revoke cannot go negative.
 - Instance revoke preserves item identity/history.

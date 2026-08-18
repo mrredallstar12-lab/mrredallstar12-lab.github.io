@@ -111,10 +111,13 @@ async function grantRole(accountIdValue, roleKey) {
 }
 
 async function elevate(actor) {
-  const fresh = await emailSignIn(actor.username, actor.email);
-  assert.equal(fresh.accountId, actor.accountId);
-  const adminMe = await api("/api/v1/admin/me", { cookie: fresh.cookie });
-  fresh.csrf = adminMe.res.headers.get("x-ofa-csrf");
+  const freshSession = await api("/api/v1/admin/staging/fresh-auth-session", { method: "POST", cookie: actor.cookie, csrf: actor.csrf, body: {} });
+  assert.equal(freshSession.res.status, 201);
+  const fresh = {
+    ...actor,
+    cookie: freshSession.res.headers.get("set-cookie").split(";")[0],
+    csrf: freshSession.res.headers.get("x-ofa-csrf")
+  };
   const confirmed = await api("/api/v1/admin/elevation/confirm", { method: "POST", cookie: fresh.cookie, csrf: fresh.csrf, body: { confirm: "ELEVATE" } });
   assert.equal(confirmed.res.status, 200);
   return fresh;
@@ -142,6 +145,12 @@ try {
   assert.equal((await api("/api/v1/admin/players/by-username/Phase5User", { cookie: contentAdmin.cookie })).res.status, 403);
   assert.equal((await api("/api/v1/admin/players/by-username/Phase5User", { cookie: developerReadonly.cookie })).res.status, 403);
   assert.equal((await api("/api/v1/admin/players/by-username/Phase5User", { cookie: systemAdmin.cookie })).res.status, 200);
+  const systemAdminMe = await api("/api/v1/admin/me", { cookie: systemAdmin.cookie });
+  systemAdmin.csrf = systemAdminMe.res.headers.get("x-ofa-csrf");
+  assert.equal((await api("/api/v1/admin/staging/fresh-auth-session", { method: "POST", body: {} })).res.status, 401);
+  assert.equal((await api("/api/v1/admin/staging/fresh-auth-session", { method: "POST", cookie: ordinary.cookie, csrf: ordinary.csrf, body: {} })).res.status, 403);
+  const systemAdminFresh = await api("/api/v1/admin/staging/fresh-auth-session", { method: "POST", cookie: systemAdmin.cookie, csrf: systemAdmin.csrf, body: {} });
+  assert.equal(systemAdminFresh.res.status, 201);
 
   const clearDb = new SQLiteD1Adapter(sqlitePath);
   try {
@@ -150,11 +159,31 @@ try {
     clearDb.close();
   }
   assert.equal((await api("/api/v1/admin/me", { cookie: ordinary.cookie })).res.status, 403);
+  assert.equal((await api("/api/v1/admin/staging/fresh-auth-session", { method: "POST", cookie: ordinary.cookie, csrf: ordinary.csrf, body: {} })).res.status, 403);
 
   const ownerAdmin = await api("/api/v1/admin/me", { cookie: owner.cookie });
   assert.equal(ownerAdmin.res.status, 200);
   assert.equal(ownerAdmin.body.admin.roles.includes("owner"), true);
   owner.csrf = ownerAdmin.res.headers.get("x-ofa-csrf");
+
+  const productionConfig = { ...config, envName: "production", localEmailLinksEnabled: false };
+  const productionRuntime = createOFAStagingServer({ config: productionConfig, logger });
+  productionRuntime.server.listen(0, "127.0.0.1");
+  await once(productionRuntime.server, "listening");
+  try {
+    const prodBase = `http://127.0.0.1:${productionRuntime.server.address().port}`;
+    const prodHelper = await fetch(`${prodBase}/api/v1/admin/staging/fresh-auth-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: owner.cookie, "X-OFA-CSRF": owner.csrf },
+      body: JSON.stringify({})
+    });
+    assert.equal(prodHelper.status, 404);
+    const prodControlCenter = await fetch(`${prodBase}/admin/control-center.html`, { headers: { Cookie: owner.cookie } });
+    assert.equal(prodControlCenter.status, 200);
+    assert.equal((await prodControlCenter.text()).includes("staging fresh-auth helper"), false);
+  } finally {
+    productionRuntime.server.close();
+  }
 
   const player = await api("/api/v1/admin/players/by-username/Phase5User", { cookie: owner.cookie });
   assert.equal(player.res.status, 200);
@@ -166,6 +195,21 @@ try {
     await staleDb.prepare("UPDATE sessions SET issued_at = '2000-01-01T00:00:00.000Z' WHERE account_id = ?").bind(owner.accountId).run();
   } finally {
     staleDb.close();
+  }
+  const productionConfirmConfig = { ...config, envName: "production", localEmailLinksEnabled: false };
+  const productionConfirmRuntime = createOFAStagingServer({ config: productionConfirmConfig, logger });
+  productionConfirmRuntime.server.listen(0, "127.0.0.1");
+  await once(productionConfirmRuntime.server, "listening");
+  try {
+    const prodBase = `http://127.0.0.1:${productionConfirmRuntime.server.address().port}`;
+    const prodStaleConfirm = await fetch(`${prodBase}/api/v1/admin/elevation/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: owner.cookie, "X-OFA-CSRF": owner.csrf },
+      body: JSON.stringify({ confirm: "ELEVATE" })
+    });
+    assert.equal(prodStaleConfirm.status, 403);
+  } finally {
+    productionConfirmRuntime.server.close();
   }
   const staleElevation = await api("/api/v1/admin/elevation/confirm", { method: "POST", cookie: owner.cookie, csrf: owner.csrf, body: { confirm: "ELEVATE" } });
   assert.equal(staleElevation.res.status, 403);
@@ -253,7 +297,7 @@ try {
   assert.equal((await api("/api/v1/admin/me", { cookie: elevatedOwner.cookie })).res.status, 200);
 
   let strictAuthRate;
-  for (let i = 0; i < 7; i += 1) strictAuthRate = await api("/api/v1/auth/email/start", { method: "POST", body: { email: elevatedOwner.email } });
+  for (let i = 0; i < 8; i += 1) strictAuthRate = await api("/api/v1/auth/email/start", { method: "POST", body: { email: elevatedOwner.email } });
   assert.equal(strictAuthRate.res.status, 429);
 
   const auditDb = new SQLiteD1Adapter(sqlitePath);
@@ -262,6 +306,7 @@ try {
     const auditText = JSON.stringify(audits.results);
     assert.equal(auditText.includes("admin.discovery.grant"), true);
     assert.equal(auditText.includes("admin.inventory.revoke"), true);
+    assert.equal(auditText.includes("admin.staging.fresh_auth_session"), true);
     assert.equal(auditText.includes("admin.sessions.revoke_global"), true);
     assert.equal(auditText.includes("local_staging_email_link"), false);
   } finally {

@@ -207,3 +207,97 @@ Manual validation:
 - Staging remains local-only.
 - Backup/restore validation succeeds with all migrations present.
 - Physical-server validation is recorded before Phase 4 closes.
+
+## Final Physical Validation Checkpoint
+
+Phase 4 physical-server validation is complete on branch `ofa-2-phase-4-archive-surfaces` at validated implementation SHA `4f998661c69938b8773b207b6cec353dbfa17c23`.
+
+Confirmed on the actual OFA Windows staging server:
+
+- staging server starts successfully through the DPAPI-protected launcher
+- `/api/v1/health` remains healthy
+- existing static OFA remains functional
+- Phase 1-4 automated regression tests pass
+- `/staging/archive-test.html` operates correctly
+- `/staging/account-test.html` operates correctly
+- anonymous catalog-safe content is available where intended
+- authenticated content becomes available where intended
+- protected fields are filtered server-side rather than merely hidden client-side
+- unauthorized resources can intentionally appear nonexistent
+- protected canonical relationships are not dumped to unauthorized clients
+
+Signal 001 validation:
+
+- before `phase4.signal001.transcript`, Signal 001 is visible, safe body is available, transcript is withheld, and operator note is redacted
+- after granting `phase4.signal001.transcript`, transcript becomes `WE WERE NEVER ONLY RECEIVING.`
+- after transcript discovery, operator note remains `[REDACTED]`
+- unrelated relationship visibility remains unchanged
+- this validates independent field-level disclosure
+
+Relationship discovery validation:
+
+- before `phase4.relationship.echo`, relationships return an empty list
+- after granting `phase4.relationship.echo`, exactly the intended relationship becomes visible: `Signal 001 / Catalog Envelope` `recurs_with` `Case Echo / Recurrence Test`
+- no canonical relationship graph dump occurred
+
+Case Echo personnel validation:
+
+- before `phase4.caseecho.personnel`, `personnelLinkage` is empty
+- after granting `phase4.caseecho.personnel`, `personnelLinkage` becomes `subject-withheld` and `witness-withheld`
+- this validates discovery-specific field disclosure independently from authenticated case-body access
+
+Fully withheld resource validation:
+
+- before `phase4.withheld.null`, requesting `phase4-withheld-null` returns ordinary `404 not_found` with no indication that a protected record exists
+- after granting `phase4.withheld.null`, the same identifier returns `200` and the intended record/body becomes available
+- this validates intentional existence withholding and discovery-triggered resource visibility
+
+OWNER isolation validation:
+
+- the hidden real `owner` role on `noobuus` does not grant fictional Archive knowledge
+- the hidden real `owner` role does not bypass ordinary Archive discovery requirements
+- real authorization and fictional Archive clearance/progression remain separate
+- OWNER status remains absent from ordinary `/api/v1/me`, Archive responses, usernames, designations, badges, and player-facing metadata
+- `noobuus` behaves like an ordinary player during normal OFA gameplay unless an explicitly privileged administration surface is being used
+
+CSRF recovery validation:
+
+- authenticated `/api/v1/me` rotates CSRF
+- plaintext CSRF is returned only through `X-OFA-CSRF`
+- only the CSRF digest is persisted
+- the old token becomes invalid after rotation
+- staging account tester automatically obtains a usable CSRF token from an existing authenticated session after refresh/navigation
+- another email-link authentication ceremony is not required merely because the staging tester was refreshed
+- production does not expose staging tester mechanisms
+
+Role-aware rate-limit validation:
+
+- normal account approved staging operations remain `20/hour` per account/operation
+- hidden OWNER receives `500/hour` for approved non-sensitive operations
+- current elevated operations remain `POST /api/v1/me/discoveries` and `POST /api/v1/staging/grant-test-item`
+- elevation comes only from server-authoritative hidden role lookup
+- username `noobuus` is not itself privileged
+- fictional clearance/designation cannot obtain elevated limits
+- client headers/parameters cannot request OWNER treatment
+- security-sensitive authentication limits remain unchanged even for OWNER:
+  - registration: `5/hour` per email digest
+  - email-link start: `8/hour` per email digest
+  - email-link complete: `30/15 minutes` per host
+
+Deferred intentionally from Phase 4:
+
+- production email provider
+- passwords
+- full WebAuthn/passkey implementation
+- Steam linking
+- game synchronization
+- public profiles/social systems
+- unrestricted discovery/item/permission grants
+- full owner/admin control center
+- production deployment
+- full public Archive redesign
+- hard ARG puzzle chains
+
+The future owner/admin control surface remains an explicit requirement. It should eventually allow appropriately authorized management/grant/revoke operations for discoveries, items, permissions, content, and related administrative state, with strong authorization, auditing, CSRF protection, rate-limit policy, and no leakage of OWNER status into ordinary gameplay.
+
+All Phase 4 acceptance criteria are complete as of this checkpoint. After this checkpoint, treat Phase 4 as frozen unless a later explicitly approved bug or security fix requires reopening it.

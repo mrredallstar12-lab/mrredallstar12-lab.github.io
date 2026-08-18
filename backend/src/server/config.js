@@ -33,6 +33,19 @@ export function loadServerConfig(options = {}) {
     staticRoot,
     logLevel: env.OFA_LOG_LEVEL || "info",
     sqlitePath: env.OFA_SQLITE_PATH ? resolve(env.OFA_SQLITE_PATH) : "",
+    storageRoot: env.OFA_STORAGE_ROOT ? resolve(env.OFA_STORAGE_ROOT) : "",
+    mediaRoot: env.OFA_MEDIA_ROOT ? resolve(env.OFA_MEDIA_ROOT) : "",
+    uploadRoot: env.OFA_UPLOAD_ROOT ? resolve(env.OFA_UPLOAD_ROOT) : "",
+    runtimeRoot: env.OFA_RUNTIME_ROOT ? resolve(env.OFA_RUNTIME_ROOT) : "",
+    logRoot: env.OFA_LOG_ROOT ? resolve(env.OFA_LOG_ROOT) : "",
+    backupRoot: env.OFA_BACKUP_ROOT ? resolve(env.OFA_BACKUP_ROOT) : "",
+    sessionPepper: env.OFA_SESSION_PEPPER || "",
+    identityPepper: env.OFA_IDENTITY_PEPPER || "",
+    fieldEncryptionKey: env.OFA_FIELD_ENCRYPTION_KEY_B64 || "",
+    fieldEncryptionKeyId: env.OFA_FIELD_ENCRYPTION_KEY_ID || "env:v1",
+    sessionTtlSeconds: Number(env.OFA_SESSION_TTL_SECONDS || 60 * 60 * 24 * 14),
+    cookieSecure: String(env.OFA_COOKIE_SECURE || "false").toLowerCase() === "true",
+    localEmailLinksEnabled: String(env.OFA_LOCAL_EMAIL_LINKS_ENABLED || "false").toLowerCase() === "true",
     workerEnv: {
       OFA_API_VERSION: env.OFA_API_VERSION || "v1",
       OFA_PUBLIC_BASE_URL: env.OFA_PUBLIC_BASE_URL || `http://${env.OFA_HOST || "127.0.0.1"}:${Number(env.OFA_PORT || 8080)}`,
@@ -43,4 +56,3 @@ export function loadServerConfig(options = {}) {
     }
   };
 }
-

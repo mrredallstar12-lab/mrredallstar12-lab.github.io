@@ -96,9 +96,30 @@ OFA_ALLOWED_ORIGINS=http://127.0.0.1:8787,http://localhost:8787
 OFA_STATIC_ROOT=..
 OFA_SQLITE_PATH=C:\OFA\staging\data\ofa-staging.sqlite
 OFA_LOG_LEVEL=info
+OFA_STORAGE_ROOT=C:\OFA\staging\data
+OFA_MEDIA_ROOT=C:\OFA\staging\data\media
+OFA_UPLOAD_ROOT=C:\OFA\staging\data\uploads
+OFA_RUNTIME_ROOT=C:\OFA\staging\runtime
+OFA_LOG_ROOT=E:\OFA\logs\staging
+OFA_BACKUP_ROOT=E:\OFA\backups\staging
+OFA_SESSION_PEPPER=replace-with-random-staging-secret
+OFA_IDENTITY_PEPPER=replace-with-random-staging-secret
+OFA_FIELD_ENCRYPTION_KEY_B64=replace-with-32-byte-base64-key
+OFA_FIELD_ENCRYPTION_KEY_ID=staging:v1
+OFA_SESSION_TTL_SECONDS=1209600
+OFA_COOKIE_SECURE=false
+OFA_LOCAL_EMAIL_LINKS_ENABLED=true
 ```
 
 Do not put production secrets in this file for the first staging validation.
+
+For local staging account testing, replace the placeholder secret values. Generate a field-encryption key with:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Use separate random values for `OFA_SESSION_PEPPER` and `OFA_IDENTITY_PEPPER`. Do not commit `backend\.env.server`.
 
 ### 5. Run Tests
 
@@ -108,6 +129,7 @@ From `C:\OFA\staging\repo\backend`:
 node tests/run-tests.mjs
 node tests/run-server-tests.mjs
 node tests/run-phase2-tests.mjs
+node tests/run-phase3-tests.mjs
 ```
 
 Expected:
@@ -116,6 +138,7 @@ Expected:
 5 backend validation tests passed
 server staging skeleton tests passed
 phase 2 foundation tests passed
+phase 3 accounts and identity tests passed
 ```
 
 ### 6. Start Local Staging

@@ -7,6 +7,8 @@ import { SQLiteD1Adapter } from "../db/sqlite-adapter.js";
 import { loadServerConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import { serveStatic } from "./static-files.js";
+import { handleAccountApi, isStagingEnabled } from "./account-api.js";
+import { stagingAccountPage } from "./staging-account-page.js";
 
 function requestUrl(request, config) {
   const proto = request.headers["x-forwarded-proto"] || "http";
@@ -62,6 +64,22 @@ export function createOFAStagingServer(options = {}) {
         const fetchRequest = toFetchRequest(request, config);
         const fetchResponse = await router(fetchRequest, workerEnv);
         await writeFetchResponse(response, fetchResponse);
+      } else if (url.pathname.startsWith("/api/v1/auth/") || url.pathname.startsWith("/api/v1/me") || url.pathname.startsWith("/api/v1/staging/")) {
+        const fetchRequest = toFetchRequest(request, config);
+        const fetchResponse = await handleAccountApi(fetchRequest, workerEnv, config, logger);
+        if (fetchResponse) await writeFetchResponse(response, fetchResponse);
+        else {
+          response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+          response.end(JSON.stringify({ ok: false, error: { code: "route_not_found", message: "Archive API route not found." } }));
+        }
+      } else if (url.pathname === "/staging/account-test.html") {
+        if (!isStagingEnabled(config)) {
+          response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+          response.end("Not found");
+        } else {
+          response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+          response.end(stagingAccountPage());
+        }
       } else if (url.pathname.startsWith("/api/")) {
         response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
         response.end(JSON.stringify({ ok: false, error: { code: "api_route_not_enabled", message: "Only staging health is enabled in this server skeleton." } }));

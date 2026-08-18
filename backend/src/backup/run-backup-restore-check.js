@@ -10,11 +10,10 @@ if (!config.sqlitePath) {
   process.exit(1);
 }
 
-const backupDir = process.env.OFA_BACKUP_DIR || join(tmpdir(), "ofa-backups");
+const backupDir = process.env.OFA_BACKUP_DIR || config.backupRoot || join(tmpdir(), "ofa-backups");
 const restoreDir = mkdtempSync(join(tmpdir(), "ofa-restore-"));
 const backupPath = backupSQLiteDatabase(config.sqlitePath, backupDir);
 const restorePath = restoreSQLiteBackup(backupPath, join(restoreDir, "restored.sqlite"));
 const verified = await verifySQLiteRestore(restorePath);
 console.log(JSON.stringify({ ok: verified.ok, backupPath, restorePath, verified }, null, 2));
 process.exit(verified.ok ? 0 : 1);
-

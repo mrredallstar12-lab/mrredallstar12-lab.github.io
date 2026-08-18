@@ -23,8 +23,9 @@ const db = new SQLiteD1Adapter(sqlitePath);
 
 try {
   const applied = await applyMigrations(db, migrationsDir);
-  assert.equal(applied.length, 1);
+  assert.equal(applied.length, 2);
   assert.equal(applied[0].name, "0001_phase2_foundation.sql");
+  assert.equal(applied[1].name, "0002_phase3_accounts_identity.sql");
 
   const auth = new AuthRepository(db, { sessionPepper: "test-pepper" });
   const account = await auth.createAccount();

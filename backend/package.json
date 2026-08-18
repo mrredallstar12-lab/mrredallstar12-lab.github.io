@@ -12,10 +12,13 @@
     "seed:local": "wrangler d1 execute odd-frequency-archive --local --file seed.sql --config wrangler.toml",
     "migrate:server": "node src/db/run-migrations.js",
     "backup:server:check": "node src/backup/run-backup-restore-check.js",
-    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-phase2-tests.mjs",
+    "storage:copy-check": "node src/storage/run-storage-copy-check.js",
+    "bootstrap:owner": "node src/admin/bootstrap-owner.js",
+    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-phase2-tests.mjs && node tests/run-phase3-tests.mjs",
     "test:worker": "node tests/run-tests.mjs",
     "test:server": "node tests/run-server-tests.mjs",
-    "test:phase2": "node tests/run-phase2-tests.mjs"
+    "test:phase2": "node tests/run-phase2-tests.mjs",
+    "test:phase3": "node tests/run-phase3-tests.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

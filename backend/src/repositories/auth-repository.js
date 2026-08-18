@@ -86,6 +86,17 @@ export class AuthRepository {
     return row.token_digest === digestCsrfToken(csrfToken, this.sessionPepper);
   }
 
+  async rotateCsrf(sessionId) {
+    const csrfToken = createCsrfToken();
+    const csrfDigest = digestCsrfToken(csrfToken, this.sessionPepper);
+    await this.db.prepare(`
+      INSERT INTO session_csrf_tokens (session_id, token_digest)
+      VALUES (?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET token_digest = excluded.token_digest, created_at = CURRENT_TIMESTAMP
+    `).bind(sessionId, csrfDigest).run();
+    return csrfToken;
+  }
+
   async createEmailChallenge({ purpose, emailDigest, accountId = null, ttlSeconds = 900, requestId = null }) {
     const id = newId("emailtok");
     const token = createOpaqueSessionToken();
@@ -164,6 +175,20 @@ export class AuthRepository {
         AND p.permission_key = ?
       LIMIT 1
     `).bind(accountId, scope, permissionKey).first();
+    return !!row;
+  }
+
+  async hasRole(accountId, roleKey, scope = "global") {
+    const row = await this.db.prepare(`
+      SELECT 1 AS allowed
+      FROM account_roles ar
+      JOIN roles r ON r.id = ar.role_id
+      WHERE ar.account_id = ?
+        AND ar.revoked_at IS NULL
+        AND (ar.scope = ? OR ar.scope = 'global')
+        AND r.role_key = ?
+      LIMIT 1
+    `).bind(accountId, scope, roleKey).first();
     return !!row;
   }
 }

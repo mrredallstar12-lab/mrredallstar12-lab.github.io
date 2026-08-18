@@ -55,6 +55,12 @@ async function requireCsrf(request, actor, env, config) {
   return await auth.verifyCsrf(actor.session.id, got);
 }
 
+async function rateLimitAuthenticatedOperation({ repos, actor, operation, normalLimit, ownerLimit, windowSeconds }) {
+  const isOwner = await repos.auth.hasRole(actor.accountId, "owner");
+  const limit = isOwner ? ownerLimit : normalLimit;
+  return await repos.rateLimit.check(`account-op:${operation}:${actor.accountId}`, limit, windowSeconds);
+}
+
 function genericAuthStarted() {
   return jsonResponse({ ok: true, message: "If the account can receive a sign-in link, one has been prepared." }, 202);
 }
@@ -139,7 +145,8 @@ export async function handleAccountApi(request, env, config, logger) {
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
     const account = await r.account.publicAccountById(required.actor.accountId);
-    return jsonResponse({ ok: true, account: publicAccount(account) }, 200, noStore());
+    const csrfToken = await r.auth.rotateCsrf(required.actor.session.id);
+    return jsonResponse({ ok: true, account: publicAccount(account) }, 200, noStore({ "X-OFA-CSRF": csrfToken }));
   }
 
   if (path === "/api/v1/me/discoveries" && request.method === "GET") {
@@ -152,6 +159,8 @@ export async function handleAccountApi(request, env, config, logger) {
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
     if (!(await requireCsrf(request, required.actor, env, config))) return jsonResponse({ ok: false, error: { code: "csrf_required", message: "CSRF validation failed." } }, 403);
+    const limited = await rateLimitAuthenticatedOperation({ repos: r, actor: required.actor, operation: "me.discoveries.create", normalLimit: 20, ownerLimit: 500, windowSeconds: 3600 });
+    if (!limited.ok) return jsonResponse({ ok: false, error: { code: "rate_limited", message: "Try again later." } }, 429, noStore());
     const body = await readJson(request);
     if (body.discoveryType === "phase4_staging" && !PHASE4_STAGING_DISCOVERY_KEYS.has(body.discoveryKey)) {
       return jsonResponse({ ok: false, error: { code: "unsupported_discovery", message: "Discovery is not available through this staging route." } }, 400, noStore());
@@ -171,6 +180,8 @@ export async function handleAccountApi(request, env, config, logger) {
     const required = await requireActor(request, env, config);
     if (required.response) return required.response;
     if (!(await requireCsrf(request, required.actor, env, config))) return jsonResponse({ ok: false, error: { code: "csrf_required", message: "CSRF validation failed." } }, 403);
+    const limited = await rateLimitAuthenticatedOperation({ repos: r, actor: required.actor, operation: "staging.grant-test-item", normalLimit: 20, ownerLimit: 500, windowSeconds: 3600 });
+    if (!limited.ok) return jsonResponse({ ok: false, error: { code: "rate_limited", message: "Try again later." } }, 429, noStore());
     let definition = await env.DB.prepare("SELECT id FROM inventory_item_definitions WHERE item_key = 'phase3_static_receipt'").first();
     if (!definition) {
       const id = await r.inventory.createDefinition({ itemKey: "phase3_static_receipt", name: "Phase 3 Static Receipt", itemType: "staging-proof", stackable: true, publicMetadata: { phase: 3 }, secretMetadata: { neverSendToClient: true } });

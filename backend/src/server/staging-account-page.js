@@ -69,6 +69,7 @@ export function stagingAccountPage() {
     function grantItem(){api("/api/v1/staging/grant-test-item",{method:"POST",body:{}})}
     function inventory(){api("/api/v1/me/inventory")}
     function logout(){api("/api/v1/auth/logout",{method:"POST",body:{}})}
+    me();
   </script>
 </body>
 </html>`;

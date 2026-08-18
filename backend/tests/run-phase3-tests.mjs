@@ -123,14 +123,18 @@ try {
   assert.equal(me.res.status, 200);
   assert.equal(me.body.account.username, "LuKe-Test");
   assert.equal(me.body.account.id, undefined);
+  const recoveredCsrf = me.res.headers.get("x-ofa-csrf");
+  assert.equal(!!recoveredCsrf, true);
 
+  const oldCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf, body: { discoveryType: "flag", discoveryKey: "old" } });
+  assert.equal(oldCsrf.res.status, 403);
   const noCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, body: { discoveryType: "flag", discoveryKey: "x" } });
   assert.equal(noCsrf.res.status, 403);
-  const yesCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf, body: { discoveryType: "flag", discoveryKey: "x" } });
+  const yesCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf: recoveredCsrf, body: { discoveryType: "flag", discoveryKey: "x" } });
   assert.equal(yesCsrf.res.status, 201);
 
-  const grantOne = await api("/api/v1/staging/grant-test-item", { method: "POST", cookie, csrf, body: {} });
-  const grantTwo = await api("/api/v1/staging/grant-test-item", { method: "POST", cookie, csrf, body: {} });
+  const grantOne = await api("/api/v1/staging/grant-test-item", { method: "POST", cookie, csrf: recoveredCsrf, body: {} });
+  const grantTwo = await api("/api/v1/staging/grant-test-item", { method: "POST", cookie, csrf: recoveredCsrf, body: {} });
   assert.equal(grantOne.res.status, 201);
   assert.equal(grantTwo.body.grant.idempotent, true);
   const inventory = await api("/api/v1/me/inventory", { cookie });
@@ -138,7 +142,7 @@ try {
   assert.equal(inventory.body.inventory.balances[0].name, "Phase 3 Static Receipt");
   assert.equal(JSON.stringify(inventory.body).includes("neverSendToClient"), false);
 
-  const logout = await api("/api/v1/auth/logout", { method: "POST", cookie, csrf, body: {} });
+  const logout = await api("/api/v1/auth/logout", { method: "POST", cookie, csrf: recoveredCsrf, body: {} });
   assert.equal(logout.res.status, 200);
   const afterLogout = await api("/api/v1/me", { cookie });
   assert.equal(afterLogout.res.status, 401);

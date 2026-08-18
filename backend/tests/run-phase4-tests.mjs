@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { applyMigrations } from "../src/db/migrations.js";
 import { SQLiteD1Adapter } from "../src/db/sqlite-adapter.js";
 import { seedPhase4Staging } from "../src/content/seed-phase4-staging.js";
+import { AuthRepository } from "../src/repositories/auth-repository.js";
 import { createOFAStagingServer } from "../src/server/server.js";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
@@ -67,11 +68,11 @@ async function api(path, options = {}) {
   return { res, body };
 }
 
-async function signIn() {
-  const registered = await api("/api/v1/auth/register", { method: "POST", body: { username: "Phase4User", email: "phase4@example.invalid" } });
+async function signIn(username = "Phase4User", email = "phase4@example.invalid") {
+  const registered = await api("/api/v1/auth/register", { method: "POST", body: { username, email } });
   assert.equal(registered.res.status, 201);
-  await api("/api/v1/auth/email/start", { method: "POST", body: { email: "phase4@example.invalid" } });
-  const tokenLog = logs.find((entry) => entry.message === "local_staging_email_link");
+  await api("/api/v1/auth/email/start", { method: "POST", body: { email } });
+  const tokenLog = logs.filter((entry) => entry.message === "local_staging_email_link" && entry.detail?.username === username).at(-1);
   assert.equal(!!tokenLog?.detail?.token, true);
   const completed = await api("/api/v1/auth/email/complete", { method: "POST", body: { token: tokenLog.detail.token } });
   assert.equal(completed.res.status, 200);
@@ -79,6 +80,21 @@ async function signIn() {
     cookie: completed.res.headers.get("set-cookie").split(";")[0],
     csrf: completed.res.headers.get("x-ofa-csrf")
   };
+}
+
+async function accountIdForUsername(username) {
+  const checkDb = new SQLiteD1Adapter(sqlitePath);
+  try {
+    const row = await checkDb.prepare(`
+      SELECT account_id
+      FROM account_profiles
+      WHERE username_normalized = ?
+      LIMIT 1
+    `).bind(username.trim().toLowerCase()).first();
+    return row?.account_id || "";
+  } finally {
+    checkDb.close();
+  }
 }
 
 try {
@@ -124,6 +140,13 @@ try {
   assert.equal(accountPageText.includes('discoveryKey:"phase3-account-page"'), true);
 
   const auth = await signIn();
+  const refreshedMe = await api("/api/v1/me", { cookie: auth.cookie });
+  assert.equal(refreshedMe.res.status, 200);
+  const recoveredCsrf = refreshedMe.res.headers.get("x-ofa-csrf");
+  assert.equal(!!recoveredCsrf, true);
+  const oldCsrfAfterRefresh = await api("/api/v1/me/discoveries", { method: "POST", cookie: auth.cookie, csrf: auth.csrf, body: { discoveryType: "staging", discoveryKey: "old-csrf-after-refresh" } });
+  assert.equal(oldCsrfAfterRefresh.res.status, 403);
+  auth.csrf = recoveredCsrf;
   const authedSignal = await api("/api/v1/archive/records/phase4-signal-001", { cookie: auth.cookie });
   assert.equal(authedSignal.res.status, 200);
   assert.equal(authedSignal.body.record.fields.body.includes("audible"), true);
@@ -161,6 +184,38 @@ try {
   const discoveredWithheld = await api("/api/v1/archive/records/phase4-withheld-null", { cookie: auth.cookie });
   assert.equal(discoveredWithheld.res.status, 200);
   assert.equal(discoveredWithheld.body.record.slug, "phase4-withheld-null");
+
+  const normalLimited = await signIn("Phase4Limited", "phase4-limited@example.invalid");
+  const normalMe = await api("/api/v1/me", { cookie: normalLimited.cookie });
+  normalLimited.csrf = normalMe.res.headers.get("x-ofa-csrf");
+  let normalRate;
+  for (let i = 0; i < 21; i += 1) {
+    normalRate = await api("/api/v1/me/discoveries", { method: "POST", cookie: normalLimited.cookie, csrf: normalLimited.csrf, body: { discoveryType: "staging", discoveryKey: `normal-limit-${i}` } });
+  }
+  assert.equal(normalRate.res.status, 429);
+
+  const ownerAuth = await signIn("Phase4OwnerRate", "phase4-owner-rate@example.invalid");
+  const ownerAccountId = await accountIdForUsername("Phase4OwnerRate");
+  const ownerDb = new SQLiteD1Adapter(sqlitePath);
+  try {
+    const ownerRepo = new AuthRepository(ownerDb, { sessionPepper: "phase4-session-pepper" });
+    await ownerRepo.grantRole(ownerAccountId, "owner", "global", "phase4-rate-test");
+  } finally {
+    ownerDb.close();
+  }
+  const ownerMe = await api("/api/v1/me", { cookie: ownerAuth.cookie });
+  assert.equal(ownerMe.res.status, 200);
+  assert.equal(JSON.stringify(ownerMe.body).includes("owner"), false);
+  ownerAuth.csrf = ownerMe.res.headers.get("x-ofa-csrf");
+  for (let i = 0; i < 25; i += 1) {
+    const ownerRate = await api("/api/v1/me/discoveries", { method: "POST", cookie: ownerAuth.cookie, csrf: ownerAuth.csrf, body: { discoveryType: "staging", discoveryKey: `owner-limit-${i}` } });
+    assert.equal(ownerRate.res.status, 201);
+  }
+  let ownerAuthRate;
+  for (let i = 0; i < 8; i += 1) {
+    ownerAuthRate = await api("/api/v1/auth/email/start", { method: "POST", body: { email: "phase4-owner-rate@example.invalid" } });
+  }
+  assert.equal(ownerAuthRate.res.status, 429);
 
   const prodRuntime = createOFAStagingServer({ config: { ...config, envName: "production", port: 0 }, logger });
   prodRuntime.server.listen(0, "127.0.0.1");

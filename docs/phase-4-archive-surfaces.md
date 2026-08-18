@@ -134,6 +134,37 @@ The seed is idempotent.
 - Local email-link token logging remains impossible outside development/staging/test.
 - Staging remains local-only.
 
+## CSRF Recovery
+
+The staging account tester calls `GET /api/v1/me` when it loads. If the browser still has a valid `ofa_session` cookie after refresh or navigation, the server rotates the session CSRF token and returns the replacement in the `X-OFA-CSRF` response header.
+
+This design keeps CSRF server-authoritative:
+
+- plaintext CSRF tokens are not stored in the database
+- the database stores only the current CSRF digest for the session
+- older CSRF tokens stop working after rotation
+- ordinary `/api/v1/me` still returns only safe account information and does not expose roles, permissions, internal account IDs, creator status, or session internals
+
+## Rate Limits
+
+Authentication, recovery, and security-sensitive endpoints remain strictly rate-limited and do not receive OWNER elevation:
+
+- registration: 5 attempts per email digest per hour
+- email-link start: 8 attempts per email digest per hour
+- email-link complete: 30 attempts per host per 15 minutes
+
+Approved non-sensitive authenticated staging-style operations are rate-limited per account and operation:
+
+- normal account: 20 per hour
+- hidden real OWNER role: 500 per hour
+
+Current elevated-operation scope:
+
+- `POST /api/v1/me/discoveries`
+- `POST /api/v1/staging/grant-test-item`
+
+The elevated policy is server-authoritative and uses the real hidden role assignment. It is not based on client input and does not make owner status visible through ordinary player-facing responses.
+
 ## Physical Server Validation
 
 From `C:\OFA\staging\repo\backend`:

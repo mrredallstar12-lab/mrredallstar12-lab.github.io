@@ -263,12 +263,14 @@ Unauthorized users receive `404 Not Found` for the page.
 
 ## Physical Server Validation
 
-### Successful checkpoint
+### Final closure checkpoint
 
-Physical Windows staging validation succeeded through Phase 5 HEAD `57e5e01c59bbc73479144b33c9ca5bce40d44653` before the staging-validation harness patch.
+Phase 5 physical Windows staging validation completed successfully at implementation HEAD `b2e237d3257428d2c5387727b12b8b29e6b434ae` on August 18, 2026. This supersedes the earlier preliminary checkpoint at `57e5e01c59bbc73479144b33c9ca5bce40d44653`.
 
 Confirmed on the physical server:
 
+- `npm test` passed the backend, server, Phase 2-5, and staging-validation harness regression suites.
+- `RunValidation` passed health, all four migrations, admin authorization boundaries, ordinary `/me` role hiding, same-session CSRF, staging fresh-auth/elevation, discovery grant/revoke, inventory grant/revoke and ledger, fictional clearance, operational-mode restoration, Archive visibility/content preview, and privileged audit verification with 17 request-linked entries.
 - The Control Center is available only in an authenticated, authorized admin context; an ordinary account receives `403 admin_forbidden` from admin APIs.
 - Hidden owner authorization for `noobuus` works only in privileged admin context. Ordinary `/api/v1/me` continues to omit owner role, permissions, elevation, internal account ID, and session internals.
 - The staging fresh-auth helper and 10-minute elevation flow work.
@@ -280,6 +282,14 @@ Confirmed on the physical server:
 - Registration, authentication-initiation, and player-mutation operational modes block only their intended operation and restore correctly.
 - `authored_events_disabled` remains a schema/interface flag with reason `schema_only_until_event_engine`; no event execution is claimed.
 - Anonymous, authenticated, and selected-player content previews produce distinct server-filtered representations. A selected player with `phase4.signal001.transcript` sees the transcript while unrelated fields remain redacted.
+- Privileged browser UX was exercised manually for authentication/elevation, Player Inspector, discovery grant/revoke, inventory grant/revoke and ledger inspection, operational modes, content preview, and emergency global session revocation.
+
+The emergency global session revocation check was run last and passed:
+
+- response status: `200`
+- response: `ok: true`, `revoked: 19`, `initiatingSessionPreserved: true`
+- the initiating Control Center session subsequently returned `200` from Admin Status, retained the hidden owner role and expected permissions, and remained elevated
+- the latest `admin.sessions.revoke_global` audit event recorded `result: allowed`, a populated request ID, `{"revoked":19,"initiatingSessionPreserved":true,"reason":"control-center"}`, and timestamp `2026-08-18 18:24:28`
 
 ### Automated staging validator
 
@@ -327,16 +337,18 @@ SKIP            production-only security behavior - MANUAL REQUIRED
 
 The audit count is informational and may increase as additional audited reads are added. Passing requires the specific grant, revoke, clearance, mode, and preview actions, not an exact count.
 
-### Remaining manual validation
+### Manual validation disposition
 
-The following remain intentionally manual:
+Completed:
 
-- Inspect privileged audit history for actor, target, reason, result, timestamp, and request identity while confirming no plaintext auth/session/CSRF/email-link secrets appear. The automated validator performs this check for its own request-linked actions before deleting fixture audit rows.
-- Run one typed fictional-clearance change from the Control Center against a disposable account, refresh Player Inspector, confirm the state, then restore the previous clearance. The automated validator performs the same API/persistence check on a disposable fixture.
-- Run emergency global session revocation last. Confirm all other sessions are revoked, the initiating elevated admin session is preserved, and `admin.sessions.revoke_global` records `initiatingSessionPreserved: true` without secrets.
-- Keep browser-cookie behavior, privileged UX/visual review, and production-only security behavior manual.
+- Privileged audit history passed through the physical validator, including required action presence and absence of reusable auth/session/CSRF material in the checked entries.
+- The typed fictional-clearance operation passed through the physical validator, including persistence and confirmation that fictional clearance did not grant real admin access.
+- Emergency global session revocation passed manually, including audit verification and preservation of the initiating elevated session.
+- Privileged browser UX passed based on the Control Center workflows exercised throughout physical Phase 5 validation. No untested browser behavior is claimed.
 
-The first two checks are now covered automatically and need manual repetition only when validating the Control Center UI itself. Emergency global revocation remains the only destructive Phase 5 closure check.
+Deferred, not passed or simulated:
+
+- Production-only security behavior remains deferred until a real production environment exists. Loopback staging is not treated as evidence of production behavior. This does not block Phase 5 closure because production deployment and production-only integration validation are explicitly outside Phase 5 scope.
 
 ### Full server update and validation
 
@@ -381,26 +393,28 @@ Manual validation:
 
 ## Acceptance Criteria
 
-- Branch starts from frozen Phase 4 checkpoint.
-- Existing static OFA remains unchanged and functional.
-- `/api/v1/health` remains healthy.
-- Existing Phase 1-4 regression tests pass.
-- Phase 5 tests pass.
-- Admin API namespace is hidden-role authorized.
-- `/admin/control-center.html` is unavailable to ordinary accounts.
-- Ordinary `/api/v1/me` remains player-safe for owner.
-- Owner/system_admin can use Player Inspector.
-- Developer/content/moderator roles cannot use full Player Inspector.
-- Username, fictional clearance, and client-supplied headers cannot escalate privileges.
-- Elevation requires fresh auth, CSRF, exact confirmation, server-side hidden permission, and expires after 10 minutes.
-- Staging fresh-auth helper is unavailable in production and cannot be used by ordinary users or fictional-clearance-only accounts.
-- Typed discovery/inventory/session/operational-mode mutations are audited.
-- Stack inventory revoke cannot go negative.
-- Instance revoke preserves item identity/history.
-- Emergency global session revocation is gated and audited.
-- Authentication/recovery limits remain strict for privileged accounts.
-- Content preview can compare canonical truth to filtered representations.
-- No Phase 6 implementation is started.
+Status: complete. Phase 5 is formally closed at the documentation checkpoint that records the successful physical validation above. The branch is frozen after that checkpoint unless an explicitly approved bug or security fix requires reopening it.
+
+- [x] Branch starts from frozen Phase 4 checkpoint.
+- [x] Existing static OFA remains unchanged and functional.
+- [x] `/api/v1/health` remains healthy.
+- [x] Existing Phase 1-4 regression tests pass.
+- [x] Phase 5 and staging-validation harness tests pass.
+- [x] Admin API namespace is hidden-role authorized.
+- [x] `/admin/control-center.html` is unavailable to ordinary accounts.
+- [x] Ordinary `/api/v1/me` remains player-safe for owner.
+- [x] Owner/system_admin can use Player Inspector.
+- [x] Developer/content/moderator roles cannot use full Player Inspector.
+- [x] Username, fictional clearance, and client-supplied headers cannot escalate privileges.
+- [x] Elevation requires fresh auth, CSRF, exact confirmation, server-side hidden permission, and expires after 10 minutes.
+- [x] Staging fresh-auth helper is unavailable in production configuration and cannot be used by ordinary users or fictional-clearance-only accounts.
+- [x] Typed discovery/inventory/session/operational-mode mutations are audited.
+- [x] Stack inventory revoke cannot go negative.
+- [x] Instance revoke preserves item identity/history.
+- [x] Emergency global session revocation is gated, audited, and physically validated.
+- [x] Authentication/recovery limits remain strict for privileged accounts.
+- [x] Content preview can compare canonical truth to filtered representations.
+- [x] No Phase 6 implementation was started.
 
 ## Deferred
 

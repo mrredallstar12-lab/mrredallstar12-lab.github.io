@@ -1,8 +1,8 @@
 # Phase 6 Plan: Progression & Event Engine
 
-Status: implemented for local-only staging validation. Phase 6 remains open until the physical Windows staging checkpoint is reviewed and explicitly accepted.
+Status: complete. Phase 6 was physically validated on the Windows staging server at implementation HEAD `da25edeb468d993812b4a22778e09f5a9f49aca9` and is frozen at the documentation closure checkpoint recorded on this branch.
 
-## Branch Proposal
+## Branch Record
 
 - Branch: `ofa-2-phase-6-progression-event-engine`
 - Exact starting checkpoint: frozen Phase 5 SHA `1bbde2078d293229ef67939b3ff0b56dfd1c18f3`
@@ -486,6 +486,27 @@ There are no approved-plan deviations. The implementation deliberately chose the
 
 ## Physical Staging Validation
 
+### Final closure checkpoint
+
+Phase 6 physical validation completed successfully on the actual loopback-only Windows staging server at implementation HEAD `da25edeb468d993812b4a22778e09f5a9f49aca9` on August 18, 2026.
+
+Confirmed on the physical server:
+
+- Migration `0005_phase6_progression_event_engine.sql` applied successfully and `RunValidation` reported all five migration versions.
+- `/api/v1/health` remained healthy, the existing OFA homepage/static site remained functional, and all Phase 1-6 automated regression suites passed.
+- The staging validation harness passed canonical ingestion/provenance, compound prerequisites, non-mutating elevated dry-run, all six effect categories, immutable pre-effect sibling snapshots, explicit chaining, replay/idempotency conflict behavior, atomic rollback, chain limits, serialized concurrent writes, and fictional/real authorization separation.
+- Privileged audit validation passed with 26 request-linked entries and no reusable authentication material recorded.
+- Ordinary `/api/v1/me` continued to omit OWNER/admin roles, permissions, elevation, internal account ID, and internal progression details.
+- The Control Center Phase 6 progression interface loaded successfully. Definition inspection returned clean persisted state and the baseline event history for `noobuus` was empty.
+- A browser dry-run of `phase6.staging.observation` returned `dryRun: true` and `committed: false`; it created no progression history.
+- A real staging trigger was blocked with `503 authored_events_disabled`, proving the operational kill switch on the physical server.
+- `authored_events_disabled` remained explicitly enabled afterward with reason `phase6_default_disabled_until_physical_validation`. Registration, authentication-initiation, and player-mutation modes remained restored to normal state.
+- Privileged browser UX was manually exercised for Phase 6 definition inspection, player event history, elevated dry-run, and blocked real execution.
+
+The Phase 6 kill switch must remain enabled until a later explicitly approved content/event rollout. Phase 6 closure does not authorize published authored content or general event execution.
+
+Production-only security behavior remains deferred because this validation used loopback staging. No production, Steam, external service, public ingress, or integration behavior is claimed as validated.
+
 ### Deployment sequence
 
 Stop the currently running staging process, then use a PowerShell window:
@@ -616,28 +637,28 @@ Cleanup rules:
 
 ## Acceptance Criteria
 
-Implementation status: all code-level criteria and local automated validation are complete. Physical migration, backup/restore, DPAPI launch, expanded `RunValidation`, manual Control Center inspection/dry-run, kill-switch confirmation, and explicit acceptance remain open. Phase 6 must not be marked closed before those checks are recorded.
+Status: complete. Code-level, automated, recoverability, physical staging, Control Center, cleanup, and kill-switch criteria have been satisfied. Production-only and Steam behavior remain explicitly deferred and are not Phase 6 closure blockers.
 
-Phase 6 may close only when:
+Completed acceptance criteria:
 
-- The branch started exactly from frozen Phase 5 SHA `1bbde2078d293229ef67939b3ff0b56dfd1c18f3` and prior branches remain untouched.
-- Migration `0005` applies cleanly to a Phase 5 database and backup/restore verification succeeds.
-- Canonical event identity, source, payload digest, idempotency, lineage, and provenance are persisted without reusable secrets.
-- Declarative rule publication rejects unknown, executable, oversized, or invalid structures.
-- All approved prerequisite types and compound boolean conditions are evaluated server-side with deterministic explanations.
-- Matched effects apply in deterministic order and unmatched rules make no progression change.
-- Replays do not duplicate consequences; conflicting idempotency reuse is rejected.
-- Root event chains are atomic, bounded, cycle-protected, and rollback completely on failure.
-- Progression history explains every committed state change and remains distinct from privileged security audit.
-- Concurrent duplicate/racing requests cannot double-grant or drive inventory below zero.
-- Clients cannot select authoritative identity or directly grant discoveries, inventory, fictional clearance, relationships, Archive State, roles, or permissions.
-- Fictional progression never grants real authorization or reveals hidden owner status.
-- Admin inspection/simulation is hidden-role authorized, CSRF/rate-limit/elevation protected as designed, audited, and unavailable to ordinary users.
-- Dry-run uses the production evaluator/planner and makes no progression mutation.
-- `authored_events_disabled` reliably stops new engine execution without disabling Phase 5 recovery controls.
-- Expanded `RunValidation` passes on the physical Windows staging server and proves cleanup.
-- Existing Phase 1-5 tests, static OFA behavior, Archive filtering, account security, and Control Center behavior continue to pass.
-- Production-only and Steam behavior remain explicitly deferred and unclaimed.
+- [x] The branch started exactly from frozen Phase 5 SHA `1bbde2078d293229ef67939b3ff0b56dfd1c18f3` and prior branches remain untouched.
+- [x] Migration `0005` applies cleanly to a Phase 5 database and backup/restore verification succeeds.
+- [x] Canonical event identity, source, payload digest, idempotency, lineage, and provenance are persisted without reusable secrets.
+- [x] Declarative rule publication rejects unknown, executable, oversized, or invalid structures.
+- [x] All approved prerequisite types and compound boolean conditions are evaluated server-side with deterministic explanations.
+- [x] Matched effects apply in deterministic order and unmatched rules make no progression change.
+- [x] Replays do not duplicate consequences; conflicting idempotency reuse is rejected.
+- [x] Root event chains are atomic, bounded, cycle-protected, and rollback completely on failure.
+- [x] Progression history explains every committed state change and remains distinct from privileged security audit.
+- [x] Concurrent duplicate/racing requests cannot double-grant or drive inventory below zero.
+- [x] Clients cannot select authoritative identity or directly grant discoveries, inventory, fictional clearance, relationships, Archive State, roles, or permissions.
+- [x] Fictional progression never grants real authorization or reveals hidden owner status.
+- [x] Admin inspection/simulation is hidden-role authorized, CSRF/rate-limit/elevation protected as designed, audited, and unavailable to ordinary users.
+- [x] Dry-run uses the production evaluator/planner and makes no progression mutation.
+- [x] `authored_events_disabled` reliably stops new engine execution without disabling Phase 5 recovery controls.
+- [x] Expanded `RunValidation` passes on the physical Windows staging server and proves cleanup.
+- [x] Existing Phase 1-5 tests, static OFA behavior, Archive filtering, account security, and Control Center behavior continue to pass.
+- [x] Production-only and Steam behavior remain explicitly deferred and unclaimed.
 
 ## Locked Approval Decisions
 

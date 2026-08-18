@@ -263,6 +263,83 @@ Unauthorized users receive `404 Not Found` for the page.
 
 ## Physical Server Validation
 
+### Successful checkpoint
+
+Physical Windows staging validation succeeded through Phase 5 HEAD `57e5e01c59bbc73479144b33c9ca5bce40d44653` before the staging-validation harness patch.
+
+Confirmed on the physical server:
+
+- The Control Center is available only in an authenticated, authorized admin context; an ordinary account receives `403 admin_forbidden` from admin APIs.
+- Hidden owner authorization for `noobuus` works only in privileged admin context. Ordinary `/api/v1/me` continues to omit owner role, permissions, elevation, internal account ID, and session internals.
+- The staging fresh-auth helper and 10-minute elevation flow work.
+- Same-session tabs no longer invalidate one another's CSRF authority when another tab calls `/api/v1/me`.
+- Player Inspector lookup works and exposes internal account IDs only in privileged context.
+- Typed discovery grant/revoke persists provenance and removes revoked discoveries from active state.
+- Typed quantity inventory grant/revoke reaches a zero balance while preserving both ledger entries, actor, reason, and timestamps.
+- Per-account session revocation immediately invalidates the target account's existing cookie.
+- Registration, authentication-initiation, and player-mutation operational modes block only their intended operation and restore correctly.
+- `authored_events_disabled` remains a schema/interface flag with reason `schema_only_until_event_engine`; no event execution is claimed.
+- Anonymous, authenticated, and selected-player content previews produce distinct server-filtered representations. A selected player with `phase4.signal001.transcript` sees the transcript while unrelated fields remain redacted.
+
+### Automated staging validator
+
+`npm run validate:staging` runs safe, repetitive end-to-end checks against the already-running loopback staging server and its configured SQLite database. On the Windows staging server, use the DPAPI launcher action so the existing protected secrets are supplied only to the child validation process:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action RunValidation
+```
+
+The validator:
+
+- refuses any environment other than development, staging, or test
+- refuses a non-loopback validation target
+- requires the protected runtime secrets and configured SQLite database
+- checks health and all repository migration versions
+- creates random disposable `system_admin` and ordinary-player fixtures; it never treats `noobuus` or any username as authorization
+- performs authorization, ordinary `/me` disclosure, same-session CSRF, staging fresh-auth, and elevation checks through the running HTTP server
+- exercises typed discovery, quantity inventory, fictional-clearance, operational-mode, and content-preview behavior
+- verifies request-linked privileged audit entries directly in SQLite
+- restores the exact pre-run operational-mode rows in a `finally` cleanup path
+- removes fixture accounts, sessions, elevations, roles, discoveries, inventory state/definitions, rate-limit buckets, and harness audit rows
+- never prints session, CSRF, email-link, encryption, or pepper values
+- never invokes emergency global session revocation
+
+Representative output:
+
+```text
+PASS            health
+PASS            schema migrations - 4 applied
+PASS            admin authorization boundary
+PASS            ordinary /me role hiding
+PASS            same-session CSRF
+PASS            staging fresh-auth and elevation
+PASS            discovery grant/revoke
+PASS            inventory grant/revoke ledger
+PASS            fictional clearance typed operation
+PASS            operational modes restore
+PASS            Archive visibility and preview
+PASS            privileged audit history - 17 request-linked entries verified
+SKIP            emergency global session revocation - MANUAL REQUIRED; intentionally destructive
+SKIP            privileged browser UX - MANUAL REQUIRED
+SKIP            production-only security behavior - MANUAL REQUIRED
+```
+
+The audit count is informational and may increase as additional audited reads are added. Passing requires the specific grant, revoke, clearance, mode, and preview actions, not an exact count.
+
+### Remaining manual validation
+
+The following remain intentionally manual:
+
+- Inspect privileged audit history for actor, target, reason, result, timestamp, and request identity while confirming no plaintext auth/session/CSRF/email-link secrets appear. The automated validator performs this check for its own request-linked actions before deleting fixture audit rows.
+- Run one typed fictional-clearance change from the Control Center against a disposable account, refresh Player Inspector, confirm the state, then restore the previous clearance. The automated validator performs the same API/persistence check on a disposable fixture.
+- Run emergency global session revocation last. Confirm all other sessions are revoked, the initiating elevated admin session is preserved, and `admin.sessions.revoke_global` records `initiatingSessionPreserved: true` without secrets.
+- Keep browser-cookie behavior, privileged UX/visual review, and production-only security behavior manual.
+
+The first two checks are now covered automatically and need manual repetition only when validating the Control Center UI itself. Emergency global revocation remains the only destructive Phase 5 closure check.
+
+### Full server update and validation
+
 From `C:\OFA\staging\repo\backend`:
 
 ```powershell
@@ -274,6 +351,13 @@ npm run seed:phase4-staging
 npm test
 npm run backup:server:check
 .\tools\windows-staging-secrets.ps1 -Action RunServer
+```
+
+With the server running in that PowerShell window, open a second fresh PowerShell window and run:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action RunValidation
 ```
 
 Manual validation:

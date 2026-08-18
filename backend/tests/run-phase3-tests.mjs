@@ -248,6 +248,8 @@ try {
   const launcherScript = readFileSync(join(backendDir, "tools", "windows-staging-secrets.ps1"), "utf8");
   assert.match(launcherScript, /\$startInfo\.FileName = "node\.exe"/);
   assert.match(launcherScript, /\$startInfo\.Arguments = "src\/server\/server\.js"/);
+  assert.match(launcherScript, /"RunValidation"/);
+  assert.match(launcherScript, /\$startInfo\.Arguments = "src\/validation\/run-staging-validation\.js"/);
   assert.match(launcherScript, /OFA_ENV = "staging"/);
   assert.match(launcherScript, /OFA_HOST = "127\.0\.0\.1"/);
   assert.match(launcherScript, /OFA_PORT = "8787"/);

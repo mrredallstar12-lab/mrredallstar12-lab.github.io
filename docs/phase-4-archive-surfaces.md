@@ -136,13 +136,15 @@ The seed is idempotent.
 
 ## CSRF Recovery
 
-The staging account tester calls `GET /api/v1/me` when it loads. If the browser still has a valid `ofa_session` cookie after refresh or navigation, the server rotates the session CSRF token and returns the replacement in the `X-OFA-CSRF` response header.
+The staging account tester calls `GET /api/v1/me` when it loads. If the browser still has a valid `ofa_session` cookie after refresh or navigation, the server returns the stable session-bound CSRF token in the `X-OFA-CSRF` response header.
 
 This design keeps CSRF server-authoritative:
 
 - plaintext CSRF tokens are not stored in the database
-- the database stores only the current CSRF digest for the session
-- older CSRF tokens stop working after rotation
+- CSRF is derived from server-held secret material and the server-side session identity
+- tokens from one session cannot authorize mutations on another session
+- logout or session revocation immediately kills the associated CSRF authority
+- repeated safe reads do not invalidate other same-session tabs
 - ordinary `/api/v1/me` still returns only safe account information and does not expose roles, permissions, internal account IDs, creator status, or session internals
 
 ## Rate Limits
@@ -262,10 +264,10 @@ OWNER isolation validation:
 
 CSRF recovery validation:
 
-- authenticated `/api/v1/me` rotates CSRF
+- authenticated `/api/v1/me` returns a session-bound CSRF token without rotating it
 - plaintext CSRF is returned only through `X-OFA-CSRF`
-- only the CSRF digest is persisted
-- the old token becomes invalid after rotation
+- plaintext CSRF is not persisted
+- repeated `/api/v1/me` calls do not invalidate already valid same-session mutation tokens
 - staging account tester automatically obtains a usable CSRF token from an existing authenticated session after refresh/navigation
 - another email-link authentication ceremony is not required merely because the staging tester was refreshed
 - production does not expose staging tester mechanisms

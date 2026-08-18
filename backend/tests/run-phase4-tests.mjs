@@ -145,7 +145,7 @@ try {
   const recoveredCsrf = refreshedMe.res.headers.get("x-ofa-csrf");
   assert.equal(!!recoveredCsrf, true);
   const oldCsrfAfterRefresh = await api("/api/v1/me/discoveries", { method: "POST", cookie: auth.cookie, csrf: auth.csrf, body: { discoveryType: "staging", discoveryKey: "old-csrf-after-refresh" } });
-  assert.equal(oldCsrfAfterRefresh.res.status, 403);
+  assert.equal(oldCsrfAfterRefresh.res.status, 201);
   auth.csrf = recoveredCsrf;
   const authedSignal = await api("/api/v1/archive/records/phase4-signal-001", { cookie: auth.cookie });
   assert.equal(authedSignal.res.status, 200);

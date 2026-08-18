@@ -126,8 +126,8 @@ try {
   const recoveredCsrf = me.res.headers.get("x-ofa-csrf");
   assert.equal(!!recoveredCsrf, true);
 
-  const oldCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf, body: { discoveryType: "flag", discoveryKey: "old" } });
-  assert.equal(oldCsrf.res.status, 403);
+  const originalCsrfAfterRead = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf, body: { discoveryType: "flag", discoveryKey: "original-after-read" } });
+  assert.equal(originalCsrfAfterRead.res.status, 201);
   const noCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, body: { discoveryType: "flag", discoveryKey: "x" } });
   assert.equal(noCsrf.res.status, 403);
   const yesCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf: recoveredCsrf, body: { discoveryType: "flag", discoveryKey: "x" } });
@@ -146,6 +146,8 @@ try {
   assert.equal(logout.res.status, 200);
   const afterLogout = await api("/api/v1/me", { cookie });
   assert.equal(afterLogout.res.status, 401);
+  const afterLogoutMutation = await api("/api/v1/me/discoveries", { method: "POST", cookie, csrf: recoveredCsrf, body: { discoveryType: "flag", discoveryKey: "after-logout" } });
+  assert.equal(afterLogoutMutation.res.status, 401);
 
   let rateLimited;
   for (let i = 0; i < 9; i += 1) {

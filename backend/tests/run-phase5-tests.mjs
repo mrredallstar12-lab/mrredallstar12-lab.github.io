@@ -118,6 +118,8 @@ async function elevate(actor) {
     cookie: freshSession.res.headers.get("set-cookie").split(";")[0],
     csrf: freshSession.res.headers.get("x-ofa-csrf")
   };
+  assert.notEqual(fresh.cookie, actor.cookie);
+  assert.notEqual(fresh.csrf, actor.csrf);
   const confirmed = await api("/api/v1/admin/elevation/confirm", { method: "POST", cookie: fresh.cookie, csrf: fresh.csrf, body: { confirm: "ELEVATE" } });
   assert.equal(confirmed.res.status, 200);
   return fresh;
@@ -125,6 +127,21 @@ async function elevate(actor) {
 
 try {
   const ordinary = await signIn("Phase5User", "phase5-user@example.invalid");
+  const tabAcsrf = ordinary.csrf;
+  const tabBMe = await api("/api/v1/me", { cookie: ordinary.cookie });
+  assert.equal(tabBMe.res.status, 200);
+  const tabBcsrf = tabBMe.res.headers.get("x-ofa-csrf");
+  assert.equal(!!tabBcsrf, true);
+  assert.equal(tabBcsrf, tabAcsrf);
+  const tabAStillValid = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinary.cookie, csrf: tabAcsrf, body: { discoveryType: "flag", discoveryKey: "phase5-tab-a-still-valid" } });
+  assert.equal(tabAStillValid.res.status, 201);
+  const tabBValid = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinary.cookie, csrf: tabBcsrf, body: { discoveryType: "flag", discoveryKey: "phase5-tab-b-valid" } });
+  assert.equal(tabBValid.res.status, 201);
+  const ordinarySecondSession = await emailSignIn("Phase5User", "phase5-user@example.invalid");
+  assert.notEqual(ordinarySecondSession.cookie, ordinary.cookie);
+  assert.notEqual(ordinarySecondSession.csrf, ordinary.csrf);
+  const crossSessionCsrf = await api("/api/v1/me/discoveries", { method: "POST", cookie: ordinarySecondSession.cookie, csrf: ordinary.csrf, body: { discoveryType: "flag", discoveryKey: "phase5-cross-session-blocked" } });
+  assert.equal(crossSessionCsrf.res.status, 403);
   const owner = await signIn("Phase5Owner", "phase5-owner@example.invalid");
   await grantRole(owner.accountId, "owner");
   const contentAdmin = await signIn("Phase5Content", "phase5-content@example.invalid");
@@ -288,6 +305,8 @@ try {
   const revokeOne = await api(`/api/v1/admin/players/${victim.accountId}/sessions/revoke`, { method: "POST", cookie: elevatedOwner.cookie, csrf: elevatedOwner.csrf, body: { confirm: "REVOKE_ACCOUNT_SESSIONS", reason: "test" } });
   assert.equal(revokeOne.res.status, 200);
   assert.equal((await api("/api/v1/me", { cookie: victim.cookie })).res.status, 401);
+  const revokedMutation = await api("/api/v1/me/discoveries", { method: "POST", cookie: victim.cookie, csrf: victim.csrf, body: { discoveryType: "flag", discoveryKey: "phase5-after-revoke" } });
+  assert.equal(revokedMutation.res.status, 401);
 
   const victimTwo = await signIn("Phase5VictimTwo", "phase5-victim-two@example.invalid");
   const globalRevoke = await api("/api/v1/admin/sessions/revoke-all", { method: "POST", cookie: elevatedOwner.cookie, csrf: elevatedOwner.csrf, body: { confirm: "REVOKE_ALL_SESSIONS", reason: "test" } });

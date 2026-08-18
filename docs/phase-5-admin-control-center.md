@@ -102,6 +102,21 @@ Elevation lasts 10 minutes. Confirmation requires a fresh authentication ceremon
 
 No permanent privileged cookie is issued. Elevation is stored server-side and tied to the current session.
 
+## CSRF Design
+
+CSRF tokens are stable for the lifetime of an individual authenticated server-side session. `GET /api/v1/me` and `GET /api/v1/admin/me` can recover the token into a newly loaded page or tab through the `X-OFA-CSRF` response header, but these safe reads do not rotate the token or invalidate other tabs.
+
+The token is derived from server-held secret material and the session identity. Plaintext CSRF tokens are not stored in the database, are not placed in URLs, and do not require `localStorage`.
+
+Security properties:
+
+- CSRF remains unguessable and session-bound.
+- A CSRF token from session A cannot authorize mutations on session B.
+- Logout or session revocation immediately invalidates that session's CSRF authority because authenticated actor lookup fails.
+- Fresh login and the staging fresh-auth helper create a new server-side session with a different CSRF token.
+- Privileged admin mutations still require CSRF.
+- Same-session OFA tabs can operate concurrently without invalidating each other.
+
 ### Staging Fresh-Auth Helper
 
 `POST /api/v1/admin/staging/fresh-auth-session` exists only in development, staging, and test. It is a narrow validation helper for local Phase 5 testing when the staging operator has already exhausted normal email-link start limits.

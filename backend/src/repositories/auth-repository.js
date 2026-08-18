@@ -1,6 +1,5 @@
 import { newId, jsonString } from "../foundation/ids.js";
-import { createOpaqueSessionToken, digestSessionToken } from "../security/session-tokens.js";
-import { createCsrfToken, digestCsrfToken } from "../security/http.js";
+import { createOpaqueSessionToken, digestSessionToken, sessionTokenMatches, csrfTokenForSession } from "../security/session-tokens.js";
 
 export class AuthRepository {
   constructor(db, options = {}) {
@@ -36,18 +35,13 @@ export class AuthRepository {
     const id = newId("sess");
     const token = createOpaqueSessionToken();
     const digest = digestSessionToken(token, this.sessionPepper);
-    const csrfToken = createCsrfToken();
-    const csrfDigest = digestCsrfToken(csrfToken, this.sessionPepper);
+    const csrfToken = csrfTokenForSession(id, this.sessionPepper);
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     await this.db.transaction(() => {
       this.db.database.prepare(`
         INSERT INTO sessions (id, account_id, token_digest, expires_at, metadata_json)
         VALUES (?, ?, ?, ?, ?)
       `).run(id, accountId, digest, expiresAt, jsonString(metadata));
-      this.db.database.prepare(`
-        INSERT INTO session_csrf_tokens (session_id, token_digest)
-        VALUES (?, ?)
-      `).run(id, csrfDigest);
     });
     return { id, token, csrfToken, expiresAt };
   }
@@ -81,20 +75,12 @@ export class AuthRepository {
   }
 
   async verifyCsrf(sessionId, csrfToken) {
-    const row = await this.db.prepare("SELECT token_digest FROM session_csrf_tokens WHERE session_id = ?").bind(sessionId).first();
-    if (!row || !csrfToken) return false;
-    return row.token_digest === digestCsrfToken(csrfToken, this.sessionPepper);
+    if (!sessionId || !csrfToken) return false;
+    return sessionTokenMatches(csrfToken, digestSessionToken(csrfTokenForSession(sessionId, this.sessionPepper), this.sessionPepper), this.sessionPepper);
   }
 
   async rotateCsrf(sessionId) {
-    const csrfToken = createCsrfToken();
-    const csrfDigest = digestCsrfToken(csrfToken, this.sessionPepper);
-    await this.db.prepare(`
-      INSERT INTO session_csrf_tokens (session_id, token_digest)
-      VALUES (?, ?)
-      ON CONFLICT(session_id) DO UPDATE SET token_digest = excluded.token_digest, created_at = CURRENT_TIMESTAMP
-    `).bind(sessionId, csrfDigest).run();
-    return csrfToken;
+    return csrfTokenForSession(sessionId, this.sessionPepper);
   }
 
   async createEmailChallenge({ purpose, emailDigest, accountId = null, ttlSeconds = 900, requestId = null }) {

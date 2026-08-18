@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { AccountRepository } from "../repositories/account-repository.js";
+import { ArchiveStateRepository } from "../repositories/archive-state-repository.js";
 import { AuthRepository } from "../repositories/auth-repository.js";
+import { InventoryRepository } from "../repositories/inventory-repository.js";
+import { PlayerStateRepository } from "../repositories/player-state-repository.js";
+import { ProgressionDefinitionRepository } from "../repositories/progression-definition-repository.js";
 
 export async function createValidationFixtures(db, config) {
   const suffix = randomUUID().replaceAll("-", "").slice(0, 10);
@@ -21,12 +25,155 @@ export async function createValidationFixtures(db, config) {
   const adminSession = await auth.createSession({ accountId: admin.accountId, metadata: { source: "staging-validation-harness" } });
   const playerSession = await auth.createSession({ accountId: player.accountId, metadata: { source: "staging-validation-harness" } });
 
-  return {
+  const fixture = {
     suffix,
     admin: { ...admin, session: adminSession },
     player: { ...player, session: playerSession },
-    itemKey: `staging_validation_item_${suffix}`
+    itemKey: `staging_validation_item_${suffix}`,
+    phase6: {
+      namespace: `staging-validation-${suffix}`,
+      itemKey: `phase6_validation_ticket_${suffix}`,
+      relationshipId: `rel_phase6_validation_${suffix}`,
+      stateScopeKey: `phase6-validation-${suffix}`,
+      prerequisiteDiscovery: `phase6.validation.prerequisite.${suffix}`,
+      resultDiscovery: `phase6.validation.result.${suffix}`,
+      grantedClearance: `phase6.validation.granted.${suffix}`,
+      followupClearance: `phase6.validation.followup.${suffix}`,
+      siblingClearance: `phase6.validation.sibling.${suffix}`
+    }
   };
+  try {
+    await createPhase6Fixtures(db, fixture);
+    return fixture;
+  } catch (error) {
+    await cleanupValidationFixtures(db, fixture, "staging-validation-setup-failed-");
+    throw error;
+  }
+}
+
+async function createPhase6Fixtures(db, fixture) {
+  const { phase6, player } = fixture;
+  const inventory = new InventoryRepository(db);
+  const discoveries = new PlayerStateRepository(db);
+  const archiveState = new ArchiveStateRepository(db);
+  const definitions = new ProgressionDefinitionRepository(db);
+
+  phase6.itemDefinitionId = await inventory.createDefinition({
+    itemKey: phase6.itemKey,
+    name: "Phase 6 Validation Ticket",
+    itemType: "staging_validation",
+    stackable: true
+  });
+  await inventory.grantQuantity({
+    accountId: player.accountId,
+    itemDefinitionId: phase6.itemDefinitionId,
+    quantity: 1,
+    provenance: { source: "staging_validation_harness" },
+    idempotencyKey: `${phase6.namespace}:prerequisite-item`
+  });
+  await discoveries.addDiscovery({
+    accountId: player.accountId,
+    discoveryType: "phase6_validation",
+    discoveryKey: phase6.prerequisiteDiscovery,
+    provenance: { source: "staging_validation_harness" }
+  });
+  await db.prepare("UPDATE archive_identities SET clearance_state_json = ? WHERE account_id = ?")
+    .bind(JSON.stringify({ clearances: ["phase6.validation.prerequisite"] }), player.accountId).run();
+  await db.prepare(`
+    INSERT INTO entity_relationships (
+      id, source_type, source_id, relationship_type, target_type, target_id, canonical, provenance_json
+    ) VALUES (?, 'validation_fixture', ?, 'validates', 'validation_fixture', ?, 1, ?)
+  `).bind(phase6.relationshipId, `${fixture.suffix}:source`, `${fixture.suffix}:target`, JSON.stringify({ source: "staging_validation_harness" })).run();
+  await db.prepare(`
+    INSERT INTO account_relationship_discoveries (account_id, relationship_id, status, provenance_json)
+    VALUES (?, ?, 'active', ?)
+  `).bind(player.accountId, phase6.relationshipId, JSON.stringify({ source: "staging_validation_harness" })).run();
+  await archiveState.transition({
+    scopeType: "global",
+    scopeKey: phase6.stateScopeKey,
+    transitionType: "seed",
+    nextState: { condition: "stable" },
+    causeType: "staging_validation_harness"
+  });
+
+  const condition = {
+    all: [
+      { discovery: { key: phase6.prerequisiteDiscovery, present: true } },
+      { inventory_quantity: { itemKey: phase6.itemKey, op: "gte", value: 1 } },
+      { fictional_clearance: { key: "phase6.validation.prerequisite", present: true } },
+      { prior_event_count: { eventType: "phase6.staging.observation", op: "gte", value: 1 } },
+      { relationship_discovered: { relationshipId: phase6.relationshipId, present: true } },
+      { archive_state: { scopeType: "global", scopeKey: phase6.stateScopeKey, path: "condition", equals: "stable" } },
+      { event_payload: { field: "signalKey", equals: "validation" } },
+      { not: { discovery: { key: phase6.resultDiscovery, present: true } } },
+      { any: [
+        { event_payload: { field: "sequence", equals: 2 } },
+        { fictional_clearance: { key: "phase6.validation.alternative", present: true } }
+      ] }
+    ]
+  };
+  await definitions.createVersion({
+    eventKey: `${phase6.namespace}.compound`,
+    triggerEventType: "phase6.staging.observation",
+    priority: 100,
+    condition,
+    fixtureNamespace: phase6.namespace,
+    createdBy: fixture.admin.accountId,
+    effects: [
+      { key: "grant-discovery", type: "discovery.set", config: { key: phase6.resultDiscovery, present: true } },
+      { key: "grant-inventory", type: "inventory.quantity", config: { itemKey: phase6.itemKey, delta: 2 } },
+      { key: "grant-clearance", type: "fictional_clearance.set", config: { key: phase6.grantedClearance, present: true } },
+      { key: "revoke-relationship", type: "relationship.set", config: { relationshipId: phase6.relationshipId, present: false } },
+      { key: "transition-state", type: "archive_state.transition", config: { scopeType: "global", scopeKey: phase6.stateScopeKey, transitionType: "awaken", set: { condition: "awakened" } } },
+      { key: "emit-followup", type: "event.emit", config: { eventType: "phase6.staging.followup", payload: { marker: "validation-complete" } } }
+    ]
+  });
+  await definitions.createVersion({
+    eventKey: `${phase6.namespace}.sibling-snapshot`,
+    triggerEventType: "phase6.staging.observation",
+    priority: 50,
+    condition: { discovery: { key: phase6.resultDiscovery, present: true } },
+    fixtureNamespace: phase6.namespace,
+    createdBy: fixture.admin.accountId,
+    effects: [{ key: "must-not-run", type: "fictional_clearance.set", config: { key: phase6.siblingClearance, present: true } }]
+  });
+  await definitions.createVersion({
+    eventKey: `${phase6.namespace}.followup`,
+    triggerEventType: "phase6.staging.followup",
+    condition: { discovery: { key: phase6.resultDiscovery, present: true } },
+    fixtureNamespace: phase6.namespace,
+    createdBy: fixture.admin.accountId,
+    effects: [{ key: "followup-clearance", type: "fictional_clearance.set", config: { key: phase6.followupClearance, present: true } }]
+  });
+  await definitions.createVersion({
+    eventKey: `${phase6.namespace}.rollback`,
+    triggerEventType: "phase6.staging.rollback",
+    condition: { not: { discovery: { key: `phase6.validation.rollback-never.${fixture.suffix}`, present: true } } },
+    fixtureNamespace: phase6.namespace,
+    createdBy: fixture.admin.accountId,
+    effects: [
+      { key: "temporary-discovery", type: "discovery.set", config: { key: `phase6.validation.must-rollback.${fixture.suffix}`, present: true } },
+      { key: "invalid-consume", type: "inventory.quantity", config: { itemKey: phase6.itemKey, delta: -999 } }
+    ]
+  });
+  for (let index = 1; index <= 5; index += 1) {
+    await definitions.createVersion({
+      eventKey: `${phase6.namespace}.chain.${index}`,
+      triggerEventType: `phase6.staging.chain.${index}`,
+      condition: { not: { discovery: { key: `phase6.validation.chain-stop.${fixture.suffix}`, present: true } } },
+      fixtureNamespace: phase6.namespace,
+      createdBy: fixture.admin.accountId,
+      effects: [{ key: "next", type: "event.emit", config: { eventType: `phase6.staging.chain.${index + 1}`, payload: {} } }]
+    });
+  }
+  await definitions.createVersion({
+    eventKey: `${phase6.namespace}.concurrent`,
+    triggerEventType: "archive.record.accessed",
+    condition: { event_payload: { field: "catalogId", equals: "phase4-signal-001" } },
+    fixtureNamespace: phase6.namespace,
+    createdBy: fixture.admin.accountId,
+    effects: [{ key: "increment", type: "inventory.quantity", config: { itemKey: phase6.itemKey, delta: 1 } }]
+  });
 }
 
 export async function cleanupValidationFixtures(db, fixture, requestPrefix) {
@@ -35,6 +182,18 @@ export async function cleanupValidationFixtures(db, fixture, requestPrefix) {
   const raw = db.database;
 
   db.transaction(() => {
+    raw.prepare("DELETE FROM progression_history WHERE account_id IN (?, ?)").run(...accountIds);
+    raw.prepare("DELETE FROM progression_outbox WHERE event_id IN (SELECT id FROM progression_events WHERE account_id IN (?, ?))").run(...accountIds);
+    raw.prepare("DELETE FROM progression_effect_applications WHERE event_id IN (SELECT id FROM progression_events WHERE account_id IN (?, ?))").run(...accountIds);
+    raw.prepare("DELETE FROM progression_rule_evaluations WHERE event_id IN (SELECT id FROM progression_events WHERE account_id IN (?, ?))").run(...accountIds);
+    raw.prepare("DELETE FROM progression_events WHERE account_id IN (?, ?)").run(...accountIds);
+    raw.prepare("DELETE FROM authored_event_version_effects WHERE definition_version_id IN (SELECT id FROM authored_event_versions WHERE fixture_namespace = ?)").run(fixture.phase6.namespace);
+    raw.prepare("DELETE FROM authored_event_versions WHERE fixture_namespace = ?").run(fixture.phase6.namespace);
+    raw.prepare("DELETE FROM authored_events WHERE event_key LIKE ?").run(`${fixture.phase6.namespace}.%`);
+    raw.prepare("DELETE FROM archive_state_history WHERE scope_id IN (SELECT id FROM archive_state_scopes WHERE scope_type = 'global' AND scope_key = ?)").run(fixture.phase6.stateScopeKey);
+    raw.prepare("DELETE FROM archive_state_scopes WHERE scope_type = 'global' AND scope_key = ?").run(fixture.phase6.stateScopeKey);
+    raw.prepare("DELETE FROM account_relationship_discoveries WHERE account_id IN (?, ?) OR relationship_id = ?").run(...accountIds, fixture.phase6.relationshipId);
+    raw.prepare("DELETE FROM entity_relationships WHERE id = ?").run(fixture.phase6.relationshipId);
     raw.prepare("DELETE FROM audit_events WHERE request_id LIKE ? OR actor_id IN (?, ?) OR resource_id IN (?, ?)")
       .run(`${requestPrefix}%`, ...accountIds, ...accountIds);
     raw.prepare("DELETE FROM admin_elevations WHERE account_id IN (?, ?)").run(...accountIds);
@@ -50,6 +209,7 @@ export async function cleanupValidationFixtures(db, fixture, requestPrefix) {
     raw.prepare("DELETE FROM inventory_balances WHERE account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM inventory_item_instances WHERE owner_account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM inventory_item_definitions WHERE item_key = ?").run(fixture.itemKey);
+    raw.prepare("DELETE FROM inventory_item_definitions WHERE item_key = ?").run(fixture.phase6.itemKey);
     raw.prepare("DELETE FROM account_discoveries WHERE account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM account_relationships WHERE account_id IN (?, ?)").run(...accountIds);
     raw.prepare("DELETE FROM account_annotations WHERE account_id IN (?, ?)").run(...accountIds);

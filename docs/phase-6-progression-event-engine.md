@@ -1,12 +1,12 @@
 # Phase 6 Plan: Progression & Event Engine
 
-Status: proposed for review. No Phase 6 implementation branch has been created and no runtime behavior has changed.
+Status: implemented for local-only staging validation. Phase 6 remains open until the physical Windows staging checkpoint is reviewed and explicitly accepted.
 
 ## Branch Proposal
 
-- Proposed branch: `ofa-2-phase-6-progression-event-engine`
+- Branch: `ofa-2-phase-6-progression-event-engine`
 - Exact starting checkpoint: frozen Phase 5 SHA `1bbde2078d293229ef67939b3ff0b56dfd1c18f3`
-- Creation rule: create only after this plan is approved.
+- Starting checkpoint verified before implementation: `1bbde2078d293229ef67939b3ff0b56dfd1c18f3`.
 - Protected branches: do not modify `main` or any frozen Phase 0-5 branch.
 
 ## Objective
@@ -460,9 +460,98 @@ Regression tests:
 - Phase 5 Control Center, emergency modes, audit, CSRF, and staging harness behavior.
 - Backup/restore verification with migration `0005` present.
 
+## Implementation Checkpoint
+
+Implemented on the Phase 6 branch:
+
+- A portable asynchronous transaction context serializes SQLite writes with `BEGIN IMMEDIATE`, joins nested repository units of work, rolls back atomically, and does not allow one request to execute inside another request's transaction.
+- Migration `0005_phase6_progression_event_engine.sql` adds immutable versioned definitions/effects, canonical events, rule evaluations, effect applications, append-oriented progression history, account relationship discoveries, a schema-only outbox, permissions, and the default-enabled kill switch.
+- Code registries strictly validate accepted event sources/payloads, declarative rules, and the six approved effect categories. No database-defined executable code is supported.
+- Rules support `all`, `any`, and `not` plus discovery, quantity/instance inventory, fictional clearance, prior-event count, discovered relationship, Archive State field, and validated payload prerequisites.
+- The engine evaluates every sibling definition from one immutable pre-effect snapshot. Chained consequences are explicit events, processed breadth-first with hard root limits of depth 4, 32 events, and 128 effects.
+- Root events and synchronous chains are one transaction. Source-scoped idempotency, payload-digest conflict detection, effect idempotency, cycle checks, and rollback prevent duplicate or partial consequences.
+- The six implemented effects are discovery grant/revoke, stackable quantity grant/consume, fictional clearance grant/revoke, canonical relationship reveal/revoke, Archive State transition with history, and explicit event emission.
+- Privileged APIs support definition inspection, selected-player event/history inspection, elevated non-mutating simulation, and an allowlisted staging-only trigger. The staging trigger accepts usernames, never arbitrary account IDs, and is unavailable outside development/staging/test.
+- The Control Center exposes the privileged Phase 6 inspection/simulation controls. Ordinary `/api/v1/me` remains unchanged and hides roles, permissions, elevation, internal IDs, and owner status.
+- `RunValidation` creates random disposable Phase 6 definitions and state, proves engine behavior through the loopback server and direct server-internal ingestion, restores the exact operational-mode snapshot, and deletes all fixture state. Tests cover cleanup after success and an injected post-fixture failure.
+
+Still schema/interface-only or deferred:
+
+- `progression_outbox` is a persistence boundary only; no external dispatcher exists.
+- Steam/service credentials and event sources, advanced cohort/global targeting, deterministic probability, non-stackable instance effects, rich player explanations, and definition authoring/publishing UI are not implemented.
+- No broad public client event ingestion route exists. `archive.record.accessed` is server-internal; wider client/game types require later code registration and security review.
+- No full event scheduler, external effects, Steam synchronization, campaign content, economy, or public redesign is included.
+
+There are no approved-plan deviations. The implementation deliberately chose the narrower approved ingress boundary: server-internal events plus an elevated, staging-only typed trigger.
+
 ## Physical Staging Validation
 
-After implementation approval and completion:
+### Deployment sequence
+
+Stop the currently running staging process, then use a PowerShell window:
+
+```powershell
+cd C:\OFA\staging\repo
+git fetch origin
+git switch ofa-2-phase-6-progression-event-engine
+git pull --ff-only origin ofa-2-phase-6-progression-event-engine
+cd backend
+$stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$source = "C:\OFA\staging\data\ofa-staging.sqlite"
+$backup = "E:\OFA\backups\staging\ofa-staging-pre-phase6-$stamp.sqlite"
+Copy-Item -LiteralPath $source -Destination $backup
+Get-FileHash -Algorithm SHA256 -LiteralPath $source, $backup
+npm run backup:server:check
+npm run migrate:server
+npm test
+npm run backup:server:check
+.\tools\windows-staging-secrets.ps1 -Action RunServer
+```
+
+The two displayed SHA-256 hashes must match. This timestamped copy is the retained staging rollback backup under `E:\OFA\backups\staging`; the backup/restore script's temporary copy is only an isolated recoverability test. The pre-migration backup/restore check validates the current database before schema change. The post-migration check must report all five migrations and successful recovery from a copied backup. Start the server only after both checks and the full tests pass.
+
+In a second fresh PowerShell window:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action RunValidation
+```
+
+Expected Phase 6 additions to the existing PASS output:
+
+```text
+PASS            schema migrations - 5 applied
+PASS            Phase 6 kill switch
+PASS            Phase 6 enable for validation
+PASS            canonical ingestion and compound prerequisites
+PASS            elevated dry-run is non-mutating
+PASS            six effects, sibling snapshot, and explicit chaining
+PASS            replay and idempotency conflict
+PASS            atomic rollback and chain limits
+PASS            serialized concurrent writes
+PASS            fictional and real authorization separation after progression
+PASS            privileged audit history - <count> request-linked entries verified
+```
+
+The exact audit count may increase as checks evolve; required action types and absence of reusable authentication material are asserted. The existing three manual/deferred `SKIP` lines remain expected.
+
+After `RunValidation`, verify `authored_events_disabled` is enabled. The validator restores its exact pre-run value, so the pre-run value must remain enabled until Lucas explicitly authorizes otherwise.
+
+### Required physical checks
+
+1. Pull the Phase 6 branch only; do not merge `main`.
+2. Confirm the backup/restore checks before and after migration.
+3. Confirm migration `0005` and five total migration versions.
+4. Confirm all automated tests pass.
+5. Start through the DPAPI-protected launcher on `127.0.0.1:8787`.
+6. Confirm health and the existing static OFA site.
+7. Run the expanded `RunValidation` from a second PowerShell session.
+8. Confirm all Phase 6 PASS lines and fixture cleanup.
+9. In the Control Center, manually inspect definitions and a disposable player's progression history, then run one elevated dry-run and confirm it reports `committed: false`.
+10. Confirm ordinary `/api/v1/me`, hidden owner behavior, and real-vs-fictional authorization separation remain unchanged.
+11. Confirm `authored_events_disabled` remains enabled after validation.
+
+The following detailed checks remain the acceptance intent:
 
 1. Pull the Phase 6 branch only; do not merge `main`.
 2. Back up the staging SQLite database before migration.
@@ -527,6 +616,8 @@ Cleanup rules:
 
 ## Acceptance Criteria
 
+Implementation status: all code-level criteria and local automated validation are complete. Physical migration, backup/restore, DPAPI launch, expanded `RunValidation`, manual Control Center inspection/dry-run, kill-switch confirmation, and explicit acceptance remain open. Phase 6 must not be marked closed before those checks are recorded.
+
 Phase 6 may close only when:
 
 - The branch started exactly from frozen Phase 5 SHA `1bbde2078d293229ef67939b3ff0b56dfd1c18f3` and prior branches remain untouched.
@@ -548,9 +639,9 @@ Phase 6 may close only when:
 - Existing Phase 1-5 tests, static OFA behavior, Archive filtering, account security, and Control Center behavior continue to pass.
 - Production-only and Steam behavior remain explicitly deferred and unclaimed.
 
-## Approval Decisions Requested
+## Locked Approval Decisions
 
-The plan recommends these defaults for approval:
+The following approved decisions govern the implementation:
 
 1. Implement the six bounded effect types listed above; defer non-stackable instance effects and external outbox delivery.
 2. Evaluate all sibling rules from one pre-effect snapshot; use explicit chained events when one consequence should unlock another rule.
@@ -559,4 +650,4 @@ The plan recommends these defaults for approval:
 5. Keep initial meaningful production event registration conservative; prove the engine with staging fixtures and server-internal events rather than trusting broad client-reported gameplay claims.
 6. Treat `authored_events_disabled` as the rollout/rollback kill switch and deploy Phase 6 to staging initially disabled.
 
-No implementation should begin until these decisions and the overall plan are approved.
+These decisions were approved before implementation and must not be changed during physical validation without an explicit reviewed patch.

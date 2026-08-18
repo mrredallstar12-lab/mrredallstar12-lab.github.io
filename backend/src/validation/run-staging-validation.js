@@ -2,6 +2,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SQLiteD1Adapter } from "../db/sqlite-adapter.js";
 import { listMigrationFiles } from "../db/migrations.js";
+import { ProgressionEngine } from "../progression/engine.js";
 import { loadServerConfig } from "../server/config.js";
 import { cleanupValidationFixtures, createValidationFixtures } from "./staging-fixtures.js";
 
@@ -99,6 +100,7 @@ export async function runStagingValidation(options = {}) {
     });
 
     fixture = await createValidationFixtures(db, config);
+    if (options.injectFailureAfterFixtures === true) throw new Error("injected_validation_failure_after_fixtures");
     const adminCookie = `ofa_session=${fixture.admin.session.token}`;
     const playerCookie = `ofa_session=${fixture.player.session.token}`;
 
@@ -186,7 +188,7 @@ export async function runStagingValidation(options = {}) {
     await check("fictional clearance typed operation", async () => {
       const changed = await api(`/api/v1/admin/players/${fixture.player.accountId}/fictional-clearance/set`, {
         method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
-        body: { confirm: "SET_CLEARANCE", clearanceState: { clearances: ["phase5.validation"] }, reason: "staging validation harness" }
+        body: { confirm: "SET_CLEARANCE", clearanceState: { clearances: ["phase5.validation", "phase6.validation.prerequisite"] }, reason: "staging validation harness" }
       });
       assertCondition(changed.response.status === 200, `clearance change received ${changed.response.status}`);
       const stored = db.database.prepare("SELECT clearance_state_json FROM archive_identities WHERE account_id = ?").get(fixture.player.accountId);
@@ -235,10 +237,153 @@ export async function runStagingValidation(options = {}) {
       assertCondition(JSON.stringify(playerPreview.body).includes("WE WERE NEVER ONLY RECEIVING."), "discovered player preview omitted transcript");
     });
 
+    await check("Phase 6 kill switch", async () => {
+      const blocked = await api("/api/v1/admin/staging/progression/trigger", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: {
+          confirm: "TRIGGER_PROGRESSION_EVENT", username: fixture.player.username,
+          eventType: "phase6.staging.observation", idempotencyKey: `${fixture.phase6.namespace}-disabled`,
+          payload: { signalKey: "validation", sequence: 1 }
+        }
+      });
+      assertCondition(blocked.response.status === 503 && blocked.body.error?.code === "authored_events_disabled", `kill switch returned ${blocked.response.status}`);
+      assertCondition(!db.database.prepare("SELECT id FROM progression_events WHERE idempotency_key = ?").get(`${fixture.phase6.namespace}-disabled`), "disabled event was persisted");
+    });
+
+    await check("Phase 6 enable for validation", async () => {
+      const enabled = await api("/api/v1/admin/operations/modes/set", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: { confirm: "SET_OPERATIONAL_MODE", modeKey: "authored_events_disabled", enabled: false, reason: "staging validation harness" }
+      });
+      assertCondition(enabled.response.status === 200, `mode change returned ${enabled.response.status}`);
+    });
+
+    const firstEventKey = `${fixture.phase6.namespace}-first`;
+    const effectEventKey = `${fixture.phase6.namespace}-effects`;
+    await check("canonical ingestion and compound prerequisites", async () => {
+      const first = await api("/api/v1/admin/staging/progression/trigger", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: {
+          confirm: "TRIGGER_PROGRESSION_EVENT", username: fixture.player.username,
+          eventType: "phase6.staging.observation", idempotencyKey: firstEventKey,
+          payload: { signalKey: "validation", sequence: 1 }
+        }
+      });
+      assertCondition(first.response.status === 201, `first event returned ${first.response.status}`);
+      assertCondition(first.body.progression?.eventCount === 1 && first.body.progression?.effectCount === 0, "first event should establish prior-event history without matching");
+      const stored = db.database.prepare("SELECT * FROM progression_events WHERE idempotency_key = ?").get(firstEventKey);
+      assertCondition(stored?.source_type === "staging_admin" && stored.account_id === fixture.player.accountId, "canonical actor/source data missing");
+      assertCondition(JSON.parse(stored.payload_json).signalKey === "validation", "canonical payload missing");
+      assertCondition(JSON.parse(stored.provenance_json).source === "admin_staging_trigger", "provenance missing");
+      assertCondition(!!stored.request_id, "request provenance missing");
+    });
+
+    await check("elevated dry-run is non-mutating", async () => {
+      const before = {
+        events: db.database.prepare("SELECT COUNT(*) AS count FROM progression_events WHERE account_id = ?").get(fixture.player.accountId).count,
+        history: db.database.prepare("SELECT COUNT(*) AS count FROM progression_history WHERE account_id = ?").get(fixture.player.accountId).count,
+        balance: db.database.prepare("SELECT quantity FROM inventory_balances WHERE account_id = ? AND item_definition_id = ?").get(fixture.player.accountId, fixture.phase6.itemDefinitionId).quantity
+      };
+      const simulated = await api("/api/v1/admin/progression/simulate", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: {
+          confirm: "SIMULATE_PROGRESSION", username: fixture.player.username,
+          eventType: "phase6.staging.observation", payload: { signalKey: "validation", sequence: 2 }
+        }
+      });
+      assertCondition(simulated.response.status === 200, `simulation returned ${simulated.response.status}`);
+      assertCondition(simulated.body.simulation?.committed === false && simulated.body.simulation?.effectCount === 7, `simulation did not evaluate the expected consequence set (${JSON.stringify(simulated.body.simulation)})`);
+      const after = {
+        events: db.database.prepare("SELECT COUNT(*) AS count FROM progression_events WHERE account_id = ?").get(fixture.player.accountId).count,
+        history: db.database.prepare("SELECT COUNT(*) AS count FROM progression_history WHERE account_id = ?").get(fixture.player.accountId).count,
+        balance: db.database.prepare("SELECT quantity FROM inventory_balances WHERE account_id = ? AND item_definition_id = ?").get(fixture.player.accountId, fixture.phase6.itemDefinitionId).quantity
+      };
+      assertCondition(JSON.stringify(after) === JSON.stringify(before), "dry-run changed persistent progression state");
+    });
+
+    await check("six effects, sibling snapshot, and explicit chaining", async () => {
+      const executed = await api("/api/v1/admin/staging/progression/trigger", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: {
+          confirm: "TRIGGER_PROGRESSION_EVENT", username: fixture.player.username,
+          eventType: "phase6.staging.observation", idempotencyKey: effectEventKey,
+          payload: { signalKey: "validation", sequence: 2 }
+        }
+      });
+      assertCondition(executed.response.status === 201, `effect event returned ${executed.response.status}`);
+      assertCondition(executed.body.progression?.eventCount === 2 && executed.body.progression?.effectCount === 7, "expected root plus explicit chained event and seven effects");
+      const discovery = db.database.prepare("SELECT id FROM account_discoveries WHERE account_id = ? AND discovery_key = ?").get(fixture.player.accountId, fixture.phase6.resultDiscovery);
+      const balance = db.database.prepare("SELECT quantity FROM inventory_balances WHERE account_id = ? AND item_definition_id = ?").get(fixture.player.accountId, fixture.phase6.itemDefinitionId);
+      const identity = db.database.prepare("SELECT clearance_state_json FROM archive_identities WHERE account_id = ?").get(fixture.player.accountId);
+      const relation = db.database.prepare("SELECT status FROM account_relationship_discoveries WHERE account_id = ? AND relationship_id = ?").get(fixture.player.accountId, fixture.phase6.relationshipId);
+      const state = db.database.prepare("SELECT current_state_json FROM archive_state_scopes WHERE scope_type = 'global' AND scope_key = ?").get(fixture.phase6.stateScopeKey);
+      assertCondition(!!discovery && balance?.quantity === 3, "discovery or inventory effect missing");
+      assertCondition(identity.clearance_state_json.includes(fixture.phase6.grantedClearance) && identity.clearance_state_json.includes(fixture.phase6.followupClearance), "clearance or chained consequence missing");
+      assertCondition(!identity.clearance_state_json.includes(fixture.phase6.siblingClearance), "sibling rule observed another sibling's effect");
+      assertCondition(relation?.status === "revoked" && state?.current_state_json.includes("awakened"), "relationship or Archive State effect missing");
+      assertCondition(db.database.prepare("SELECT COUNT(*) AS count FROM progression_history WHERE account_id = ?").get(fixture.player.accountId).count === 7, "append-only progression history incomplete");
+    });
+
+    await check("replay and idempotency conflict", async () => {
+      const replayBody = {
+        confirm: "TRIGGER_PROGRESSION_EVENT", username: fixture.player.username,
+        eventType: "phase6.staging.observation", idempotencyKey: effectEventKey,
+        payload: { signalKey: "validation", sequence: 2 }
+      };
+      const replay = await api("/api/v1/admin/staging/progression/trigger", { method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf, body: replayBody });
+      assertCondition(replay.response.status === 200 && replay.body.progression?.duplicate === true, `replay returned ${replay.response.status}`);
+      const conflict = await api("/api/v1/admin/staging/progression/trigger", { method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf, body: { ...replayBody, payload: { signalKey: "validation", sequence: 3 } } });
+      assertCondition(conflict.response.status === 409 && conflict.body.error?.code === "idempotency_conflict", `conflict returned ${conflict.response.status}`);
+      assertCondition(db.database.prepare("SELECT quantity FROM inventory_balances WHERE account_id = ? AND item_definition_id = ?").get(fixture.player.accountId, fixture.phase6.itemDefinitionId).quantity === 3, "replay duplicated inventory effects");
+    });
+
+    await check("atomic rollback and chain limits", async () => {
+      const rollbackKey = `${fixture.phase6.namespace}-rollback`;
+      const rollback = await api("/api/v1/admin/staging/progression/trigger", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: { confirm: "TRIGGER_PROGRESSION_EVENT", username: fixture.player.username, eventType: "phase6.staging.rollback", idempotencyKey: rollbackKey, payload: {} }
+      });
+      assertCondition(rollback.response.status === 422 && rollback.body.error?.code === "progression_inventory_quantity_invalid", `rollback event returned ${rollback.response.status}`);
+      assertCondition(!db.database.prepare("SELECT id FROM progression_events WHERE idempotency_key = ?").get(rollbackKey), "failed root event survived rollback");
+      assertCondition(!db.database.prepare("SELECT id FROM account_discoveries WHERE account_id = ? AND discovery_key LIKE ?").get(fixture.player.accountId, `phase6.validation.must-rollback.${fixture.suffix}`), "partial discovery survived rollback");
+      const chainKey = `${fixture.phase6.namespace}-chain-limit`;
+      const chain = await api("/api/v1/admin/staging/progression/trigger", {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
+        body: { confirm: "TRIGGER_PROGRESSION_EVENT", username: fixture.player.username, eventType: "phase6.staging.chain.1", idempotencyKey: chainKey, payload: {} }
+      });
+      assertCondition(chain.response.status === 422 && chain.body.error?.code === "chain_depth_limit_exceeded", `chain limit returned ${chain.response.status}`);
+      assertCondition(!db.database.prepare("SELECT id FROM progression_events WHERE idempotency_key = ?").get(chainKey), "over-limit chain survived rollback");
+    });
+
+    await check("serialized concurrent writes", async () => {
+      const engine = new ProgressionEngine(db, { environment: config.envName });
+      const sourceSubject = `validation:${fixture.player.accountId}`;
+      const shared = `${fixture.phase6.namespace}-concurrent-shared`;
+      const sharedResults = await Promise.all([0, 1].map(() => engine.ingest({
+        eventType: "archive.record.accessed", sourceType: "server", sourceSubject,
+        accountId: fixture.player.accountId, idempotencyKey: shared,
+        payload: { catalogId: "phase4-signal-001" }, provenance: { source: "staging_validation_harness" }
+      })));
+      assertCondition(sharedResults.filter((result) => result.duplicate).length === 1, "simultaneous replay was not deduplicated");
+      await Promise.all(Array.from({ length: 12 }, (_, index) => engine.ingest({
+        eventType: "archive.record.accessed", sourceType: "server", sourceSubject,
+        accountId: fixture.player.accountId, idempotencyKey: `${fixture.phase6.namespace}-concurrent-${index}`,
+        payload: { catalogId: "phase4-signal-001" }, provenance: { source: "staging_validation_harness" }
+      })));
+      const balance = db.database.prepare("SELECT quantity FROM inventory_balances WHERE account_id = ? AND item_definition_id = ?").get(fixture.player.accountId, fixture.phase6.itemDefinitionId).quantity;
+      assertCondition(balance === 16, `serialized quantity expected 16, received ${balance}`);
+    });
+
+    await check("fictional and real authorization separation after progression", async () => {
+      const denied = await api("/api/v1/admin/me", { cookie: playerCookie });
+      assertCondition(denied.response.status === 403, "progression clearance granted real authorization");
+      assertCondition(db.database.prepare("SELECT COUNT(*) AS count FROM account_roles WHERE account_id = ?").get(fixture.player.accountId).count === 0, "progression changed a real role");
+    });
+
     await check("privileged audit history", async () => {
       const rows = db.database.prepare("SELECT action, context_json FROM audit_events WHERE request_id LIKE ?").all(`${requestPrefix}%`);
       const actions = new Set(rows.map((row) => row.action));
-      for (const action of ["admin.discovery.grant", "admin.discovery.revoke", "admin.inventory.grant", "admin.inventory.revoke", "admin.fictional_clearance.set", "admin.operations.mode.set", "admin.content.preview"]) {
+      for (const action of ["admin.discovery.grant", "admin.discovery.revoke", "admin.inventory.grant", "admin.inventory.revoke", "admin.fictional_clearance.set", "admin.operations.mode.set", "admin.content.preview", "admin.progression.simulate", "admin.progression.staging_trigger"]) {
         assertCondition(actions.has(action), `missing audit action ${action}`);
       }
       const auditText = JSON.stringify(rows);

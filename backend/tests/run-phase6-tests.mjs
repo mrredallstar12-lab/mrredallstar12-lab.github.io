@@ -121,6 +121,50 @@ try {
   assert.equal(first.effectCount, 0);
   assert.equal(first.events[0].status, "no_match");
 
+  assert.deepEqual(new ProgressionEngine(db, { environment: "test", maxDepth: 999, maxEvents: 999, maxEffects: 999 }).limits, {
+    maxDepth: 4,
+    maxEvents: 32,
+    maxEffects: 128,
+    maxDefinitions: 32
+  });
+  const effectLimitedEngine = new ProgressionEngine(db, { environment: "test", maxEffects: 2 });
+  await assert.rejects(
+    () => effectLimitedEngine.ingest({
+      eventType: "phase6.staging.observation", sourceType: "staging_admin", sourceSubject: `admin:${accountId}`,
+      accountId, idempotencyKey: "phase6-effect-limit", payload: { signalKey: "alpha", sequence: 2 }
+    }),
+    hasCode("chain_effect_limit_exceeded")
+  );
+  assert.equal(await db.prepare("SELECT id FROM progression_events WHERE idempotency_key = 'phase6-effect-limit'").first(), null);
+  const eventLimitedEngine = new ProgressionEngine(db, { environment: "test", maxEvents: 1 });
+  await assert.rejects(
+    () => eventLimitedEngine.ingest({
+      eventType: "phase6.staging.observation", sourceType: "staging_admin", sourceSubject: `admin:${accountId}`,
+      accountId, idempotencyKey: "phase6-event-limit", payload: { signalKey: "alpha", sequence: 2 }
+    }),
+    hasCode("chain_event_limit_exceeded")
+  );
+  assert.equal(await db.prepare("SELECT id FROM progression_events WHERE idempotency_key = 'phase6-event-limit'").first(), null);
+
+  const cycleDefinition = await definitions.createVersion({
+    eventKey: "phase6.cycle",
+    triggerEventType: "phase6.staging.chain.1",
+    condition: { not: { discovery: { key: "phase6.cycle-stop", present: true } } },
+    fixtureNamespace: "phase6-test",
+    effects: [{ key: "self", type: "event.emit", config: { eventType: "phase6.staging.chain.1", payload: {} } }]
+  });
+  await assert.rejects(
+    () => engine.ingest({
+      eventType: "phase6.staging.chain.1", sourceType: "staging_admin", sourceSubject: `admin:${accountId}`,
+      accountId, idempotencyKey: "phase6-cycle", payload: {}
+    }),
+    hasCode("chain_cycle_detected")
+  );
+  assert.equal(await db.prepare("SELECT id FROM progression_events WHERE idempotency_key = 'phase6-cycle'").first(), null);
+  await db.prepare("DELETE FROM authored_event_version_effects WHERE definition_version_id = ?").bind(cycleDefinition.versionId).run();
+  await db.prepare("DELETE FROM authored_event_versions WHERE id = ?").bind(cycleDefinition.versionId).run();
+  await db.prepare("DELETE FROM authored_events WHERE id = ?").bind(cycleDefinition.eventId).run();
+
   const second = await engine.ingest({
     eventType: "phase6.staging.observation", sourceType: "staging_admin", sourceSubject: `admin:${accountId}`,
     accountId, idempotencyKey: "phase6-observation-second", payload: { signalKey: "alpha", sequence: 2 }, provenance: { source: "test" }

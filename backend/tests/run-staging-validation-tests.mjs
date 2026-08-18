@@ -50,7 +50,19 @@ const lines = [];
 try {
   const results = await runStagingValidation({ config, output: { log: (line) => lines.push(line) } });
   assert.equal(results.some((result) => result.status === "FAIL"), false);
-  assert.equal(results.some((result) => result.name === "privileged audit history" && result.status === "PASS" && result.detail === "17 request-linked entries verified"), true);
+  assert.equal(results.some((result) => result.name === "privileged audit history" && result.status === "PASS" && Number.parseInt(result.detail, 10) >= 17), true);
+  for (const name of [
+    "Phase 6 kill switch",
+    "canonical ingestion and compound prerequisites",
+    "elevated dry-run is non-mutating",
+    "six effects, sibling snapshot, and explicit chaining",
+    "replay and idempotency conflict",
+    "atomic rollback and chain limits",
+    "serialized concurrent writes",
+    "fictional and real authorization separation after progression"
+  ]) {
+    assert.equal(results.some((result) => result.name === name && result.status === "PASS"), true, `${name} did not pass`);
+  }
   assert.equal(results.some((result) => result.name === "emergency global session revocation" && result.status === "SKIP"), true);
   assert.equal(lines.some((line) => line.includes("MANUAL REQUIRED")), true);
 
@@ -58,6 +70,12 @@ try {
   try {
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM account_profiles WHERE username_normalized LIKE 'valadmin%' OR username_normalized LIKE 'valplayer%'").get().count, 0);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM inventory_item_definitions WHERE item_key LIKE 'staging_validation_item_%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM inventory_item_definitions WHERE item_key LIKE 'phase6_validation_ticket_%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM authored_event_versions WHERE fixture_namespace LIKE 'staging-validation-%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM authored_events WHERE event_key LIKE 'staging-validation-%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM progression_events WHERE source_subject LIKE 'validation:%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM archive_state_scopes WHERE scope_key LIKE 'phase6-validation-%'").get().count, 0);
+    assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM entity_relationships WHERE id LIKE 'rel_phase6_validation_%'").get().count, 0);
     assert.deepEqual(checkDb.database.prepare("SELECT mode_key, enabled, reason, updated_by, updated_at FROM operational_modes ORDER BY mode_key").all(), originalModes);
     assert.equal(checkDb.database.prepare("SELECT COUNT(*) AS count FROM audit_events WHERE request_id LIKE 'staging-validation-%'").get().count, 0);
   } finally {
@@ -72,6 +90,19 @@ try {
     () => runStagingValidation({ config: { ...config, workerEnv: { ...config.workerEnv, OFA_PUBLIC_BASE_URL: "https://example.com" } }, output: { log() {} } }),
     /target must be loopback-only/
   );
+  await assert.rejects(
+    () => runStagingValidation({ config, output: { log() {} }, injectFailureAfterFixtures: true }),
+    /injected_validation_failure_after_fixtures/
+  );
+  const failedRunDb = new SQLiteD1Adapter(sqlitePath);
+  try {
+    assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM account_profiles WHERE username_normalized LIKE 'valadmin%' OR username_normalized LIKE 'valplayer%'").get().count, 0);
+    assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM authored_event_versions WHERE fixture_namespace LIKE 'staging-validation-%'").get().count, 0);
+    assert.equal(failedRunDb.database.prepare("SELECT COUNT(*) AS count FROM archive_state_scopes WHERE scope_key LIKE 'phase6-validation-%'").get().count, 0);
+    assert.deepEqual(failedRunDb.database.prepare("SELECT mode_key, enabled, reason, updated_by, updated_at FROM operational_modes ORDER BY mode_key").all(), originalModes);
+  } finally {
+    failedRunDb.close();
+  }
 } finally {
   runtime.server.close();
 }

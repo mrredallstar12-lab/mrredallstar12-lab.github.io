@@ -42,7 +42,7 @@ async function createPlayer(suffix) {
 
 try {
   const migrations = await db.prepare("SELECT version FROM schema_migrations ORDER BY version").all();
-  assert.deepEqual(migrations.results.map((row) => row.version), ["0001", "0002", "0003", "0004", "0005", "0006"]);
+  assert.deepEqual(migrations.results.map((row) => row.version), ["0001", "0002", "0003", "0004", "0005", "0006", "0007"]);
   assert.equal((await db.prepare("SELECT enabled FROM operational_modes WHERE mode_key = 'authored_events_disabled'").first()).enabled, 1);
 
   await assert.rejects(

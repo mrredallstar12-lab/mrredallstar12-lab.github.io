@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { SQLiteD1Adapter } from "../db/sqlite-adapter.js";
 import { listMigrationFiles } from "../db/migrations.js";
 import { ProgressionEngine } from "../progression/engine.js";
+import { ProgressionDefinitionRepository } from "../repositories/progression-definition-repository.js";
 import { loadServerConfig } from "../server/config.js";
 import { cleanupValidationFixtures, createValidationFixtures } from "./staging-fixtures.js";
 
@@ -309,6 +310,15 @@ export async function runStagingValidation(options = {}) {
       assertCondition(hidden.response.status === 503, "authored event switch should precede existence probing while disabled");
     });
 
+    await check("Phase 8 rollout kill switch", async () => {
+      const mode = modeSnapshot.find((row) => row.mode_key === "investigations_disabled");
+      assertCondition(mode?.enabled === 1, "Phase 8 validation must begin with investigations disabled");
+      const blocked = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/start`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(blocked.response.status === 503 && blocked.body.error?.code === "investigations_disabled", "investigation switch did not block typed interactions");
+    });
+
     await check("Phase 6 kill switch", async () => {
       const blocked = await api("/api/v1/admin/staging/progression/trigger", {
         method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf,
@@ -328,6 +338,7 @@ export async function runStagingValidation(options = {}) {
         body: { confirm: "SET_OPERATIONAL_MODE", modeKey: "authored_events_disabled", enabled: false, reason: "staging validation harness" }
       });
       assertCondition(enabled.response.status === 200, `mode change returned ${enabled.response.status}`);
+      db.database.prepare("UPDATE operational_modes SET enabled = 0, reason = 'staging validation harness' WHERE mode_key = 'investigations_disabled'").run();
     });
 
     const firstEventKey = `${fixture.phase6.namespace}-first`;
@@ -530,6 +541,107 @@ export async function runStagingValidation(options = {}) {
       for (const forbidden of ["localStorage", "oddInventory", "discoveryKey", "/me/discoveries"]) {
         assertCondition(!bridge.includes(forbidden), `canonical bridge contains forbidden client mutation/storage path ${forbidden}`);
       }
+      assertCondition(bridge.includes("/investigation/start") && bridge.includes("/investigation/evidence") && bridge.includes("/attempt"), "Phase 8 typed frontend interactions were missing");
+    });
+
+    await check("Phase 8 typed investigation and evidence boundary", async () => {
+      const internal = await api(`/api/v1/archive/cases/${fixture.phase8.caseRecordId}/investigation/start`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(internal.response.status === 404, "internal record identity opened an investigation");
+      const anonymous = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/start`, { method: "POST" });
+      assertCondition(anonymous.response.status === 401, "anonymous investigation start was accepted");
+      const started = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/start`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(started.response.status === 200 && started.body.result?.duplicate === false, `investigation start returned ${started.response.status}`);
+      const replay = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/start`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(replay.body.result?.duplicate === true, "investigation start replay was not idempotent");
+      const canonicalCount = db.database.prepare("SELECT COUNT(*) AS count FROM entity_relationships").get().count;
+      const pin = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/evidence`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf,
+        body: { targetType: "record", catalogId: fixture.phase8.evidenceSlugs[0] }
+      });
+      assertCondition(pin.response.status === 200 && /^evidence_/.test(pin.body.result?.evidence?.publicRef || ""), "evidence pin failed");
+      assertCondition(db.database.prepare("SELECT COUNT(*) AS count FROM entity_relationships").get().count === canonicalCount, "player evidence pin mutated canonical relationships");
+      const state = await api("/api/v1/me/state", { cookie: playerCookie });
+      const projected = state.body.state.investigations?.find((item) => item.case.catalogId === fixture.phase8.caseSlug);
+      assertCondition(projected?.evidencePins?.length === 1 && projected.steps?.length === 1, "safe investigation projection was incomplete");
+      const serialized = JSON.stringify(projected);
+      for (const forbidden of [fixture.phase8.answer, fixture.phase8.discoveryKey, fixture.phase8.credentialKey, fixture.phase8.relationshipId, fixture.phase8.versionId, "verifier", "condition_json"]) {
+        assertCondition(!serialized.includes(forbidden), `investigation projection exposed ${forbidden}`);
+      }
+      const unpin = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/evidence/${pin.body.result.evidence.publicRef}`, {
+        method: "DELETE", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(unpin.response.status === 200, "evidence unpin failed");
+    });
+
+    await check("Phase 8 verifier neutrality and authoritative resolution", async () => {
+      const endpoint = `/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/steps/${fixture.phase8.stepKey}/attempt`;
+      const wrong = await api(endpoint, { method: "POST", cookie: playerCookie, csrf: playerCsrf, body: { answer: "incorrect fixture answer" } });
+      const malformed = await api(endpoint, { method: "POST", cookie: playerCookie, csrf: playerCsrf, body: { answer: 17 } });
+      assertCondition(wrong.response.status === 200 && malformed.response.status === 200, "neutral wrong-answer responses diverged by status");
+      assertCondition(JSON.stringify(wrong.body.result) === JSON.stringify(malformed.body.result), "malformed and wrong answers produced distinguishable result shapes");
+      const before = await api("/api/v1/me/state", { cookie: playerCookie });
+      const accepted = await api(endpoint, { method: "POST", cookie: playerCookie, csrf: playerCsrf, body: { answer: fixture.phase8.answer.toUpperCase() } });
+      assertCondition(accepted.response.status === 200 && accepted.body.result?.accepted === true, "exact normalized answer was not accepted");
+      const after = await api("/api/v1/me/state", { cookie: playerCookie });
+      const investigation = after.body.state.investigations.find((item) => item.case.catalogId === fixture.phase8.caseSlug);
+      assertCondition(investigation.status === "resolved" && investigation.steps[0].resolved === true, "investigation did not resolve atomically");
+      assertCondition(after.body.state.revision !== before.body.state.revision, "visible investigation resolution did not change state revision");
+      assertCondition(after.body.state.discoveries.some((item) => item.label === "Validation Investigation Resolution"), "Phase 8 discovery consequence missing");
+      assertCondition(after.body.state.credentials.some((item) => item.label === "Validation Investigator Acknowledgement"), "Phase 8 credential consequence missing");
+      assertCondition(after.body.state.inventory.balances.some((item) => item.itemKey === fixture.phase8.itemKey && item.quantity === 1), "Phase 8 inventory consequence missing");
+      const event = db.database.prepare("SELECT * FROM progression_events WHERE account_id = ? AND event_type = 'archive.case.step.resolved'").get(fixture.player.accountId);
+      assertCondition(event?.source_type === "interaction_service" && !!event.request_id, "trusted interaction event provenance was missing");
+      const replay = await api(endpoint, { method: "POST", cookie: playerCookie, csrf: playerCsrf, body: { answer: fixture.phase8.answer } });
+      const afterReplay = await api("/api/v1/me/state", { cookie: playerCookie });
+      assertCondition(replay.body.result?.accepted === true && replay.body.result?.duplicate === true, "puzzle replay was not deduplicated");
+      assertCondition(afterReplay.body.state.revision === after.body.state.revision, "puzzle replay changed visible state");
+      const stored = JSON.stringify(db.database.prepare("SELECT input_digest, provenance_json FROM canonical_interactions WHERE account_id = ?").all(fixture.player.accountId));
+      const audits = JSON.stringify(db.database.prepare("SELECT context_json FROM audit_events WHERE actor_id = ? AND action LIKE 'archive.case.%'").all(fixture.player.accountId));
+      assertCondition(!stored.includes(fixture.phase8.answer) && !audits.includes(fixture.phase8.answer), "puzzle answer leaked into interaction or audit storage");
+    });
+
+    await check("Phase 8 atomic rollback, concurrency, and OWNER parity", async () => {
+      const endpoint = `/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/steps/${fixture.phase8.stepKey}/attempt`;
+      const started = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/start`, {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf
+      });
+      assertCondition(started.response.status === 200, "OWNER ordinary investigation start failed");
+      const definitions = new ProgressionDefinitionRepository(db);
+      await definitions.createVersion({
+        eventKey: `${fixture.phase8.namespace}.rollback`, triggerEventType: "archive.case.step.resolved",
+        priority: 101, fixtureNamespace: fixture.phase8.namespace, createdBy: fixture.admin.accountId,
+        condition: { event_payload: { field: "caseCatalogId", equals: fixture.phase8.caseSlug } },
+        effects: [{ key: "missing", type: "inventory.quantity", config: { itemKey: `phase8_missing_${fixture.suffix}`, delta: 1 } }]
+      });
+      const failed = await api(endpoint, { method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf, body: { answer: fixture.phase8.answer } });
+      assertCondition(failed.response.status === 422, "injected effect failure did not reject the interaction");
+      assertCondition(db.database.prepare("SELECT COUNT(*) AS count FROM case_investigation_attempts a JOIN account_case_investigations i ON i.id = a.account_investigation_id WHERE i.account_id = ?").get(fixture.admin.accountId).count === 0, "failed interaction retained an attempt");
+      const rollbackEvent = db.database.prepare("SELECT id FROM authored_events WHERE event_key = ?").get(`${fixture.phase8.namespace}.rollback`);
+      db.transaction(() => {
+        db.database.prepare("DELETE FROM authored_event_version_effects WHERE definition_version_id IN (SELECT id FROM authored_event_versions WHERE authored_event_id = ?)").run(rollbackEvent.id);
+        db.database.prepare("DELETE FROM authored_event_versions WHERE authored_event_id = ?").run(rollbackEvent.id);
+        db.database.prepare("DELETE FROM authored_events WHERE id = ?").run(rollbackEvent.id);
+      });
+      const concurrent = await Promise.all([0, 1].map(() => api(endpoint, {
+        method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf, body: { answer: fixture.phase8.answer }
+      })));
+      assertCondition(concurrent.every((entry) => entry.response.status === 200 && entry.body.result?.accepted === true), "serialized concurrent puzzle attempts failed");
+      assertCondition(concurrent.filter((entry) => entry.body.result?.duplicate).length === 1, "concurrent accepted attempts were not deduplicated");
+      for (let index = 0; index < 9; index += 1) {
+        const response = await api(endpoint, { method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf, body: { answer: "owner parity replay" } });
+        assertCondition(response.response.status === 200, `OWNER ordinary attempt ${index + 1} returned ${response.response.status}`);
+      }
+      const limited = await api(endpoint, { method: "POST", cookie: elevatedCookie, csrf: elevatedCsrf, body: { answer: "owner parity replay" } });
+      assertCondition(limited.response.status === 429, `OWNER received puzzle rate advantage (${limited.response.status})`);
+      assertCondition(db.database.prepare("SELECT COUNT(*) AS count FROM account_roles WHERE account_id = ?").get(fixture.player.accountId).count === 0, "fictional resolution changed real authorization");
+      const published = db.database.prepare("SELECT version FROM case_investigation_versions WHERE definition_id = ? AND status = 'published'").get(fixture.phase8.definitionId);
+      assertCondition(published.version === 1, "draft investigation revision displaced the published player version");
     });
 
     await check("Phase 7 rollout switches restored", async () => {
@@ -540,14 +652,19 @@ export async function runStagingValidation(options = {}) {
         });
         assertCondition(restored.response.status === 200, `${modeKey} restore returned ${restored.response.status}`);
       }
+      db.database.prepare("UPDATE operational_modes SET enabled = 1, reason = 'phase8_default_disabled_until_physical_validation' WHERE mode_key = 'investigations_disabled'").run();
       const surfaceBlocked = await api("/api/v1/me/state", { cookie: playerCookie });
       assertCondition(surfaceBlocked.response.status === 503 && surfaceBlocked.body.error?.code === "player_surfaces_disabled", "player surface switch was not restored");
+      const investigationBlocked = await api(`/api/v1/archive/cases/${fixture.phase8.caseSlug}/investigation/start`, {
+        method: "POST", cookie: playerCookie, csrf: playerCsrf
+      });
+      assertCondition(investigationBlocked.response.status === 503 && investigationBlocked.body.error?.code === "investigations_disabled", "Phase 8 switch was not restored");
     });
 
     await check("privileged audit history", async () => {
       const rows = db.database.prepare("SELECT action, context_json FROM audit_events WHERE request_id LIKE ?").all(`${requestPrefix}%`);
       const actions = new Set(rows.map((row) => row.action));
-      for (const action of ["admin.discovery.grant", "admin.discovery.revoke", "admin.inventory.grant", "admin.inventory.revoke", "admin.fictional_clearance.set", "admin.operations.mode.set", "admin.content.preview", "admin.progression.simulate", "admin.progression.staging_trigger", "archive.record.review"]) {
+      for (const action of ["admin.discovery.grant", "admin.discovery.revoke", "admin.inventory.grant", "admin.inventory.revoke", "admin.fictional_clearance.set", "admin.operations.mode.set", "admin.content.preview", "admin.progression.simulate", "admin.progression.staging_trigger", "archive.record.review", "archive.case.investigation.start", "archive.case.evidence.pin", "archive.case.step.attempt"]) {
         assertCondition(actions.has(action), `missing audit action ${action}`);
       }
       const auditText = JSON.stringify(rows);

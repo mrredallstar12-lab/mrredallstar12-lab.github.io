@@ -69,6 +69,7 @@ export function adminControlPage(config = {}) {
         <option value="player_mutations_disabled">player_mutations_disabled</option>
         <option value="authored_events_disabled">authored_events_disabled</option>
         <option value="player_surfaces_disabled">player_surfaces_disabled</option>
+        <option value="investigations_disabled">investigations_disabled</option>
       </select>
       <select id="modeEnabled">
         <option value="true">enabled</option>

@@ -12,6 +12,15 @@ const EVENT_TYPES = new Map([
       revision: { type: "string", maxLength: 128 }
     }
   }],
+  ["archive.case.step.resolved", {
+    sources: new Set(["interaction_service"]),
+    environments: new Set(["development", "staging", "test", "production"]),
+    fields: {
+      caseCatalogId: { type: "string", maxLength: 96 },
+      investigationVersion: { type: "string", maxLength: 128 },
+      stepKey: { type: "string", maxLength: 96 }
+    }
+  }],
   ["phase6.staging.observation", stagingEvent({
     signalKey: { type: "string", maxLength: 64 },
     sequence: { type: "integer", min: 0, max: 1000000 }

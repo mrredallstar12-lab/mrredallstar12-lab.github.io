@@ -8,6 +8,7 @@ import { MeInventoryRepository } from "../repositories/me-inventory-repository.j
 import { OperationalModeRepository } from "../repositories/operational-mode-repository.js";
 import { ProgressionDefinitionRepository } from "../repositories/progression-definition-repository.js";
 import { ProgressionRepository } from "../repositories/progression-repository.js";
+import { InvestigationRepository } from "../repositories/investigation-repository.js";
 import { ProgressionEngine } from "../progression/engine.js";
 import { buildActorContext, filterRecord } from "../archive/visibility-service.js";
 import { jsonResponse, parseCookies, readJson, sessionCookie } from "../security/http.js";
@@ -33,7 +34,11 @@ function repos(env, config) {
     meInventory: new MeInventoryRepository(env.DB),
     modes: new OperationalModeRepository(env.DB),
     progressionDefinitions: new ProgressionDefinitionRepository(env.DB),
-    progression: new ProgressionRepository(env.DB)
+    progression: new ProgressionRepository(env.DB),
+    investigations: new InvestigationRepository(env.DB, {
+      fieldEncryptionKey: config.fieldEncryptionKey,
+      fieldEncryptionKeyId: config.fieldEncryptionKeyId
+    })
   };
 }
 
@@ -175,6 +180,65 @@ export async function handleAdminApi(request, env, config) {
     const definitions = await r.progressionDefinitions.list();
     await r.audit.record({ actorType: "account", actorId: actor.accountId, action: "admin.progression.definitions.read", result: "allowed", requestId, context: { count: definitions.length } });
     return jsonResponse({ ok: true, definitions }, 200, noStore());
+  }
+
+  if (path === "/api/v1/admin/investigations" && request.method === "GET") {
+    const required = await adminActor(request, env, config, "investigations.read");
+    if (required.response) return required.response;
+    const { actor, repos: r } = required;
+    const definitions = await env.DB.prepare(`
+      SELECT d.investigation_key, rec.slug AS case_slug, v.version, v.status,
+        v.player_title, v.player_summary, COUNT(s.id) AS step_count
+      FROM case_investigation_definitions d
+      JOIN records rec ON rec.id = d.case_record_id
+      JOIN case_investigation_versions v ON v.definition_id = d.id
+      LEFT JOIN case_investigation_steps s ON s.investigation_version_id = v.id
+      GROUP BY d.id, v.id
+      ORDER BY rec.slug, v.version DESC
+      LIMIT 100
+    `).all();
+    let player = null;
+    const username = url.searchParams.get("username");
+    if (username) {
+      const account = await r.admin.playerByUsername(username);
+      if (account) {
+        const runs = await r.investigations.activeForAccount(account.id);
+        player = {
+          username: account.username_display,
+          investigations: await Promise.all(runs.map(async (run) => {
+            const resolutions = await env.DB.prepare("SELECT COUNT(*) AS count FROM case_investigation_resolutions WHERE account_investigation_id = ?").bind(run.account_investigation_id).first();
+            const pins = await env.DB.prepare("SELECT COUNT(*) AS count FROM case_evidence_pins WHERE account_investigation_id = ? AND status = 'active'").bind(run.account_investigation_id).first();
+            return {
+              caseSlug: run.slug,
+              title: run.player_title,
+              version: run.version,
+              status: run.account_status,
+              resolvedSteps: Number(resolutions?.count || 0),
+              activeEvidencePins: Number(pins?.count || 0),
+              startedAt: run.started_at,
+              resolvedAt: run.resolved_at || null
+            };
+          }))
+        };
+      }
+    }
+    await r.audit.record({
+      actorType: "account", actorId: actor.accountId, action: "admin.investigations.read",
+      result: "allowed", requestId, context: { definitionCount: (definitions.results || []).length, playerLookup: !!username }
+    });
+    return jsonResponse({
+      ok: true,
+      definitions: (definitions.results || []).map((row) => ({
+        investigationKey: row.investigation_key,
+        caseSlug: row.case_slug,
+        version: row.version,
+        status: row.status,
+        title: row.player_title,
+        summary: row.player_summary || null,
+        stepCount: Number(row.step_count || 0)
+      })),
+      player
+    }, 200, noStore());
   }
 
   if (path.startsWith("/api/v1/admin/progression/definitions/") && request.method === "GET") {
@@ -379,7 +443,7 @@ export async function handleAdminApi(request, env, config) {
     const { actor, repos: r } = required;
     const gated = await dangerousGate({ request, actor, r, confirm: "SET_OPERATIONAL_MODE", operation: "operations.modes.set", limit: 10 });
     if (gated instanceof Response) return gated;
-    if (!["registrations_disabled", "auth_initiation_disabled", "player_mutations_disabled", "authored_events_disabled", "player_surfaces_disabled"].includes(gated.body.modeKey)) {
+    if (!["registrations_disabled", "auth_initiation_disabled", "player_mutations_disabled", "authored_events_disabled", "player_surfaces_disabled", "investigations_disabled"].includes(gated.body.modeKey)) {
       return bodyError("unknown_operational_mode", "Operational mode is not supported.", 400);
     }
     await r.modes.set(gated.body.modeKey, !!gated.body.enabled, { actorId: actor.accountId, reason: gated.body.reason || "" });

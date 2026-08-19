@@ -5,9 +5,9 @@ import { AuthRepository } from "../repositories/auth-repository.js";
 import { OperationalModeRepository } from "../repositories/operational-mode-repository.js";
 import { PlayerStateProjectionRepository } from "../repositories/player-state-projection-repository.js";
 import { RateLimitRepository } from "../repositories/rate-limit-repository.js";
-import { ProgressionEngine } from "../progression/engine.js";
+import { CanonicalInteractionService } from "../interactions/canonical-interaction-service.js";
 import { buildActorContext, filterRecord, filterRelationships, unauthorizedResponseShape } from "../archive/visibility-service.js";
-import { jsonResponse, parseCookies } from "../security/http.js";
+import { jsonResponse, parseCookies, readJson } from "../security/http.js";
 
 async function actorFromRequest(request, env, config) {
   const cookies = parseCookies(request.headers.get("Cookie") || "");
@@ -49,6 +49,10 @@ export async function handleArchiveApi(request, env, config, logger) {
     fieldEncryptionKey: config.fieldEncryptionKey,
     fieldEncryptionKeyId: config.fieldEncryptionKeyId
   });
+  const interactions = new CanonicalInteractionService(env.DB, {
+    environment: config.envName,
+    fieldEncryptionKey: config.fieldEncryptionKey
+  });
   const actorBase = await actorFromRequest(request, env, config);
   const actor = buildActorContext({
     accountId: actorBase.accountId,
@@ -79,15 +83,8 @@ export async function handleArchiveApi(request, env, config, logger) {
 
     const before = await projection.project(actorBase.accountId);
     try {
-      const progression = await new ProgressionEngine(env.DB, { environment: config.envName }).ingest({
-        eventType: "archive.record.reviewed",
-        sourceType: "browser_session",
-        sourceSubject: actorBase.accountId,
-        accountId: actorBase.accountId,
-        idempotencyKey: `review:${record.id}:${record.currentRevisionId || record.updatedAt}`,
-        payload: { catalogId: record.slug, revision: record.currentRevisionId || record.updatedAt },
-        provenance: { source: "authenticated_record_review", recordId: record.id },
-        requestId
+      const progression = await interactions.reviewRecord({
+        accountId: actorBase.accountId, record, requestId, sourceType: "browser_session"
       });
       const after = await projection.project(actorBase.accountId);
       await audit.record({ actorType: "account", actorId: actorBase.accountId, action: "archive.record.review", resourceType: "record", resourceId: record.id, result: "allowed", requestId, context: { duplicate: progression.duplicate, stateChanged: before.revision !== after.revision } });
@@ -105,6 +102,83 @@ export async function handleArchiveApi(request, env, config, logger) {
       const status = code === "idempotency_conflict" ? 409 : code === "authored_events_disabled" ? 503 : 422;
       await audit.record({ actorType: "account", actorId: actorBase.accountId, action: "archive.record.review", resourceType: "record", resourceId: record.id, result: "denied", requestId, context: { code } });
       return jsonResponse({ ok: false, error: { code, message: "Record review could not be committed." } }, status, noStore());
+    }
+  }
+
+  const investigationRoute = parts[0] === "api" && parts[1] === "v1" && parts[2] === "archive"
+    && parts[3] === "cases" && parts[4] && parts[5] === "investigation";
+  if (investigationRoute) {
+    if (await modes.enabled("investigations_disabled")) return jsonResponse({ ok: false, error: { code: "investigations_disabled", message: "Investigation interactions are temporarily unavailable." } }, 503, noStore());
+    if (!actorBase.accountId || !actorBase.session) return jsonResponse({ ok: false, error: { code: "auth_required", message: "Authentication required." } }, 401, noStore());
+    const caseSlug = decodeURIComponent(parts[4]);
+
+    if (request.method === "GET" && parts.length === 6) {
+      try {
+        await interactions.requireVisibleRecord(actorBase.accountId, caseSlug);
+        const state = await projection.project(actorBase.accountId);
+        const investigation = state.investigations?.find((item) => item.case.catalogId === caseSlug) || null;
+        return jsonResponse({ ok: true, investigation }, 200, noStore({ ETag: state.etag }));
+      } catch (error) {
+        return investigationFailure(error);
+      }
+    }
+
+    if (await modes.enabled("player_mutations_disabled")) return jsonResponse({ ok: false, error: { code: "player_mutations_disabled", message: "Player mutations are temporarily disabled." } }, 503, noStore());
+    if (!(await auth.verifyCsrf(actorBase.session.id, request.headers.get("X-OFA-CSRF") || ""))) {
+      return jsonResponse({ ok: false, error: { code: "csrf_required", message: "CSRF validation failed." } }, 403, noStore());
+    }
+    const action = parts[6] || "";
+    const attemptResponseStartedAt = action === "steps" ? Date.now() : null;
+    const rateKey = action === "steps"
+      ? `account-op:archive.case.step.attempt:${actorBase.accountId}:${caseSlug}:${parts[7] || ""}`
+      : `account-op:archive.case.investigation.${action}:${actorBase.accountId}`;
+    const limit = action === "steps" ? 12 : 30;
+    const limited = await rateLimit.check(rateKey, limit, 3600);
+    if (!limited.ok) return jsonResponse({ ok: false, error: { code: "rate_limited", message: "Try again later." } }, 429, noStore());
+
+    try {
+      let result;
+      let auditAction;
+      if (request.method === "POST" && parts.length === 7 && action === "start") {
+        auditAction = "archive.case.investigation.start";
+        result = await interactions.startInvestigation({ accountId: actorBase.accountId, caseSlug, requestId });
+      } else if (request.method === "POST" && parts.length === 7 && action === "evidence") {
+        auditAction = "archive.case.evidence.pin";
+        const body = await readJson(request);
+        result = await interactions.pinEvidence({ accountId: actorBase.accountId, caseSlug, targetType: body.targetType, catalogId: body.catalogId, requestId });
+      } else if (request.method === "DELETE" && parts.length === 8 && action === "evidence") {
+        auditAction = "archive.case.evidence.unpin";
+        result = await interactions.unpinEvidence({ accountId: actorBase.accountId, caseSlug, publicRef: decodeURIComponent(parts[7]), requestId });
+      } else if (request.method === "POST" && parts.length === 9 && action === "steps" && parts[8] === "attempt") {
+        if (await modes.enabled("authored_events_disabled")) return jsonResponse({ ok: false, error: { code: "authored_events_disabled", message: "Authored event execution is disabled." } }, 503, noStore());
+        auditAction = "archive.case.step.attempt";
+        const body = await readJson(request);
+        result = await interactions.attemptStep({ accountId: actorBase.accountId, caseSlug, stepKey: decodeURIComponent(parts[7]), answer: body.answer, requestId });
+        if (result.limited) {
+          await applyAttemptResponseFloor(attemptResponseStartedAt);
+          return jsonResponse({ ok: false, error: { code: "rate_limited", message: "Try again later." } }, 429, noStore());
+        }
+      } else {
+        return null;
+      }
+      const state = await projection.project(actorBase.accountId);
+      await audit.record({
+        actorType: "account", actorId: actorBase.accountId, action: auditAction,
+        resourceType: "case_investigation", resourceId: caseSlug, result: "allowed", requestId,
+        context: { commandCommitted: true }
+      });
+      await applyAttemptResponseFloor(attemptResponseStartedAt);
+      return jsonResponse({ ok: true, result, stateRevision: state.revision }, 200, noStore({ ETag: state.etag }));
+    } catch (error) {
+      logger?.error?.("investigation_command_failed", { code: safeInvestigationAuditCode(error.code), requestId });
+      const response = investigationFailure(error);
+      await audit.record({
+        actorType: "account", actorId: actorBase.accountId, action: "archive.case.investigation.command",
+        resourceType: "case_investigation", resourceId: caseSlug, result: "denied", requestId,
+        context: { code: safeInvestigationAuditCode(error.code) }
+      });
+      await applyAttemptResponseFloor(attemptResponseStartedAt);
+      return response;
     }
   }
 
@@ -143,4 +217,25 @@ export async function handleArchiveApi(request, env, config, logger) {
 
   logger?.debug?.("archive_route_not_found", { path: url.pathname });
   return null;
+}
+
+function investigationFailure(error) {
+  const code = error?.code || "investigation_command_failed";
+  if (["not_found", "evidence_not_found", "investigation_not_started", "investigation_closed"].includes(code)) {
+    return jsonResponse({ ok: false, error: { code: "not_found", message: "Investigation resource not found." } }, 404, noStore());
+  }
+  if (code === "idempotency_conflict") {
+    return jsonResponse({ ok: false, error: { code, message: "Interaction could not be committed." } }, 409, noStore());
+  }
+  return jsonResponse({ ok: false, error: { code: "interaction_rejected", message: "Interaction could not be committed." } }, 422, noStore());
+}
+
+function safeInvestigationAuditCode(code) {
+  return ["not_found", "evidence_not_found", "investigation_not_started", "investigation_closed", "rate_limited"].includes(code) ? "rejected" : "interaction_rejected";
+}
+
+async function applyAttemptResponseFloor(startedAt) {
+  if (startedAt === null) return;
+  const remaining = 250 - (Date.now() - startedAt);
+  if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
 }

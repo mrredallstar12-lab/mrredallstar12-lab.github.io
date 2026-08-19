@@ -21,7 +21,9 @@ export function encryptSensitiveValue(value, keyBase64, keyId = "env:v1") {
 
 export function decryptSensitiveValue(payload, keyBase64) {
   const key = keyFromBase64(keyBase64);
-  const [, ivText, tagText, ciphertextText] = String(payload).split(":");
+  const parts = String(payload).split(":");
+  if (parts.length < 4) throw new Error("encrypted_field_invalid");
+  const [ivText, tagText, ciphertextText] = parts.slice(-3);
   const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivText, "base64url"));
   decipher.setAuthTag(Buffer.from(tagText, "base64url"));
   return Buffer.concat([
@@ -29,4 +31,3 @@ export function decryptSensitiveValue(payload, keyBase64) {
     decipher.final()
   ]).toString("utf8");
 }
-

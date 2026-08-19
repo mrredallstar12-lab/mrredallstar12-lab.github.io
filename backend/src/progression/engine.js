@@ -24,6 +24,10 @@ export class ProgressionEngine {
     return await this.execute(input, { dryRun: false, ignoreKillSwitch: false });
   }
 
+  async ingestInTransaction(input) {
+    return await this.execute(input, { dryRun: false, ignoreKillSwitch: false });
+  }
+
   async simulate(input) {
     return await this.execute(input, { dryRun: true, ignoreKillSwitch: true });
   }

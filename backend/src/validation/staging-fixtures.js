@@ -8,6 +8,7 @@ import { InventoryRepository } from "../repositories/inventory-repository.js";
 import { PlayerStateRepository } from "../repositories/player-state-repository.js";
 import { PlayerStateProjectionRepository } from "../repositories/player-state-projection-repository.js";
 import { ProgressionDefinitionRepository } from "../repositories/progression-definition-repository.js";
+import { buildPhase8FixtureDescriptor, createPhase8Fixtures, deletePhase8FixtureData } from "./phase8-fixtures.js";
 
 export async function createValidationFixtures(db, config) {
   const suffix = randomUUID().replaceAll("-", "").slice(0, 10);
@@ -45,11 +46,13 @@ export async function createValidationFixtures(db, config) {
       followupClearance: `phase6.validation.followup.${suffix}`,
       siblingClearance: `phase6.validation.sibling.${suffix}`
     },
-    phase7: buildPhase7FixtureDescriptor(suffix)
+    phase7: buildPhase7FixtureDescriptor(suffix),
+    phase8: buildPhase8FixtureDescriptor(suffix)
   };
   try {
     await createPhase6Fixtures(db, fixture);
     await createPhase7Fixtures(db, fixture, config);
+    await createPhase8Fixtures(db, fixture, config);
     return fixture;
   } catch (error) {
     await cleanupValidationFixtures(db, fixture, "staging-validation-setup-failed-");
@@ -330,6 +333,8 @@ export async function cleanupValidationFixtures(db, fixture, requestPrefix) {
   if (!fixture) return;
   const accountIds = [fixture.admin.accountId, fixture.player.accountId];
   const raw = db.database;
+
+  deletePhase8FixtureData(db, fixture.phase8, accountIds);
 
   db.transaction(() => {
     raw.prepare("DELETE FROM progression_history WHERE account_id IN (?, ?)").run(...accountIds);

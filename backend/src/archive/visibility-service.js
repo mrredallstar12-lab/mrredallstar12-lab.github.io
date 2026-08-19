@@ -1,4 +1,5 @@
 import { parseJson } from "../foundation/ids.js";
+import { canonicalDigest } from "../progression/canonical.js";
 
 export function buildActorContext({ accountId = null, discoveries = new Set(), archiveIdentity = null } = {}) {
   const clearance = parseJson(archiveIdentity?.clearance_state_json || "{}", {});
@@ -82,11 +83,16 @@ export async function filterRelationships(relationships, actor, repo) {
   const refs = await repo.publicRecordRefsById(recordIds);
 
   return visible.map((rel) => ({
+    relationshipRef: relationshipPublicRef(rel.id),
     source: relationshipEndpoint(rel.sourceType, rel.sourceId, refs),
     relationship: rel.relationshipType,
     target: relationshipEndpoint(rel.targetType, rel.targetId, refs),
     confidence: rel.confidence || null
   })).filter((rel) => rel.source && rel.target);
+}
+
+export function relationshipPublicRef(internalId) {
+  return `relationship_${canonicalDigest({ relationship: internalId }).slice(0, 32)}`;
 }
 
 function hasClearance(clearance, key) {

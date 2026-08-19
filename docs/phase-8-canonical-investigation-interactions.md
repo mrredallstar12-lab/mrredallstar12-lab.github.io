@@ -1,6 +1,6 @@
 # Phase 8: Canonical Investigation & Interaction Foundation
 
-Status: planning only; implementation requires explicit approval.
+Status: implementation complete; awaiting physical Windows staging and disposable browser validation. Phase 8 is not closed.
 
 ## Branch Record
 
@@ -9,6 +9,148 @@ Status: planning only; implementation requires explicit approval.
 - Frozen source branch: `ofa-2-phase-7-player-state-integration`
 - Protected branches: do not modify `main` or any frozen Phase 0-7 branch.
 - Planning artifact: `docs/phase-8-canonical-investigation-interactions.md`
+- Implementation branch: `ofa-2-phase-8-canonical-investigations`
+- Implementation base: planning HEAD `c94e75e84f18eb9df3cc75694adbe3728e07c889`
+- Production and frozen Phase 0-7 branches remain unchanged.
+
+## Implementation Checkpoint
+
+Phase 8 implements the approved bounded foundation:
+
+- additive migration `0007_phase8_canonical_investigations.sql`
+- code-registered internal interaction commands for record review, investigation start, evidence pin/unpin, and exact-answer attempts
+- preserved `archive.record.reviewed` source, payload, idempotency, response, and history semantics behind the new service
+- trusted server-only `archive.case.step.resolved` progression event
+- immutable authored investigation versions, account-pinned runs, attempts, resolutions, and separate player evidence pins
+- exact NFKC/case/whitespace normalization with AES-GCM protected authored verifier, HKDF-derived HMAC submission fingerprints, and timing-safe digest comparison
+- one transaction across accepted attempt, canonical event, Phase 6 effects/history, investigation resolution, and interaction completion
+- player-safe `investigations` projection in `GET /api/v1/me/state`, omitted while `investigations_disabled=true`
+- typed player routes under `/api/v1/archive/cases/:slug/investigation`; no generic interaction or event-ingestion route
+- owner-neutral gameplay rate limits and neutral incorrect/malformed answer results
+- read-only `GET /api/v1/admin/investigations` inspection with verifier and condition material omitted
+- additive investigation controls on the existing canonical Cases section; the bridge remains memory-only and does not write canonical state into localStorage
+- reusable Phase 8 fixtures shared by automated and browser validation
+- dedicated DPAPI-launcher actions for Phase 8 browser fixture setup and cleanup
+
+The implementation supports record, visible canonical relationship, held quantity-definition, and held instance evidence targets. The Phase 8 browser slice intentionally exercises record candidates only. Freeform notes and arbitrary evidence edges remain deferred.
+
+The migration defaults `investigations_disabled=true`. Existing `player_surfaces_disabled` and `authored_events_disabled` defaults are preserved. All three must remain enabled in their disabled-state posture after physical validation.
+
+### Implemented Player API
+
+- `GET /api/v1/archive/cases/:slug/investigation`
+- `POST /api/v1/archive/cases/:slug/investigation/start`
+- `POST /api/v1/archive/cases/:slug/investigation/evidence`
+- `DELETE /api/v1/archive/cases/:slug/investigation/evidence/:publicRef`
+- `POST /api/v1/archive/cases/:slug/investigation/steps/:stepKey/attempt`
+
+All mutations require an authenticated opaque session and CSRF. The server derives account, source, case, immutable version, target identity, canonical event, and consequences. OWNER receives no visibility, eligibility, correctness, or rate-limit advantage.
+
+### Final Projection Shape
+
+`GET /api/v1/me/state` may add:
+
+```json
+{
+  "investigations": [
+    {
+      "case": { "catalogId": "case-slug", "title": "Player-safe title" },
+      "title": "Player-safe investigation title",
+      "summary": "Player-safe summary",
+      "version": "opaque digest",
+      "status": "active",
+      "startedAt": "timestamp",
+      "resolvedAt": null,
+      "steps": [
+        {
+          "stepKey": "public-step-key",
+          "label": "Player-safe label",
+          "prompt": "Player-safe prompt",
+          "publicMetadata": {},
+          "resolved": false,
+          "resolvedAt": null
+        }
+      ],
+      "evidencePins": [
+        {
+          "publicRef": "evidence_...",
+          "targetType": "record",
+          "catalogId": "record-slug",
+          "label": "Visible evidence title",
+          "pinnedAt": "timestamp"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Internal IDs, unpublished definitions, verifier ciphertext, accepted answers, fingerprints, rule IDs, condition trees, hidden expected values, real authorization, and privileged audit data are not projected.
+
+## Physical Deployment Procedure
+
+On the Windows staging server:
+
+```powershell
+cd C:\OFA\staging\repo
+git fetch origin
+git switch ofa-2-phase-8-canonical-investigations
+git pull --ff-only origin ofa-2-phase-8-canonical-investigations
+
+cd C:\OFA\staging\repo\backend
+npm install
+npm run backup:server:check
+npm run migrate:server
+npm test
+.\tools\windows-staging-secrets.ps1 -Action RunValidation
+```
+
+Before migration, retain the normal timestamped staging backup under `E:\OFA\backups\staging`. The isolated temporary path used by `backup:server:check` verifies restoration and does not replace that backup destination. Migration output must report seven applied versions. Do not expose the server publicly.
+
+Expected new `RunValidation` PASS lines include:
+
+- `Phase 8 rollout kill switch`
+- `Phase 8 typed investigation and evidence boundary`
+- `Phase 8 verifier neutrality and authoritative resolution`
+- `Phase 8 atomic rollback, concurrency, and OWNER parity`
+
+The existing Phase 1-7 and Phase 6 engine checks must also pass. Emergency global session revocation, privileged browser UX, and production-only security remain explicit manual/deferred checks as before.
+
+## Disposable Browser Validation
+
+1. Stop the staging server if it is running.
+2. Create the disposable fixture:
+
+```powershell
+cd C:\OFA\staging\repo\backend
+.\tools\windows-staging-secrets.ps1 -Action SetupPhase8BrowserValidation
+```
+
+3. Record the printed disposable username, email, case slug, evidence candidates, and validation phrase pattern. No session, CSRF, protected key, or reusable credential is printed.
+4. Start staging:
+
+```powershell
+.\tools\windows-staging-secrets.ps1 -Action RunServer
+```
+
+5. Authenticate the disposable account through `http://127.0.0.1:8787/staging/account-test.html`.
+6. Open `http://127.0.0.1:8787/pages/cases.html`.
+7. Confirm the canonical investigation is separate from legacy case state.
+8. Open the disposable investigation. Pin each candidate, unpin one, and confirm canonical relationships do not change merely because evidence was organized.
+9. Submit an incorrect phrase and confirm only the neutral `finding not accepted` result.
+10. Submit the fixture phrase described by the manifest. Confirm resolved step/status, discovery, fictional credential, one relationship, one inventory receipt, four safe receipts, and a changed state revision.
+11. Repeat the accepted phrase and confirm no duplicate consequence or receipt.
+12. Confirm legacy/localStorage state remains semantically unchanged and anonymous/InPrivate fallback remains usable without canonical state.
+13. Stop staging and clean up:
+
+```powershell
+.\tools\windows-staging-secrets.ps1 -Action CleanupPhase8BrowserValidation
+.\tools\windows-staging-secrets.ps1 -Action CleanupPhase8BrowserValidation
+```
+
+14. Confirm the second cleanup is idempotent and Control Center reports `investigations_disabled=true`, `player_surfaces_disabled=true`, and `authored_events_disabled=true`.
+
+Do not use `noobuus` for progression-changing Phase 8 validation. Phase 8 remains open until this physical evidence is reviewed and explicitly accepted.
 
 ## Recommendation
 

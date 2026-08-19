@@ -181,7 +181,7 @@ try {
   assert.equal(readFileSync(join(repoDir, "pages", "inventory.html"), "utf8").includes("data-ofa-canonical-inventory hidden"), true);
   assert.equal(readFileSync(join(repoDir, "pages", "cases.html"), "utf8").includes("data-ofa-canonical-cases hidden"), true);
 
-  assert.deepEqual((await db.prepare("SELECT version FROM schema_migrations ORDER BY version").all()).results.map((row) => row.version), ["0001", "0002", "0003", "0004", "0005", "0006"]);
+  assert.deepEqual((await db.prepare("SELECT version FROM schema_migrations ORDER BY version").all()).results.map((row) => row.version), ["0001", "0002", "0003", "0004", "0005", "0006", "0007"]);
   assert.equal((await db.prepare("SELECT enabled FROM operational_modes WHERE mode_key = 'player_surfaces_disabled'").first()).enabled, 1);
   assert.equal((await api("/api/v1/me/state", { cookie: player.cookie })).response.status, 503);
   assert.equal((await api("/api/v1/archive/records/phase7-review-envelope/review", { method: "POST", cookie: player.cookie, csrf: player.session.csrfToken })).response.status, 503);

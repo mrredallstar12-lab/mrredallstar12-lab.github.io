@@ -519,7 +519,10 @@
     const sections = $$('[data-ofa-canonical-cases]');
     if(!sections.length) return;
     try{
-      const {data} = await canonicalRequest("/archive/cases");
+      const [{data},{data:catalogData}] = await Promise.all([
+        canonicalRequest("/archive/cases"),
+        canonicalRequest("/archive/records")
+      ]);
       for(const section of sections){
         const target = $('[data-ofa-canonical-case-list]',section);
         if(!target) continue;
@@ -529,14 +532,99 @@
             <h3>${clean(record.title)}</h3>
             <p>${clean(record.summary || "Catalog summary withheld.")}</p>
             <button type="button" data-canonical-review="${cleanAttr(record.slug)}">review record</button>
+            ${canonicalInvestigationHtml(record,catalogData.records || records)}
             <div class="mini-status" data-canonical-review-output></div>
           </article>
         `).join("") : "<p>No canonical case records are currently available.</p>";
         $$('[data-canonical-review]',target).forEach((button)=>button.addEventListener("click",()=>reviewCanonicalRecord(button.dataset.canonicalReview,button.closest("[data-canonical-record]"))));
+        $$('[data-investigation-start]',target).forEach((button)=>button.addEventListener("click",()=>startCanonicalInvestigation(button.dataset.investigationStart)));
+        $$('[data-investigation-pin]',target).forEach((button)=>button.addEventListener("click",()=>pinCanonicalEvidence(button.dataset.investigationPin,button.closest("[data-canonical-investigation]"))));
+        $$('[data-investigation-unpin]',target).forEach((button)=>button.addEventListener("click",()=>unpinCanonicalEvidence(button.dataset.caseSlug,button.dataset.investigationUnpin)));
+        $$('[data-investigation-attempt]',target).forEach((button)=>button.addEventListener("click",()=>attemptCanonicalStep(button.dataset.caseSlug,button.dataset.investigationAttempt,button.closest("[data-canonical-step]"))));
         section.hidden = false;
       }
     }catch{
       sections.forEach((section)=>{section.hidden = true;});
+    }
+  }
+
+  function canonicalInvestigationHtml(record,records){
+    if(record.recordType !== "case") return "";
+    const investigation = canonicalPlayerState?.investigations?.find((item)=>item.case?.catalogId === record.slug);
+    if(!investigation) return `<div class="mini-status"><button type="button" data-investigation-start="${cleanAttr(record.slug)}">open investigation</button></div>`;
+    const candidates = records.filter((candidate)=>candidate.slug !== record.slug);
+    return `
+      <section data-canonical-investigation>
+        <p><b>${clean(investigation.title)}</b> | ${clean(investigation.status)}</p>
+        <p>${clean(investigation.summary || "")}</p>
+        <label>evidence
+          <select data-investigation-candidate>
+            ${candidates.map((candidate)=>`<option value="${cleanAttr(candidate.slug)}">${clean(candidate.title)}</option>`).join("")}
+          </select>
+        </label>
+        <button type="button" data-investigation-pin="${cleanAttr(record.slug)}" ${candidates.length ? "":"disabled"}>pin evidence</button>
+        <ul>${(investigation.evidencePins || []).map((pin)=>`<li>${clean(pin.label)} <button type="button" data-case-slug="${cleanAttr(record.slug)}" data-investigation-unpin="${cleanAttr(pin.publicRef)}">unpin</button></li>`).join("")}</ul>
+        ${(investigation.steps || []).map((step)=>`
+          <div data-canonical-step>
+            <p><b>${clean(step.label)}</b> ${step.resolved ? "resolved":""}</p>
+            <p>${clean(step.prompt || "")}</p>
+            ${step.resolved ? "":`<input type="text" maxlength="256" data-investigation-answer autocomplete="off"><button type="button" data-case-slug="${cleanAttr(record.slug)}" data-investigation-attempt="${cleanAttr(step.stepKey)}">submit finding</button>`}
+            <div class="mini-status" data-investigation-output></div>
+          </div>
+        `).join("")}
+      </section>
+    `;
+  }
+
+  async function startCanonicalInvestigation(caseSlug){
+    try{
+      await ensureCanonicalCsrf();
+      await canonicalRequest(`/archive/cases/${encodeURIComponent(caseSlug)}/investigation/start`,{method:"POST"});
+      await loadCanonicalPlayerState({force:true});
+    }catch{
+      signalBanner("Investigation could not be opened.");
+    }
+  }
+
+  async function pinCanonicalEvidence(caseSlug,section){
+    const select = section ? $('[data-investigation-candidate]',section):null;
+    if(!select?.value) return;
+    try{
+      await ensureCanonicalCsrf();
+      await canonicalRequest(`/archive/cases/${encodeURIComponent(caseSlug)}/investigation/evidence`,{
+        method:"POST",body:{targetType:"record",catalogId:select.value}
+      });
+      await loadCanonicalPlayerState({force:true});
+    }catch{
+      signalBanner("Evidence pin was not accepted.");
+    }
+  }
+
+  async function unpinCanonicalEvidence(caseSlug,publicRef){
+    try{
+      await ensureCanonicalCsrf();
+      await canonicalRequest(`/archive/cases/${encodeURIComponent(caseSlug)}/investigation/evidence/${encodeURIComponent(publicRef)}`,{method:"DELETE"});
+      await loadCanonicalPlayerState({force:true});
+    }catch{
+      signalBanner("Evidence pin could not be removed.");
+    }
+  }
+
+  async function attemptCanonicalStep(caseSlug,stepKey,step){
+    const answer = step ? $('[data-investigation-answer]',step)?.value:"";
+    const output = step ? $('[data-investigation-output]',step):null;
+    try{
+      await ensureCanonicalCsrf();
+      const {data} = await canonicalRequest(`/archive/cases/${encodeURIComponent(caseSlug)}/investigation/steps/${encodeURIComponent(stepKey)}/attempt`,{
+        method:"POST",body:{answer}
+      });
+      if(!data.result?.accepted){
+        if(output) output.textContent = "finding not accepted.";
+        return;
+      }
+      await loadCanonicalPlayerState({force:true});
+    }catch(error){
+      if(output) output.textContent = error.code === "rate_limited" ? "attempt limit reached; return later." : "finding not accepted.";
     }
   }
 

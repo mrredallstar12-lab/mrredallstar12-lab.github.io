@@ -19,7 +19,9 @@
     "validate:staging": "node src/validation/run-staging-validation.js",
     "validate:browser:setup": "node src/validation/browser-validation-fixtures.js setup",
     "validate:browser:cleanup": "node src/validation/browser-validation-fixtures.js cleanup",
-    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-transaction-tests.mjs && node tests/run-phase2-tests.mjs && node tests/run-phase3-tests.mjs && node tests/run-phase4-tests.mjs && node tests/run-phase5-tests.mjs && node tests/run-phase6-tests.mjs && node tests/run-phase7-tests.mjs && node tests/run-staging-validation-tests.mjs && node tests/run-browser-validation-fixture-tests.mjs",
+    "validate:phase8-browser:setup": "node src/validation/phase8-browser-validation-fixtures.js setup",
+    "validate:phase8-browser:cleanup": "node src/validation/phase8-browser-validation-fixtures.js cleanup",
+    "test": "node tests/run-tests.mjs && node tests/run-server-tests.mjs && node tests/run-transaction-tests.mjs && node tests/run-phase2-tests.mjs && node tests/run-phase3-tests.mjs && node tests/run-phase4-tests.mjs && node tests/run-phase5-tests.mjs && node tests/run-phase6-tests.mjs && node tests/run-phase7-tests.mjs && node tests/run-phase8-tests.mjs && node tests/run-staging-validation-tests.mjs && node tests/run-browser-validation-fixture-tests.mjs && node tests/run-phase8-browser-validation-fixture-tests.mjs",
     "test:worker": "node tests/run-tests.mjs",
     "test:server": "node tests/run-server-tests.mjs",
     "test:transactions": "node tests/run-transaction-tests.mjs",
@@ -29,8 +31,9 @@
     "test:phase5": "node tests/run-phase5-tests.mjs",
     "test:phase6": "node tests/run-phase6-tests.mjs",
     "test:phase7": "node tests/run-phase7-tests.mjs",
+    "test:phase8": "node tests/run-phase8-tests.mjs",
     "test:staging-validation": "node tests/run-staging-validation-tests.mjs",
-    "test:browser-validation": "node tests/run-browser-validation-fixture-tests.mjs"
+    "test:browser-validation": "node tests/run-browser-validation-fixture-tests.mjs && node tests/run-phase8-browser-validation-fixture-tests.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

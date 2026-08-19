@@ -6,6 +6,7 @@ import { OperationalModeRepository } from "../repositories/operational-mode-repo
 import { PlayerStateProjectionRepository } from "../repositories/player-state-projection-repository.js";
 import { RateLimitRepository } from "../repositories/rate-limit-repository.js";
 import { CanonicalInteractionService } from "../interactions/canonical-interaction-service.js";
+import { InvestigationRepository } from "../repositories/investigation-repository.js";
 import { buildActorContext, filterRecord, filterRelationships, unauthorizedResponseShape } from "../archive/visibility-service.js";
 import { jsonResponse, parseCookies, readJson } from "../security/http.js";
 
@@ -52,6 +53,10 @@ export async function handleArchiveApi(request, env, config, logger) {
   const interactions = new CanonicalInteractionService(env.DB, {
     environment: config.envName,
     fieldEncryptionKey: config.fieldEncryptionKey
+  });
+  const investigations = new InvestigationRepository(env.DB, {
+    fieldEncryptionKey: config.fieldEncryptionKey,
+    fieldEncryptionKeyId: config.fieldEncryptionKeyId
   });
   const actorBase = await actorFromRequest(request, env, config);
   const actor = buildActorContext({
@@ -196,7 +201,12 @@ export async function handleArchiveApi(request, env, config, logger) {
     const filtered = [];
     for (const record of records) {
       const result = await filterRecord(record, actor, repo, { detail: false });
-      if (result.visible) filtered.push(result.record);
+      if (result.visible) {
+        if (record.recordType === "case" && await investigations.hasPublishedForCaseRecord(record.id)) {
+          result.record.capabilities = { investigation: true };
+        }
+        filtered.push(result.record);
+      }
     }
     return jsonResponse({ ok: true, records: filtered }, 200, noStore());
   }

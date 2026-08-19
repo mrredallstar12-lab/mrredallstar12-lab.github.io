@@ -83,6 +83,17 @@ export class InvestigationRepository {
     `).bind(slug).first();
   }
 
+  async hasPublishedForCaseRecord(caseRecordId) {
+    const row = await this.db.prepare(`
+      SELECT 1 AS available
+      FROM case_investigation_definitions d
+      JOIN case_investigation_versions v ON v.definition_id = d.id
+      WHERE d.case_record_id = ? AND v.status = 'published'
+      LIMIT 1
+    `).bind(caseRecordId).first();
+    return !!row?.available;
+  }
+
   async versionForAccountAndCase(accountId, slug) {
     return await this.db.prepare(`
       SELECT d.id AS definition_id, d.investigation_key, d.case_record_id,

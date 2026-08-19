@@ -67,6 +67,15 @@ const hiddenId = await content.createRecord({
   slug: "phase8-hidden-case", recordType: "case", title: "Hidden Case",
   summary: "Must not leak.", status: "published", visibility: "restricted", body: "Must not leak."
 });
+const reviewOnlyCaseId = await content.createRecord({
+  slug: "phase8-review-only-case", recordType: "case", title: "Review Only Case",
+  summary: "An ordinary review record without an investigation definition.",
+  status: "published", visibility: "authenticated", body: "Review-only fixture."
+});
+await surface.setPolicy({
+  resourceType: "record", resourceId: reviewOnlyCaseId, existenceBehavior: "not_found",
+  catalogRule: { access: "authenticated" }, fieldRules: { body: { access: "authenticated" } }
+});
 await surface.setPolicy({
   resourceType: "record", resourceId: hiddenId, existenceBehavior: "not_found",
   catalogRule: { access: "discovered", discoveryKey: "phase8.hidden" },
@@ -166,6 +175,13 @@ try {
   assert.equal((await api(`${investigationPath}/start`, { method: "POST", cookie: player.cookie, csrf: player.session.csrfToken })).response.status, 503);
 
   await db.prepare("UPDATE operational_modes SET enabled = 0 WHERE mode_key IN ('investigations_disabled', 'player_surfaces_disabled', 'authored_events_disabled')").run();
+  const caseCatalog = await api("/api/v1/archive/cases", { cookie: player.cookie });
+  const investigationCase = caseCatalog.body.records.find((record) => record.slug === "phase8-case-envelope");
+  const reviewOnlyCase = caseCatalog.body.records.find((record) => record.slug === "phase8-review-only-case");
+  assert.equal(investigationCase.type, "case");
+  assert.deepEqual(investigationCase.capabilities, { investigation: true });
+  assert.equal(reviewOnlyCase.type, "case");
+  assert.equal("capabilities" in reviewOnlyCase, false);
   assert.equal((await api(`${investigationPath}/start`, { method: "POST" })).response.status, 401);
   assert.equal((await api("/api/v1/archive/cases/phase8-hidden-case/investigation/start", { method: "POST", cookie: player.cookie, csrf: player.session.csrfToken })).response.status, 404);
   assert.equal((await api(`/api/v1/archive/cases/${caseId}/investigation/start`, { method: "POST", cookie: player.cookie, csrf: player.session.csrfToken })).response.status, 404);

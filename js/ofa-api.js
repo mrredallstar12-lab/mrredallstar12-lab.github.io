@@ -1,7 +1,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "world-foundation-1";
+  const VERSION = "world-foundation-2";
   const STORAGE = {
     visitor:"ofaVisitorId",
     apiBase:"oddApiBaseUrl",
@@ -117,7 +117,12 @@
   function getApiBase(){
     const fromWindow = String(window.OFA_API_BASE_URL || "").trim();
     const fromStorage = String(localStorage.getItem(STORAGE.apiBase) || "").trim();
-    const base = fromWindow || fromStorage;
+    const localHost = String(window.location?.hostname || "").toLowerCase();
+    const localProtocol = String(window.location?.protocol || "");
+    const sameOriginStaging = ["127.0.0.1","localhost","::1","[::1]"].includes(localHost) && /^https?:$/.test(localProtocol)
+      ? window.location.origin
+      : "";
+    const base = fromWindow || fromStorage || sameOriginStaging;
     return base.replace(/\/+$/,"");
   }
 
@@ -531,7 +536,7 @@
           <article class="unlisted-record" data-canonical-record="${cleanAttr(record.slug)}">
             <h3>${clean(record.title)}</h3>
             <p>${clean(record.summary || "Catalog summary withheld.")}</p>
-            <button type="button" data-canonical-review="${cleanAttr(record.slug)}">review record</button>
+            ${canonicalCaseAction(record) === "review" ? `<button type="button" data-canonical-review="${cleanAttr(record.slug)}">review record</button>` : ""}
             ${canonicalInvestigationHtml(record,catalogData.records || records)}
             <div class="mini-status" data-canonical-review-output></div>
           </article>
@@ -548,8 +553,12 @@
     }
   }
 
+  function canonicalCaseAction(record){
+    return record?.type === "case" && record?.capabilities?.investigation === true ? "investigation" : "review";
+  }
+
   function canonicalInvestigationHtml(record,records){
-    if(record.recordType !== "case") return "";
+    if(canonicalCaseAction(record) !== "investigation") return "";
     const investigation = canonicalPlayerState?.investigations?.find((item)=>item.case?.catalogId === record.slug);
     if(!investigation) return `<div class="mini-status"><button type="button" data-investigation-start="${cleanAttr(record.slug)}">open investigation</button></div>`;
     const candidates = records.filter((candidate)=>candidate.slug !== record.slug);
@@ -799,6 +808,7 @@
     submitCommunityArtifact,
     enterUnlistedWing,
     loadCanonicalPlayerState,
+    canonicalCaseAction,
     fallbackSignal,
     OFFICIAL_HOSTS
   });

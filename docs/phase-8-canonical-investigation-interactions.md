@@ -28,7 +28,8 @@ Phase 8 implements the approved bounded foundation:
 - typed player routes under `/api/v1/archive/cases/:slug/investigation`; no generic interaction or event-ingestion route
 - owner-neutral gameplay rate limits and neutral incorrect/malformed answer results
 - read-only `GET /api/v1/admin/investigations` inspection with verifier and condition material omitted
-- additive investigation controls on the existing canonical Cases section; the bridge remains memory-only and does not write canonical state into localStorage
+- additive investigation controls on the existing canonical Cases section; visible cases with a published investigation receive a player-safe `capabilities.investigation` marker, while ordinary Phase 7 records retain the review action
+- automatic same-origin API configuration on loopback staging (`127.0.0.1`, `localhost`, or IPv6 loopback) without writing API configuration or canonical state into localStorage
 - reusable Phase 8 fixtures shared by automated and browser validation
 - dedicated DPAPI-launcher actions for Phase 8 browser fixture setup and cleanup
 
@@ -135,20 +136,22 @@ cd C:\OFA\staging\repo\backend
 
 5. Authenticate the disposable account through `http://127.0.0.1:8787/staging/account-test.html`.
 6. Open `http://127.0.0.1:8787/pages/cases.html`.
-7. Confirm the canonical investigation is separate from legacy case state.
-8. Open the disposable investigation. Pin each candidate, unpin one, and confirm canonical relationships do not change merely because evidence was organized.
-9. Submit an incorrect phrase and confirm only the neutral `finding not accepted` result.
-10. Submit the fixture phrase described by the manifest. Confirm resolved step/status, discovery, fictional credential, one relationship, one inventory receipt, four safe receipts, and a changed state revision.
-11. Repeat the accepted phrase and confirm no duplicate consequence or receipt.
-12. Confirm legacy/localStorage state remains semantically unchanged and anonymous/InPrivate fallback remains usable without canonical state.
-13. Stop staging and clean up:
+7. Confirm the `Account-Backed Catalog` appears automatically. No DevTools command, `OFA_API_BASE_URL`, or localStorage API configuration is required on loopback staging.
+8. Find the manifest's `Phase 8 Validation Investigation` card. Confirm it shows `open investigation`, not `review record`. Ordinary canonical records without a published investigation continue to show `review record`.
+9. Select `open investigation`. Confirm the card now displays active status, both evidence candidates, pin/unpin controls, the `Recurrence phrase` step, an answer input, and `submit finding`.
+10. Pin both evidence candidates, unpin one, and confirm this player-created organization changes only the investigation pin list. It must not reveal or mutate canonical relationships.
+11. Submit an incorrect phrase and confirm only the neutral `finding not accepted` result.
+12. Submit the fixture phrase described by the manifest. Confirm the investigation and `Recurrence phrase` step are resolved and the answer input is no longer rendered.
+13. Open `http://127.0.0.1:8787/pages/inventory.html` and confirm the expected canonical custody item is visible. The automated `RunValidation` suite separately verifies the projected discovery, fictional credential, relationship, four bounded player-safe receipts, revision change, and accepted-attempt replay/idempotency because those values are not all rendered by the current narrow browser UI.
+14. Confirm the legacy Cases and Inventory sections remain intact and their localStorage-backed state is unchanged. In an anonymous/InPrivate window, confirm the same pages retain legacy behavior without exposing authenticated canonical state. Loopback automatically selects the same-origin API, but authentication and rollout authorization still control whether canonical sections appear.
+15. Stop staging and clean up:
 
 ```powershell
 .\tools\windows-staging-secrets.ps1 -Action CleanupPhase8BrowserValidation
 .\tools\windows-staging-secrets.ps1 -Action CleanupPhase8BrowserValidation
 ```
 
-14. Confirm the second cleanup is idempotent and Control Center reports `investigations_disabled=true`, `player_surfaces_disabled=true`, and `authored_events_disabled=true`.
+16. Confirm the second cleanup is idempotent and Control Center reports `investigations_disabled=true`, `player_surfaces_disabled=true`, and `authored_events_disabled=true`.
 
 Do not use `noobuus` for progression-changing Phase 8 validation. Phase 8 remains open until this physical evidence is reviewed and explicitly accepted.
 
@@ -160,7 +163,7 @@ The website and future game need a shared server-authoritative way to express me
 
 Phase 8 should add a typed internal interaction service, canonical case-investigation state, deterministic answer attempts, and typed evidence pins. It should prove the architecture with one disposable case investigation. It should not build a campaign, redesign the public site, or expose a generic event-ingestion endpoint.
 
-This is primarily a backend and staging-validation phase. A staging-only tester is appropriate; broad public UI work is not.
+This remains primarily a backend and staging-validation phase. The narrow browser slice uses additive controls in the existing canonical Cases and Inventory sections; there is no separate investigation tester and no broader public redesign.
 
 ## Why This Comes Next
 
@@ -822,7 +825,7 @@ After Phase 8, later phases can safely add:
 ### Stage 6: Disposable Validation Infrastructure
 
 - staging fixture setup/cleanup
-- staging-only browser tester
+- browser validation through the existing Cases and Inventory pages
 - expanded `RunValidation`
 - injected-failure and restart determinism tests
 
@@ -876,7 +879,7 @@ Designing source adapters too specifically around a nonexistent game protocol wo
 7. Adapt the existing record-review route to the internal service only after the new transaction and command invariants pass.
 8. Keep all three rollout switches enabled in their disabled-state posture after validation.
 9. Use only disposable accounts/content for progression-changing validation; never use `noobuus`.
-10. Keep public pages unchanged and implement only a staging tester in this phase.
+10. Keep the legacy page behavior and appearance intact; limit player-facing work to the additive canonical investigation controls needed for the disposable staging slice.
 
 ## Acceptance And Freeze Criteria
 

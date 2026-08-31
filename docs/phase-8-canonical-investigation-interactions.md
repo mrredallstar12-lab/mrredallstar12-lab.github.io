@@ -1,6 +1,6 @@
 # Phase 8: Canonical Investigation & Interaction Foundation
 
-Status: implementation complete; awaiting physical Windows staging and disposable browser validation. Phase 8 is not closed.
+Status: formally closed and frozen after successful physical Windows staging validation on August 31, 2026. Reopen only for an explicitly approved Phase 8 bug or security fix.
 
 ## Branch Record
 
@@ -153,7 +153,24 @@ cd C:\OFA\staging\repo\backend
 
 16. Confirm the second cleanup is idempotent and Control Center reports `investigations_disabled=true`, `player_surfaces_disabled=true`, and `authored_events_disabled=true`.
 
-Do not use `noobuus` for progression-changing Phase 8 validation. Phase 8 remains open until this physical evidence is reviewed and explicitly accepted.
+Do not use `noobuus` for progression-changing Phase 8 validation.
+
+### Physical Browser Closure Checkpoint
+
+The disposable Phase 8 browser-validation lifecycle was exercised successfully on the physical Windows staging server:
+
+- the disposable ordinary account authenticated through the existing local staging email-link flow
+- the authored investigation opened from the canonical Cases section and started successfully
+- both authorized evidence candidates could be pinned, and one could be unpinned, without changing or revealing canonical relationships
+- an incorrect answer returned only the neutral `finding not accepted` response and did not resolve the step
+- the exact fixture answer resolved the `Recurrence phrase` step and investigation through the authoritative server path
+- the expected canonical custody item appeared in Inventory after resolution
+- cleanup removed the disposable Phase 8 fixture state and restored the operational modes
+- a second cleanup invocation confirmed idempotency
+- final Control Center inspection confirmed `investigations_disabled=true`, `player_surfaces_disabled=true`, and `authored_events_disabled=true`
+- a post-cleanup `RunValidation` completed successfully, including the Phase 1-8 checks and disposable fixture cleanup
+
+No progression-changing validation was performed on `noobuus`. The hidden OWNER role remained separate from fictional progression and ordinary player presentation. Production exposure, Steam/game integration, public redesign, and production-only security validation remain deferred rather than implicitly accepted from loopback staging.
 
 ## Recommendation
 
@@ -883,7 +900,7 @@ Designing source adapters too specifically around a nonexistent game protocol wo
 
 ## Acceptance And Freeze Criteria
 
-Phase 8 may close only when:
+Phase 8 acceptance criteria are complete:
 
 - approved scope is implemented without adding deferred features
 - migration `0007` is additive and seven-migration backup/restore succeeds
@@ -898,6 +915,6 @@ Phase 8 may close only when:
 - physical Windows staging migration, `RunValidation`, browser validation, and plaintext-answer absence checks pass
 - `investigations_disabled=true`, `player_surfaces_disabled=true`, and `authored_events_disabled=true` remain restored
 - production, Steam, game, public redesign, and legacy migration behavior remain explicitly unclaimed
-- physical evidence is reviewed and closure is explicitly authorized
+- physical evidence was reviewed and closure was explicitly authorized
 
-After closure, freeze the implementation branch at the accepted SHA. Do not begin the next phase automatically.
+Phase 8 is frozen at the closure checkpoint committed to `ofa-2-phase-8-canonical-investigations`. Do not continue implementation on this branch and do not begin Phase 9 without separate authorization.
